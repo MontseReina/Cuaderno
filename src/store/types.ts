@@ -123,12 +123,20 @@ export interface Meal {
 }
 export type WeekMode = 'quimio' | 'nadir'
 export interface SyncEntry { done?: boolean; time?: string; minutes?: number | null }
+/** Capacidad funcional del día (antes era semanal). */
+export interface FunctionalDaily {
+  stairs?: boolean
+  stands_alone?: boolean
+  walk_min?: number | null
+  falls?: string
+}
 /** Campos añadidos en la v0.4 (columna JSONB `extra`). */
 export interface DailyExtra {
   mode?: WeekMode // modo manual de la semana (si no, se deduce del ciclo)
   fasting_h?: number | null // horas de ayuno tecleadas (si no, se calculan)
   infusion_cups?: number | null // infusiones manzanilla / jengibre (medias tazas)
   sync?: Partial<Record<'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure', SyncEntry>>
+  functional?: FunctionalDaily // capacidad funcional del día
 }
 
 export interface DailyLog extends BaseRow {

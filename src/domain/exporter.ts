@@ -208,7 +208,9 @@ export function buildAiReport(from: string, to: string): string {
     if (light.length) sl.push(light.join(', '))
     if (sl.length) L.push(`- Sueño y luz: ${sl.join(' · ')}`)
     const act = Object.entries(l.activity).filter(([, v]) => v).map(([k]) => k)
-    if (act.length || l.activity_min || l.steps) L.push(`- Actividad: ${act.join(', ')}${l.activity_min ? ` · ${l.activity_min} min` : ''}${l.steps ? ` · ${l.steps} pasos` : ''}`)
+    const fu = l.extra?.functional
+    const fuTxt = fu ? [fu.stairs && 'sube escaleras', fu.stands_alone && 'se levanta solo', fu.walk_min != null && `aguanta paseo ${fu.walk_min} min`, fu.falls && `caídas: ${fu.falls}`].filter(Boolean).join(', ') : ''
+    if (act.length || l.activity_min || l.steps || fuTxt) L.push(`- Actividad: ${act.join(', ')}${l.activity_min ? ` · ${l.activity_min} min` : ''}${l.steps ? ` · ${l.steps} pasos` : ''}${fuTxt ? ` · capacidad funcional: ${fuTxt}` : ''}`)
     const ev = events.filter((e) => e.start_at.slice(0, 10) === l.date)
     if (ev.length) L.push(`- Agenda: ${ev.map((e) => `${e.title} (${e.type}, ${e.status})`).join('; ')}`)
     const td = todos.filter((t) => t.done_at!.slice(0, 10) === l.date)
