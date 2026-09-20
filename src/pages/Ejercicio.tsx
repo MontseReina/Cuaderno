@@ -75,6 +75,7 @@ export default function Ejercicio() {
                 <div className="small">Semana del {fmtDate(f.week_start)}</div>
                 <div className="meta">{[f.stairs && 'sube escaleras', f.stands_alone && 'se levanta solo', f.walk_min != null && `paseo ${f.walk_min} min`, f.falls && `caídas: ${f.falls}`].filter(Boolean).join(' · ') || 'sin datos'}</div>
               </div>
+              <button className="btn sm ghost" title="Borrar este registro" onClick={() => { if (confirm(`¿Borrar el registro de la semana del ${fmtDate(f.week_start)}?`)) remove('functional_weekly', f.id) }}>✕</button>
             </div>
           ))}
         </Section>
