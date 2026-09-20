@@ -36,6 +36,17 @@ export interface Profile {
   color?: string
 }
 
+/** Hallazgo medible tomado de un informe (nódulo, lesión, adenopatía…). */
+export interface Finding {
+  date: string // fecha del informe
+  name: string // p. ej. "Nódulo pulmonar"
+  location?: string // p. ej. "lóbulo superior derecho"
+  size_mm?: number | null
+  count?: number | null
+  source?: string // informe del que sale (TAC, PET-TAC…)
+  notes?: string
+}
+
 export type DiagnosisKind = 'principal' | 'metastasis' | 'complicacion' | 'infeccion' | 'otro'
 export type DiagnosisStatus = 'activo' | 'resuelto'
 export interface Diagnosis extends BaseRow {
@@ -48,6 +59,7 @@ export interface Diagnosis extends BaseRow {
   watch_signs: string[]
   treatment_ref?: string
   evolution: { date: string; text: string; by: string }[]
+  findings?: Finding[]
 }
 
 export type MedRoute = 'oral' | 'im' | 'iv'

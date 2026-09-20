@@ -22,7 +22,7 @@ export default function Ciclos() {
         <button className="btn sm" onClick={() => setEditing({ number: (cycles[0]?.number ?? 0) + 1, drugs: [], planned_date: todayStr(), corticoid_iv: false })}>+ Ciclo</button>
       </div>
       {Object.keys(acc).length > 0 && (
-        <div className="card tight">
+        <div className="card tight accent">
           <strong>Dosis acumulada</strong>
           {Object.entries(acc).map(([d, v]) => {
             const th = DOSE_THRESHOLDS[d]

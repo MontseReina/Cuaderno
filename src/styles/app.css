@@ -151,3 +151,4 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .macros { display: grid; grid-template-columns: 1fr; gap: .35rem; margin-top: .4rem; }
 .macros .field { margin: 0; }
 .macros .field > span { font-size: .78rem; }
+.card.accent { background: var(--primary-soft); border-color: #a9c9e2; }

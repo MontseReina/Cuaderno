@@ -48,10 +48,8 @@ export default function Home() {
     const p = [1, 2].map((n) => byDate.get(addDays(d, -n))).filter((x): x is NonNullable<typeof x> => !!x)
     return { d, level: l ? dailyTraffic(l, p, c, symptomsForToday(c, diagnoses)).level : '' }
   })
-  const upcoming = events
-    .filter((e) => new Date(e.start_at).getTime() > Date.now() - 3600000)
-    .sort((a, b) => a.start_at.localeCompare(b.start_at))
-    .slice(0, 5)
+  const hoyEventos = events.filter((e) => e.start_at.slice(0, 10) === today).sort((a, b) => a.start_at.localeCompare(b.start_at))
+  const masAdelante = events.filter((e) => e.start_at.slice(0, 10) > today).length
   const mine = todos.filter((t) => t.assignees.includes(me))
   const unassigned = todos.filter((t) => t.assignees.length === 0)
   const phone = patient?.phone_oncology
@@ -131,7 +129,7 @@ export default function Home() {
         <div className="notice">Cura del catéter: tocaba el {fmtDate(dressingDue)} (última {fmtDate(patient!.catheter_last_dressing)}). Actualízala en <Link to="/ajustes">Ajustes</Link> cuando se haga.</div>
       )}
 
-      <h2>Hoy y próximos días</h2>
+      <h2>Hoy</h2>
       <div className="card tight">
         {mine.length === 0 && unassigned.length === 0 && todos.length === 0 && <div className="muted">No hay pendientes.</div>}
         {mine.map((t) => (
@@ -147,15 +145,20 @@ export default function Home() {
         )}
       </div>
       <div className="card tight">
-        {upcoming.length === 0 && <div className="muted">Nada en el calendario próximamente. <Link to="/calendario">Añadir</Link></div>}
-        {upcoming.map((e) => (
+        {hoyEventos.length === 0 && <div className="muted">Nada en el calendario para hoy. <Link to="/calendario">Añadir</Link></div>}
+        {hoyEventos.map((e) => (
           <div className="item" key={e.id}>
             <div className="main">
               <div>{e.title}</div>
-              <div className="meta">{e.all_day ? fmtDate(e.start_at) : fmtDateTime(e.start_at)}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}</div>
+              <div className="meta">{e.all_day ? 'todo el día' : fmtDateTime(e.start_at).replace(/^.*?, /, '')}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}</div>
             </div>
           </div>
         ))}
+        {masAdelante > 0 && (
+          <div className="muted small" style={{ paddingTop: '.4rem' }}>
+            <Link to="/calendario">{masAdelante} cita{masAdelante > 1 ? 's' : ''} en los próximos días →</Link>
+          </div>
+        )}
       </div>
 
       <h2>Pilares</h2>

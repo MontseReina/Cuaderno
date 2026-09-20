@@ -117,7 +117,7 @@ end $$;
 select _mk('diagnoses', $c$
   name text not null, kind text not null default 'otro', date date not null, confirmed_by text,
   status text not null default 'activo', status_date date, watch_signs jsonb default '[]',
-  treatment_ref text, evolution jsonb default '[]'
+  treatment_ref text, evolution jsonb default '[]', findings jsonb not null default '[]'
 $c$);
 
 select _mk('cycles', $c$
