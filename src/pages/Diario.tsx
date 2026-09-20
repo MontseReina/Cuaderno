@@ -1,59 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { backend, currentPatientId, save, useRows } from '../store'
-import type { DailyLog, Meal, MealSlot } from '../store/types'
+import { useMemo, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { backend, useRows } from '../store'
+import { useDailyDraft } from '../store/useDailyDraft'
+import type { DailyLog } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import {
-  ACTIVITIES, BRISTOL_HELP, CARB_HELP, CUP_ML, FATIGUE_LABELS, FRACTION_LABELS, MEAL_SLOTS, MOOD_FACES,
-  PREVENTIVE, SEVERITY_LABELS, STOOL_COLORS, URINE_COLORS, URINE_LABELS, WAKEUP_CAUSES, DRUG_WATCH, DRUG_LABELS,
+  BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
+  PREVENTIVE, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
 } from '../domain/catalogs'
-import { carbProfile, eatingWindow, meanIntake, overnightFast } from '../domain/nutrition'
-import { Check, Faces, Field, Section, Segmented, Severity, Stepper, useToast } from '../components/ui'
-
-const emptyLog = (date: string): Omit<DailyLog, keyof import('../store/types').BaseRow> & { date: string } => ({
-  date, symptoms: {}, preventive: {}, meals: [], activity: {},
-})
+import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
+import { DateNav } from '../components/DateNav'
+import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper } from '../components/ui'
 
 export default function Diario() {
   const params = useParams()
-  const nav = useNavigate()
   const date = params.date ?? todayStr()
-  const logs = useRows('daily_logs')
+  const { draft, set, logs, toastNode } = useDailyDraft(date)
   const cycles = useRows('cycles')
   const diagnoses = useRows('diagnoses')
   const patient = backend.all('patients')[0]
-  const existing = logs.find((l) => l.date === date)
-  const [draft, setDraft] = useState<DailyLog>(() => ({ ...(emptyLog(date) as DailyLog), ...(existing ?? {}) }))
-  const { toast, node } = useToast()
-  const dirty = useRef(false)
-
-  useEffect(() => {
-    setDraft({ ...(emptyLog(date) as DailyLog), ...(existing ?? {}) })
-    dirty.current = false
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, existing?.id])
-
-  // Autoguardado 800 ms después del último cambio.
-  useEffect(() => {
-    if (!dirty.current) return
-    const t = setTimeout(async () => {
-      const saved = await save('daily_logs', { ...draft, patient_id: currentPatientId(), date })
-      if (!draft.id) setDraft((d) => ({ ...d, id: saved.id }))
-      dirty.current = false
-      toast('Guardado')
-    }, 800)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft])
-
-  const set = useCallback(<K extends keyof DailyLog>(k: K, v: DailyLog[K]) => {
-    dirty.current = true
-    setDraft((d) => ({ ...d, [k]: v }))
-  }, [])
 
   const ctx = cycleContext(cycles, date)
   const defs = symptomsForToday(ctx, diagnoses)
+  const mode = weekMode(draft, ctx)
+  const [listMode, setListMode] = useState<'auto' | 'quimio' | 'nadir'>('auto')
+  const shownMode = listMode === 'auto' ? mode : listMode
+  // Lista de síntomas por semana: quimio = siempre + ciclo · nadir = siempre + fuera (+ signos de diagnósticos activos)
+  const shownDefs = shownMode === mode ? defs : [...SYMPTOMS.filter((s) => s.when === 'siempre' || (shownMode === 'quimio' ? s.when === 'ciclo' : s.when === 'fuera')), ...defs.filter((d) => d.key.startsWith('dx_'))]
+  const nut = dayNutrition(draft, mode)
   const byDate = new Map(logs.map((l) => [l.date, l]))
   const prev = [1, 2, 3].map((n) => byDate.get(addDays(date, -n))).filter((l): l is DailyLog => !!l)
   const traffic = dailyTraffic(draft, prev, ctx, defs)
@@ -62,34 +37,11 @@ export default function Diario() {
   const groups = useMemo(() => Array.from(new Set(preventive.map((p) => p.group))), [preventive])
   const symptomsMarked = Object.values(draft.symptoms).filter((v) => v > 0).length
   const prevDone = preventive.filter((p) => draft.preventive[p.key]).length
-  const win = eatingWindow(draft.meals)
-  const fast = overnightFast(draft, byDate.get(addDays(date, -1)))
-
-  const setMeal = (slot: MealSlot, patch: Partial<Meal>) => {
-    const meals = [...draft.meals]
-    const i = meals.findIndex((m) => m.slot === slot)
-    const base: Meal = i >= 0 ? meals[i] : { slot }
-    const next = { ...base, ...patch }
-    if (!next.time && (patch.fraction != null || patch.carb)) next.time = new Date().toTimeString().slice(0, 5)
-    if (i >= 0) meals[i] = next
-    else meals.push(next)
-    set('meals', meals)
-  }
-  const meal = (slot: string) => draft.meals.find((m) => m.slot === slot)
 
   return (
     <div>
-      {node}
-      <div className="row between" style={{ marginBottom: '.6rem' }}>
-        <button className="btn sm ghost" onClick={() => nav(`/diario/${addDays(date, -1)}`)}>‹</button>
-        <div style={{ textAlign: 'center' }}>
-          <strong>{date === todayStr() ? 'Hoy' : fmtDate(date)}</strong>
-          <div className="muted small">
-            {ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day} · ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle D7-14' : 'fuera de ciclo'}` : 'sin ciclo'}
-          </div>
-        </div>
-        <button className="btn sm ghost" disabled={date >= todayStr()} onClick={() => nav(`/diario/${addDays(date, 1)}`)}>›</button>
-      </div>
+      {toastNode}
+      <DateNav date={date} base="/diario" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day} · ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle D7-14' : 'fuera de ciclo'}` : 'sin ciclo'} />
 
       <div className={'traffic ' + traffic.level} style={{ padding: '.6rem .9rem' }}>
         <strong>
@@ -105,14 +57,9 @@ export default function Diario() {
           value={draft.location}
           onChange={(v) => set('location', v ?? undefined)}
         />
-        <div className="grid2">
-          <Field label="Temperatura máx. (°C)">
-            <input type="number" inputMode="decimal" step="0.1" min={34} max={43} value={draft.temp_max ?? ''} onChange={(e) => set('temp_max', e.target.value === '' ? null : Number(e.target.value))} />
-          </Field>
-          <Field label="Peso (kg) — 2 veces por semana">
-            <input type="number" inputMode="decimal" step="0.1" min={0} value={draft.weight ?? ''} onChange={(e) => set('weight', e.target.value === '' ? null : Number(e.target.value))} />
-          </Field>
-        </div>
+        <Field label="Temperatura máx. (°C)">
+          <input type="number" inputMode="decimal" step="0.1" min={34} max={43} value={draft.temp_max ?? ''} onChange={(e) => set('temp_max', e.target.value === '' ? null : Number(e.target.value))} />
+        </Field>
         <Field label="Color de la orina">
           <div className="urine">
             {URINE_COLORS.map((c, i) => (
@@ -131,13 +78,10 @@ export default function Diario() {
             <Field label="pH orina"><input type="number" inputMode="decimal" step="0.5" value={draft.urine_ph ?? ''} onChange={(e) => set('urine_ph', e.target.value === '' ? null : Number(e.target.value))} /></Field>
           </div>
         )}
-        <div className="grid2">
-          <Field label="Deposiciones (nº)"><Stepper value={draft.stools_n} onChange={(v) => set('stools_n', v)} /></Field>
-          <Field label="Bristol (1-7)">
-            <Stepper value={draft.bristol} onChange={(v) => set('bristol', v)} min={1} max={7} />
-            {draft.bristol ? <div className="muted small">{BRISTOL_HELP[draft.bristol]}</div> : null}
-          </Field>
-        </div>
+        <Field label="Deposiciones (nº)"><Stepper value={draft.stools_n} onChange={(v) => set('stools_n', v)} /></Field>
+        <Field label="Tipo de deposición (escala de Bristol)">
+          <Bristol value={draft.bristol} onChange={(v) => set('bristol', v)} help={BRISTOL_HELP} />
+        </Field>
         <Field label="Color de las heces">
           <Segmented options={STOOL_COLORS.map((s) => ({ value: s.key, label: s.label }))} value={draft.stool_color ?? null} onChange={(v) => set('stool_color', v as DailyLog['stool_color'])} />
         </Field>
@@ -153,9 +97,14 @@ export default function Diario() {
         </Field>
       </Section>
 
-      <Section title={`Síntomas y signos (${symptomsMarked} marcados)`} open right={<span className="tag gray">{ctx.inCycle ? 'lista en ciclo' : 'lista fuera de ciclo'}</span>}>
-        <p className="muted small">Marca solo lo que hay. Lo que no se toca cuenta como "No".</p>
-        {defs.map((d) => (
+      <Section title={`Síntomas y signos (${symptomsMarked} marcados)`} open right={<span className="tag gray">{MODE_LABELS[shownMode]}</span>}>
+        <Segmented
+          options={[{ value: 'quimio', label: 'Semana de quimio' }, { value: 'nadir', label: 'Semana nadir' }]}
+          value={shownMode}
+          onChange={(v) => setListMode(v && v !== mode ? v : 'auto')}
+        />
+        <p className="muted small">Marca solo lo que hay. Lo que no se toca cuenta como "No". La lista cambia sola con el ciclo; se puede ver la otra.</p>
+        {shownDefs.map((d) => (
           <div key={d.key} style={{ margin: '.5rem 0' }}>
             <div className="small" style={{ marginBottom: '.2rem' }}>{d.label}</div>
             <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />
@@ -184,103 +133,16 @@ export default function Diario() {
         ))}
       </Section>
 
-      <Section title="Comidas" right={<span className="tag gray">{carbProfile(draft.meals)}</span>}>
-        <p className="muted small">Fracción del plato servido + carga de hidratos. La hora se pone sola (se puede cambiar).</p>
-        {MEAL_SLOTS.map((s) => {
-          const m = meal(s.key)
-          return (
-            <div key={s.key} className="card tight" style={{ marginBottom: '.5rem' }}>
-              <div className="row between">
-                <strong>{s.label}</strong>
-                <input type="time" style={{ width: 'auto' }} value={m?.time ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { time: e.target.value })} />
-              </div>
-              <Segmented
-                options={([0, 0.25, 0.5, 0.75, 1] as const).map((f) => ({ value: f, label: FRACTION_LABELS[String(f)] }))}
-                value={m?.fraction}
-                onChange={(v) => setMeal(s.key as MealSlot, { fraction: v ?? undefined })}
-              />
-              <div style={{ marginTop: '.4rem' }}>
-                <Segmented
-                  options={(['sin', 'baja', 'media', 'alta'] as const).map((c) => ({ value: c, label: CARB_HELP[c].label }))}
-                  value={m?.carb}
-                  onChange={(v) => setMeal(s.key as MealSlot, { carb: v ?? undefined })}
-                />
-                {m?.carb && <div className="muted small">{CARB_HELP[m.carb].help}</div>}
-              </div>
-              <div className="row" style={{ marginTop: '.4rem' }}>
-                <select style={{ width: 'auto' }} value={m?.texture ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { texture: (e.target.value || undefined) as Meal['texture'] })}>
-                  <option value="">Textura…</option>
-                  <option value="normal">Normal</option>
-                  <option value="blando">Blando</option>
-                  <option value="triturado">Triturado</option>
-                  <option value="liquido">Líquido</option>
-                </select>
-                <input type="text" placeholder="Qué (opcional)" value={m?.note ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { note: e.target.value })} style={{ flex: 1 }} />
-              </div>
-            </div>
-          )
-        })}
-        <div className="muted small">
-          Ingesta media: {meanIntake(draft.meals) != null ? Math.round(meanIntake(draft.meals)! * 100) + ' %' : '—'}
-          {win && ` · Ventana de alimentación ${win.first}–${win.last} (${win.hours} h)`}
-          {fast != null && ` · Ayuno nocturno ${fast} h`}
-        </div>
-        <details style={{ marginTop: '.5rem' }}>
-          <summary className="small">¿Qué significa cada carga de hidratos?</summary>
-          {Object.values(CARB_HELP).map((c) => (
-            <div key={c.label} className="small"><strong>{c.label}:</strong> {c.help}</div>
-          ))}
-        </details>
-      </Section>
-
-      <Section title="Líquidos">
-        <p className="muted small">Media taza = {CUP_ML} ml. Los caldos e infusiones también cuentan en el total.</p>
-        <div className="grid2">
-          <Field label="Total del día (ml)"><input type="number" inputMode="numeric" step={CUP_ML} value={draft.fluids_total_ml ?? ''} onChange={(e) => set('fluids_total_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-          <Field label="Agua (ml)"><input type="number" inputMode="numeric" step={CUP_ML} value={draft.water_ml ?? ''} onChange={(e) => set('water_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-          <Field label="Agua de mar (ml)"><input type="number" inputMode="numeric" step={50} value={draft.seawater_ml ?? ''} onChange={(e) => set('seawater_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-          <Field label="Caldo de Santa Paciencia (medias tazas)"><Stepper value={draft.broth_cups} onChange={(v) => set('broth_cups', v)} /></Field>
-        </div>
-      </Section>
-
-      <Section title="Sueño y luz">
-        <div className="grid2">
-          <Field label="Se dormió a las"><input type="time" value={draft.sleep_start ?? ''} onChange={(e) => set('sleep_start', e.target.value || null)} /></Field>
-          <Field label="Se despertó a las"><input type="time" value={draft.sleep_end ?? ''} onChange={(e) => set('sleep_end', e.target.value || null)} /></Field>
-          <Field label="Despertares"><Stepper value={draft.wakeups} onChange={(v) => set('wakeups', v)} /></Field>
-          <Field label="Siesta (min)"><input type="number" inputMode="numeric" value={draft.nap_min ?? ''} onChange={(e) => set('nap_min', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-        </div>
-        {(draft.wakeups ?? 0) > 0 && (
-          <Field label="Causa principal">
-            <Segmented options={WAKEUP_CAUSES.map((c) => ({ value: c, label: c }))} value={draft.wakeup_cause} onChange={(v) => set('wakeup_cause', v ?? undefined)} />
-          </Field>
-        )}
-        <Check checked={!!draft.ir_morning} onChange={(v) => set('ir_morning', v)}>Luz infrarroja por la mañana</Check>
-        <Check checked={!!draft.ir_night} onChange={(v) => set('ir_night', v)}>Luz infrarroja por la noche</Check>
-        <Check checked={!!draft.glasses} onChange={(v) => set('glasses', v)}>Gafas puestas correctamente por la noche</Check>
-        <Check checked={!!draft.daylight_morning} onChange={(v) => set('daylight_morning', v)}>Paseo con luz natural por la mañana</Check>
-        <Check checked={!!draft.daylight_afternoon} onChange={(v) => set('daylight_afternoon', v)}>Paseo con luz natural por la tarde</Check>
-        <Check checked={!!draft.sun_exposure} onChange={(v) => set('sun_exposure', v)}>Exposición solar con cuidado</Check>
-      </Section>
-
-      <Section title="Actividad y pasos">
-        <div className="chips">
-          {ACTIVITIES.map((a) => (
-            <button key={a.key} type="button" className={'chip ' + (draft.activity[a.key] ? 'on' : '')} onClick={() => set('activity', { ...draft.activity, [a.key]: !draft.activity[a.key] })}>{a.label}</button>
-          ))}
-        </div>
-        <div className="grid2">
-          <Field label="Minutos totales aprox.">
-            <Segmented options={[5, 15, 30, 45, 60].map((m) => ({ value: m, label: m === 60 ? '60+' : String(m) }))} value={draft.activity_min} onChange={(v) => set('activity_min', v)} />
-          </Field>
-          <Field label="Pasos (del reloj del cuidador)"><input type="number" inputMode="numeric" value={draft.steps ?? ''} onChange={(e) => set('steps', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-        </div>
-        <p className="muted small">Fuerza y aeróbico con detalle (series, repeticiones, carga) en <Link to="/ejercicio">Ejercicio</Link>.</p>
-      </Section>
+      <div className="card tight">
+        <strong>Otros registros del día</strong>
+        <div className="item"><div className="main"><Link to={`/nutricion/${date}`}>🥣 Comidas y peso</Link><div className="meta"><span className={'dot ' + nut.level} />{nut.meals}/{nut.target} comidas · {MODE_LABELS[mode].toLowerCase()}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/hidratacion/${date}`}>💧 Hidratación</Link><div className="meta">{totalFluids(draft) != null ? `${totalFluids(draft)} ml` : 'sin registrar'}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/biohacking/${date}`}>🌙 Sueño y luz</Link><div className="meta">{draft.sleep_start && draft.sleep_end ? `${draft.sleep_start}–${draft.sleep_end}` : 'sin registrar'}{draft.wakeups ? ` · ${draft.wakeups} despertares` : ''}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/ejercicio/${date}`}>🏃 Actividad y pasos</Link><div className="meta">{draft.steps ? `${draft.steps} pasos` : ''}{draft.activity_min ? ` · ${draft.activity_min} min` : ''}{!draft.steps && !draft.activity_min ? 'sin registrar' : ''}</div></div></div>
+      </div>
 
       <Section title="Notas del día" open={!!draft.notes}>
         <textarea value={draft.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="Cualquier cosa que no esté en las listas…" />
-        <Field label="Altura (cm) — una vez al mes"><input type="number" inputMode="decimal" value={draft.height_cm ?? ''} onChange={(e) => set('height_cm', e.target.value === '' ? null : Number(e.target.value))} /></Field>
       </Section>
     </div>
   )

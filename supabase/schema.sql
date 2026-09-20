@@ -139,6 +139,7 @@ select _mk('daily_logs', $c$
   sleep_start text, sleep_end text, wakeups int, wakeup_cause text, nap_min int,
   ir_morning boolean, ir_night boolean, glasses boolean, daylight_morning boolean, daylight_afternoon boolean, sun_exposure boolean,
   activity jsonb not null default '{}', activity_min int, steps int, notes text,
+  extra jsonb not null default '{}',
   unique (patient_id, date)
 $c$);
 
@@ -198,6 +199,7 @@ $c$);
 
 select _mk('exposures_weekly', $c$ week_start date not null, items jsonb not null default '{}', notes text, unique (patient_id, week_start) $c$);
 select _mk('practices', $c$ name text not null, safety text not null default 'ambar', safety_reason text, authorized_by text, active boolean default true, notes text $c$);
+select _mk('weights', $c$ at timestamptz not null, kg numeric not null, height_cm numeric, source text not null default 'casa', muscle_kg numeric, fat_pct numeric, water_pct numeric, notes text $c$);
 select _mk('practice_log', $c$ date date not null, practice_id uuid not null references practices(id) on delete cascade, unique (practice_id, date) $c$);
 
 drop function _mk(text, text);
@@ -253,7 +255,7 @@ create trigger on_auth_user_created after insert on auth.users for each row exec
 do $$
 declare t text;
 begin
-  for t in select unnest(array['patients','profiles','diagnoses','cycles','daily_logs','products','intakes','lab_panels','lab_results','organ_tests','microbiome_tests','calendar_events','todos','questions','weekly_child','weekly_caregiver','caregiver_daily','exercise_sessions','functional_weekly','exposures_weekly','practices','practice_log'])
+  for t in select unnest(array['patients','profiles','diagnoses','cycles','daily_logs','products','intakes','lab_panels','lab_results','organ_tests','microbiome_tests','calendar_events','todos','questions','weekly_child','weekly_caregiver','caregiver_daily','exercise_sessions','functional_weekly','exposures_weekly','practices','practice_log','weights'])
   loop
     begin
       execute format('alter publication supabase_realtime add table %I', t);

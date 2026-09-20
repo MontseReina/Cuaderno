@@ -18,6 +18,7 @@ import Ajustes from './pages/Ajustes'
 import Mas from './pages/Mas'
 import Nutricion from './pages/Nutricion'
 import Biohacking from './pages/Biohacking'
+import Hidratacion from './pages/Hidratacion'
 import Biblioteca from './pages/Biblioteca'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
@@ -91,11 +92,16 @@ function Shell() {
           <Route path="/equipo" element={<Equipo />} />
           <Route path="/emocional" element={<Emocional />} />
           <Route path="/ejercicio" element={<Ejercicio />} />
+          <Route path="/ejercicio/:date" element={<Ejercicio />} />
           <Route path="/microbiota" element={<Microbiota />} />
           <Route path="/ajustes" element={<Ajustes />} />
           <Route path="/mas" element={<Mas />} />
           <Route path="/nutricion" element={<Nutricion />} />
+          <Route path="/nutricion/:date" element={<Nutricion />} />
+          <Route path="/hidratacion" element={<Hidratacion />} />
+          <Route path="/hidratacion/:date" element={<Hidratacion />} />
           <Route path="/biohacking" element={<Biohacking />} />
+          <Route path="/biohacking/:date" element={<Biohacking />} />
           <Route path="/biblioteca" element={<Biblioteca />} />
           <Route path="/datos" element={<Datos />} />
         </Routes>

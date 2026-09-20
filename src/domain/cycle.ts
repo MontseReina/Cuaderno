@@ -115,3 +115,19 @@ export const DOSE_THRESHOLDS: Record<string, { warn: number; label: string }> = 
   ADM: { warn: 360, label: 'Antraciclina: umbral clásico de cardiotoxicidad 450-500 mg/m²' },
   CDDP: { warn: 480, label: 'Cisplatino: vigilancia renal y auditiva intensiva' },
 }
+
+/** Día de cisplatino: en ciclo con CDDP (perfusión de 48 h) → menos hidrato y grasa en los platos. */
+export function isCisplatinDay(ctx: CycleContext) {
+  return !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP')
+}
+/** Corticoide intravenoso en el ciclo actual o en los últimos días (repercute en glucosa y sueño). */
+export function corticoidAlert(cycles: Cycle[], date: string): Cycle | null {
+  for (const c of cycles) {
+    const hasCortico = c.corticoid_iv || /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i.test((c.other_meds?.infusion ?? []).map((m) => m.name).join(' '))
+    if (!hasCortico) continue
+    const d0 = (c.start_at ?? c.planned_date).slice(0, 10)
+    const d = diffDays(date, d0)
+    if (d >= 0 && d <= 5) return c
+  }
+  return null
+}

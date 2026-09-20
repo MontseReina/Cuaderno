@@ -1,5 +1,6 @@
 // Catálogos de la app (v4). Todos los textos en lenguaje llano para cuidadores.
 
+/** when: 'siempre' = en las dos listas · 'ciclo' = semana de quimio · 'fuera' = semana nadir / entre ciclos */
 export interface SymptomDef {
   key: string
   label: string
@@ -18,7 +19,7 @@ export const SYMPTOMS: SymptomDef[] = [
   { key: 'oido', label: 'Oye peor o pitidos', when: 'siempre' },
   { key: 'disnea', label: 'Dificultad para respirar o dolor en el pecho', when: 'siempre', redAt3: true },
   { key: 'somnolencia', label: 'Somnolencia o confusión inusual', when: 'siempre', redAt3: true },
-  { key: 'nauseas', label: 'Náuseas', when: 'ciclo' },
+  { key: 'nauseas', label: 'Náuseas', when: 'siempre', help: 'Leve: lo dice pero come · Moderado: come menos por las náuseas · Intenso: no puede comer' },
   { key: 'vomitos', label: 'Vómitos', when: 'ciclo', redAt3: true, help: 'Intenso: no retiene líquidos' },
   { key: 'distension', label: 'Plenitud o tripa hinchada', when: 'ciclo' },
   { key: 'estrenimiento', label: 'Estreñimiento', when: 'ciclo' },
@@ -54,11 +55,6 @@ export const PREVENTIVE: PreventiveDef[] = [
   { key: 'temperatura', label: 'Temperatura tomada', group: 'Neutropenia (D7-14)', when: 'nadir' },
   { key: 'manos', label: 'Higiene de manos de todos en casa', group: 'Neutropenia (D7-14)', when: 'nadir' },
   { key: 'liquidos_mtx', label: 'Líquidos abundantes y pH urinario controlado', group: 'Día de metotrexato', when: 'mtx' },
-  { key: 'nada_rectal', label: 'Nada por vía rectal (termómetro, supositorios)', group: 'Siempre' },
-  { key: 'sin_farmacos_nuevos', label: 'Ningún fármaco nuevo sin consultar (AINE, IBP…)', group: 'Siempre' },
-  { key: 'miembro', label: 'Miembro afectado protegido / sin caídas', group: 'Siempre' },
-  { key: 'ojos_nariz', label: 'Higiene ocular y nasal si hay sequedad', group: 'Siempre' },
-  { key: 'antitrombotico', label: 'Medidas antitrombóticas indicadas por el equipo (movilizar, medias, medicación)', group: 'Si lo indica el equipo' },
 ]
 
 export const CARB_HELP: Record<string, { label: string; help: string }> = {
@@ -70,14 +66,39 @@ export const CARB_HELP: Record<string, { label: string; help: string }> = {
 export const FRACTION_LABELS: Record<string, string> = {
   '0': 'Nada', '0.25': '¼', '0.5': '½', '0.75': '¾', '1': 'Todo',
 }
-export const MEAL_SLOTS: { key: string; label: string }[] = [
+export const MEAL_SLOTS: { key: string; label: string; fat?: boolean }[] = [
   { key: 'desayuno', label: 'Desayuno' },
   { key: 'media_manana', label: 'Media mañana' },
   { key: 'comida', label: 'Comida' },
   { key: 'merienda', label: 'Merienda' },
   { key: 'cena', label: 'Cena' },
+  { key: 'snack_grasa_1', label: '5ª · Snack de grasas', fat: true },
+  { key: 'snack_grasa_2', label: '6ª · Snack de grasas', fat: true },
   { key: 'otra', label: 'Otra' },
 ]
+/** Comidas que se muestran según el modo de la semana (pauta de la nutricionista, 10-sept-2026). */
+export const MEAL_SLOTS_BY_MODE: Record<'quimio' | 'nadir', string[]> = {
+  quimio: ['desayuno', 'comida', 'merienda', 'cena'], // 3-4 comidas, lo que tolere
+  nadir: ['desayuno', 'media_manana', 'comida', 'merienda', 'cena', 'snack_grasa_1', 'snack_grasa_2'], // 6 comidas; 5ª y 6ª = snacks de grasa
+}
+export const MEALS_TARGET: Record<'quimio' | 'nadir', { min: number; fatSnacks: number }> = {
+  quimio: { min: 3, fatSnacks: 0 },
+  nadir: { min: 6, fatSnacks: 2 },
+}
+export const MODE_LABELS: Record<'quimio' | 'nadir', string> = { quimio: 'Semana de quimio', nadir: 'Semana nadir' }
+export const MACRO_OPTS = {
+  veg: [{ value: 0, label: 'Nada' }, { value: 1, label: 'Poca' }, { value: 2, label: '≈ ½ plato' }],
+  prot: [{ value: 0, label: 'Nada' }, { value: 1, label: 'Poca' }, { value: 2, label: '≈ ⅓ plato' }],
+  starch: [{ value: 0, label: 'Nada' }, { value: 1, label: 'Poco' }, { value: 2, label: '≈ ¼ plato' }, { value: 3, label: 'Más de ¼' }],
+} as const
+export const FAT_EXAMPLES = 'AOVE o sésamo crudo por encima, ghee, tahine, semillas, aceite de coco, huevo, caldo de huesos, proteína de guisante'
+/** Objetivos de líquidos orientativos por modo (ml/día). Pendiente de validar con la nutricionista. */
+export const FLUID_TARGET: Record<'quimio' | 'nadir', number> = { quimio: 1500, nadir: 1200 }
+export const SEAWATER_TARGET_ML = 50 // "chupitos" de agua de mar
+export const HYDRATION_TIPS: Record<'quimio' | 'nadir', string[]> = {
+  quimio: ['Agua a sorbos frecuentes; en metotrexato, líquidos abundantes y pH de orina controlado', 'Chupitos de agua de mar', 'Manzanilla y jengibre (sin limón): regeneran mucosas', 'Caldo de verduras + huesos como base de los platos'],
+  nadir: ['Mantener agua + agua de mar aunque no tenga sed', 'Infusiones de manzanilla / jengibre templadas', 'Caldo de Santa Paciencia (medias tazas) cuenta como líquido', 'Si vomita o hay diarrea: reponer con caldo salado y avisar si no retiene'],
+}
 export const CUP_ML = 200 // media taza = 200 ml (decisión de la familia)
 
 export const URINE_COLORS = ['#f7f6ee', '#f6efb8', '#f1df6e', '#e6c53a', '#c9962a', '#9c4a24']
@@ -90,7 +111,7 @@ export const STOOL_COLORS = [
   { key: 'palido', label: 'Pálido' },
   { key: 'verdoso', label: 'Verdoso' },
 ]
-export const BRISTOL_HELP = ['', 'Bolas duras', 'Salchicha grumosa', 'Salchicha con grietas', 'Salchicha lisa', 'Trozos blandos', 'Pastosa', 'Líquida']
+export const BRISTOL_HELP = ['', 'Bolas duras separadas (estreñimiento)', 'Salchicha grumosa', 'Salchicha con grietas', 'Salchicha lisa y blanda (ideal)', 'Trozos blandos con bordes definidos', 'Pastosa, bordes irregulares', 'Líquida, sin trozos (diarrea)']
 
 export const FATIGUE_LABELS = ['Juega normal', 'Algo cansado', 'Descansa más de lo normal', 'Casi todo el día tumbado', 'No se levanta']
 export const MOOD_FACES = ['😢', '😟', '😐', '🙂', '😄']
@@ -104,6 +125,48 @@ export const ACTIVITIES = [
   { key: 'cama', label: 'Movilización en cama' },
 ]
 export const WAKEUP_CAUSES = ['Dolor', 'Náusea', 'Pipí', 'Ruido o controles', 'Miedo o nervios', 'Otra']
+export const SYNC_ITEMS: { key: 'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure'; label: string; minutes?: boolean }[] = [
+  { key: 'daylight_morning', label: 'Luz natural por la mañana', minutes: true },
+  { key: 'ir_morning', label: 'Luz infrarroja / roja por la mañana', minutes: true },
+  { key: 'daylight_afternoon', label: 'Luz natural por la tarde', minutes: true },
+  { key: 'sun_exposure', label: 'Exposición solar con cuidado', minutes: true },
+  { key: 'ir_night', label: 'Luz infrarroja / roja por la noche', minutes: true },
+  { key: 'glasses', label: 'Gafas de bloqueo de luz azul (desde)' },
+]
+
+/** Signos y síntomas a vigilar según el diagnóstico (se rellenan solos al escribir el nombre; se pueden editar).
+ *  Fuentes: fichas de oncología pediátrica (SIOP/ SEHOP), guías de neutropenia febril y de catéter central. */
+export const DX_SIGNS: { match: RegExp; signs: string[] }[] = [
+  { match: /osteosarcoma|tumor óseo|sarcoma/i, signs: ['Dolor en la zona del tumor que aumenta o despierta por la noche', 'Hinchazón o calor local', 'Dificultad para apoyar o mover el miembro', 'Fiebre sin foco'] },
+  { match: /met[aá]stasis pulmonar|pulm[oó]n|n[oó]dulo pulmonar/i, signs: ['Tos nueva o persistente', 'Dificultad para respirar o respiración rápida', 'Dolor en el pecho o al respirar', 'Sangre al toser'] },
+  { match: /neutropenia|neutrop[eé]nico/i, signs: ['Temperatura ≥ 38 °C (o 37,5 °C repetida)', 'Escalofríos o tiritona', 'Decaimiento brusco', 'Rojez o dolor en catéter, boca, ano o piel'] },
+  { match: /mucositis|llagas|estomatitis/i, signs: ['Dolor al tragar', 'Bebe menos de lo habitual', 'Babea o no quiere abrir la boca', 'Sangrado de encías'] },
+  { match: /infecci[oó]n.*cat[eé]ter|cat[eé]ter.*infecci|bacteriemia|sepsis/i, signs: ['Fiebre o escalofríos al lavar el catéter', 'Rojez, calor o pus en el punto de salida', 'Dolor en el trayecto del catéter', 'Tensión baja, mareo, palidez'] },
+  { match: /trombosis|tromb[oó]tico|coágulo/i, signs: ['Hinchazón de un brazo, cuello o cara', 'Dolor o venas marcadas en el brazo del catéter', 'Dificultad para respirar súbita'] },
+  { match: /anemia/i, signs: ['Palidez de piel o labios', 'Cansancio mayor de lo habitual', 'Latido rápido, mareo al levantarse', 'Dolor de cabeza'] },
+  { match: /trombopenia|trombocitopenia|plaquetas bajas/i, signs: ['Hematomas o petequias (puntitos rojos)', 'Sangrado de nariz o encías que no cede', 'Sangre en orina o heces'] },
+  { match: /cardio|fevi|miocardio|antraciclina/i, signs: ['Cansancio al esfuerzo que antes toleraba', 'Respiración rápida o tos al tumbarse', 'Hinchazón de pies o párpados'] },
+  { match: /ototox|audici[oó]n|hipoacusia/i, signs: ['Pide que le repitan o sube el volumen', 'Pitidos en los oídos', 'Mareo o inestabilidad'] },
+  { match: /renal|ri[ñn][oó]n|nefro|tubulopat/i, signs: ['Orina menos de lo habitual', 'Hinchazón de párpados o piernas', 'Calambres o temblor (magnesio, potasio)', 'Orina espumosa o rojiza'] },
+  { match: /hep[aá]t|h[ií]gado|transaminasas/i, signs: ['Piel u ojos amarillentos', 'Orina muy oscura o heces pálidas', 'Dolor en el lado derecho de la tripa', 'Picor generalizado'] },
+  { match: /neuropat|hormigueo|vincristina|cisplatino/i, signs: ['Hormigueos o acorchamiento en manos y pies', 'Se tropieza o le cuesta abrochar botones', 'Estreñimiento marcado', 'Dolor mandibular'] },
+  { match: /gastro|diarrea|colitis|enteritis/i, signs: ['Más de 3 deposiciones líquidas al día', 'Sangre o moco en las heces', 'Dolor de tripa con fiebre', 'Bebe poco y orina poco (deshidratación)'] },
+  { match: /desnutric|caquexia|p[eé]rdida de peso/i, signs: ['Pérdida de peso en dos pesadas seguidas', 'Come menos de la mitad dos días seguidos', 'Menos fuerza o actividad', 'Edemas en piernas'] },
+  { match: /fractura|fractura patol/i, signs: ['Dolor brusco en el hueso afectado', 'No puede apoyar', 'Deformidad o hinchazón nueva'] },
+  { match: /varicela|herpes|z[oó]ster/i, signs: ['Vesículas (ampollitas) nuevas en piel', 'Fiebre', 'Dolor o quemazón en una zona de piel antes de la erupción'] },
+  { match: /covid|gripe|virus respiratorio|vrs|bronquiolitis/i, signs: ['Fiebre', 'Tos, mocos, dolor de garganta', 'Respiración rápida o con esfuerzo', 'Rechazo de líquidos'] },
+]
+export function suggestSigns(name: string): string[] {
+  const out: string[] = []
+  for (const d of DX_SIGNS) if (d.match.test(name)) for (const s of d.signs) if (!out.includes(s)) out.push(s)
+  return out
+}
+export const DX_SIGNS_GENERIC = ['Fiebre ≥ 38 °C', 'Decaimiento o somnolencia inusual', 'Dolor nuevo o que aumenta']
+export const ROUTE_LABELS: Record<string, string> = { oral: 'Oral', im: 'Intramuscular', iv: 'Endovenoso' }
+export const NAUSEA_LABELS = ['Sin náusea', 'Leve', 'Moderada', 'Intensa']
+export const WEIGHT_SOURCES: { value: 'inbody' | 'hospital' | 'casa'; label: string }[] = [
+  { value: 'inbody', label: 'Báscula InBody' }, { value: 'hospital', label: 'Hospital Gregorio Marañón' }, { value: 'casa', label: 'Báscula de casa' },
+]
 
 export const EMOTIONS = [
   { key: 'alegria', label: 'Alegría', emoji: '😄' },

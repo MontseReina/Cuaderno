@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import { backend, useRows, save, currentPatientId } from '../store'
 import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
-import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
+import { corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
+import { dayNutrition, weekMode } from '../domain/nutrition'
+import { MODE_LABELS } from '../domain/catalogs'
 import { DRUG_LABELS } from '../domain/catalogs'
 import { useEffect } from 'react'
 
@@ -21,6 +23,9 @@ export default function Home() {
   const prev = [1, 2, 3].map((n) => byDate.get(addDays(today, -n))).filter((l): l is NonNullable<typeof l> => !!l)
   const todayLog = byDate.get(today)
   const traffic = dailyTraffic(todayLog, prev, ctx, defs)
+  const cortico = corticoidAlert(cycles, today)
+  const mode = weekMode(todayLog, ctx)
+  const nut = dayNutrition(todayLog, mode, { cisplatin: !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP') })
 
   // Si el semáforo está en rojo, crear un pendiente (una vez por día).
   useEffect(() => {
@@ -108,6 +113,20 @@ export default function Home() {
           <div className="muted small">Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando`}</div>
         </div>
       </div>
+      {cortico && (
+        <div className="notice">
+          <strong>Corticoide intravenoso en el ciclo {cortico.number}</strong>{cortico.corticoid_detail ? ` (${cortico.corticoid_detail})` : ''}: puede subir la glucosa y alterar el sueño estos días. Vigilar apetito, sed, pipí abundante y despertares; anotar en <Link to="/nutricion">Nutrición</Link> y <Link to="/biohacking">Biohacking</Link>.
+        </div>
+      )}
+      {todayLog && (
+        <div className="card tight">
+          <div className="row between">
+            <div><span className={'dot ' + nut.level} /><strong>Alimentación de hoy</strong> <span className="muted small">· {MODE_LABELS[mode]}</span></div>
+            <Link className="btn sm secondary" to="/nutricion">Nutrición</Link>
+          </div>
+          <div className="muted small">{nut.meals}/{nut.target} comidas{nut.fatTarget ? ` · ${nut.fatSnacks}/${nut.fatTarget} snacks de grasa` : ''}{nut.fluids != null ? ` · ${nut.fluids} ml` : ''}{nut.reasons.length ? ` · ${nut.reasons.join(', ')}` : ' · objetivos cumplidos'}</div>
+        </div>
+      )}
       {dressingDue && dressingDue <= today && (
         <div className="notice">Cura del catéter: tocaba el {fmtDate(dressingDue)} (última {fmtDate(patient!.catheter_last_dressing)}). Actualízala en <Link to="/ajustes">Ajustes</Link> cuando se haga.</div>
       )}

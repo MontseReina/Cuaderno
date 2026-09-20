@@ -33,7 +33,11 @@ export default defineConfig({
           },
         }),
       ],
-  define: { 'import.meta.env.VITE_SINGLEFILE': JSON.stringify(demo ? '1' : '') },
+  define: {
+    'import.meta.env.VITE_SINGLEFILE': JSON.stringify(demo ? '1' : ''),
+    // La demo de un solo fichero siempre funciona en local (sin Supabase), aunque exista .env.production
+    ...(demo ? { 'import.meta.env.VITE_SUPABASE_URL': '""', 'import.meta.env.VITE_SUPABASE_ANON_KEY': '""' } : {}),
+  },
   base,
   publicDir: demo ? 'public-demo' : 'public',
   build: { target: 'es2020' },

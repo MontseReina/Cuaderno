@@ -87,7 +87,10 @@ function Informe({ onClose }: { onClose: () => void }) {
   const cycles = backend.all('cycles')
   const products = backend.all('products').filter((p) => !p.end_date || p.end_date >= from)
   const questions = backend.all('questions').filter((q) => q.status === 'pendiente' && (!prof || q.professional === prof))
-  const weights = logs.filter((l) => l.weight != null).map((l) => `${l.date.slice(5)}: ${l.weight} kg`)
+  const weights = [
+    ...logs.filter((l) => l.weight != null).map((l) => `${l.date.slice(5)}: ${l.weight} kg`),
+    ...backend.all('weights').filter((w) => w.at.slice(0, 10) >= from && w.at.slice(0, 10) <= to).sort((a, b) => a.at.localeCompare(b.at)).map((w) => `${w.at.slice(5, 10)}: ${w.kg} kg (${w.source === 'inbody' ? 'InBody' : w.source === 'hospital' ? 'hospital' : 'casa'})`),
+  ]
   const fevers = logs.filter((l) => (l.temp_max ?? 0) >= 38).map((l) => `${fmtDate(l.date)} (${l.temp_max} °C)`)
   const intakes = logs.map((l) => meanIntake(l.meals)).filter((x): x is number => x != null)
   const sympCounts: Record<string, number[]> = {}

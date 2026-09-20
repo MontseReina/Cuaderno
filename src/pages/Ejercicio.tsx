@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { backend, currentPatientId, remove, save, useRows } from '../store'
+import { useDailyDraft } from '../store/useDailyDraft'
 import type { ExerciseSession, FunctionalWeekly } from '../store/types'
 import { fmtDate, todayStr, weekStart } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
+import { ACTIVITIES } from '../domain/catalogs'
+import { DateNav } from '../components/DateNav'
 import { Check, Field, Section, Segmented } from '../components/ui'
 
 const TRAMO: Record<string, string> = {
@@ -14,6 +18,9 @@ const TRAMO: Record<string, string> = {
 }
 
 export default function Ejercicio() {
+  const params = useParams()
+  const date = params.date ?? todayStr()
+  const { draft, set, toastNode } = useDailyDraft(date)
   const sessions = useRows('exercise_sessions').sort((a, b) => b.date.localeCompare(a.date))
   const functional = useRows('functional_weekly')
   const cycles = useRows('cycles')
@@ -35,7 +42,22 @@ export default function Ejercicio() {
       </div>
       {TRAMO[ctx.phase] && <div className="notice">{ctx.cycle ? `D${ctx.day}. ` : ''}{TRAMO[ctx.phase]}</div>}
       {patient?.load_limits && <div className="notice"><strong>Límites de traumatología:</strong> {patient.load_limits}</div>}
-      <p className="muted small">La actividad diaria (paseo, juego, minutos, pasos) se marca en el Registro diario. Aquí van las sesiones con detalle, que puede rellenar el entrenador.</p>
+      {toastNode}
+      <Section title="Actividad y pasos del día" open>
+        <DateNav date={date} base="/ejercicio" />
+        <div className="chips">
+          {ACTIVITIES.map((a) => (
+            <button key={a.key} type="button" className={'chip ' + (draft.activity[a.key] ? 'on' : '')} onClick={() => set('activity', { ...draft.activity, [a.key]: !draft.activity[a.key] })}>{a.label}</button>
+          ))}
+        </div>
+        <div className="grid2">
+          <Field label="Minutos totales aprox.">
+            <Segmented options={[5, 15, 30, 45, 60].map((m) => ({ value: m, label: m === 60 ? '60+' : String(m) }))} value={draft.activity_min} onChange={(v) => set('activity_min', v)} />
+          </Field>
+          <Field label="Pasos (del reloj del cuidador)"><input type="number" inputMode="numeric" min={0} value={draft.steps ?? ''} onChange={(e) => set('steps', e.target.value === '' ? null : Number(e.target.value))} /></Field>
+        </div>
+      </Section>
+      <p className="muted small">Las sesiones con detalle (series, repeticiones, carga) las puede rellenar el entrenador.</p>
 
       <Section title="Capacidad funcional de esta semana" open>
         <Check checked={!!f.stairs} onChange={(v) => setF({ ...f, stairs: v })}>Sube escaleras</Check>

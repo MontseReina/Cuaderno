@@ -37,7 +37,7 @@ export interface Profile {
 }
 
 export type DiagnosisKind = 'principal' | 'metastasis' | 'complicacion' | 'infeccion' | 'otro'
-export type DiagnosisStatus = 'activo' | 'seguimiento' | 'resuelto'
+export type DiagnosisStatus = 'activo' | 'resuelto'
 export interface Diagnosis extends BaseRow {
   name: string
   kind: DiagnosisKind
@@ -48,6 +48,17 @@ export interface Diagnosis extends BaseRow {
   watch_signs: string[]
   treatment_ref?: string
   evolution: { date: string; text: string; by: string }[]
+}
+
+export type MedRoute = 'oral' | 'im' | 'iv'
+export interface MedRow {
+  name: string
+  mg?: string
+  posology?: string
+  reason?: string
+  route?: MedRoute
+  nausea?: 0 | 1 | 2 | 3
+  sufficient?: 'si' | 'parcial' | 'no'
 }
 
 export type Drug = 'MTX' | 'CDDP' | 'ADM' | 'HDIFO' | 'MTP' | 'OTRO'
@@ -74,12 +85,16 @@ export interface Cycle extends BaseRow {
     start?: string
     end?: string
     dose?: string
+    posology?: string
+    reason?: string
     mtx24?: number | null
     mtx48?: number | null
     mtx72?: number | null
   }
-  antiemetic?: { drug?: string; scheme?: string; sufficient?: 'si' | 'parcial' | 'no' }
-  other_meds?: { oral_alopatico?: string; oral_suplemento?: string; iv?: string }
+  /** Protocolo antiemético: filas Nombre · mg · Posología · Intensidad de náusea · ¿Fue suficiente? */
+  antiemetic?: { items?: MedRow[]; drug?: string; scheme?: string; sufficient?: 'si' | 'parcial' | 'no' }
+  /** Bolsa JSON de medicación: durante la perfusión y entre quimio y quimio. */
+  other_meds?: { infusion?: MedRow[]; between?: MedRow[]; oral_alopatico?: string; oral_suplemento?: string; iv?: string }
   drug_watch?: Record<string, string> // observaciones específicas por fármaco
   mtp?: { given?: boolean; reaction?: string }
   procedure?: { type?: 'cirugia' | 'radioterapia' | 'otro'; date?: string; notes?: string }
@@ -89,7 +104,14 @@ export interface Cycle extends BaseRow {
 export type Fraction = 0 | 0.25 | 0.5 | 0.75 | 1
 export type Carb = 'sin' | 'baja' | 'media' | 'alta'
 export type Texture = 'normal' | 'blando' | 'triturado' | 'liquido'
-export type MealSlot = 'desayuno' | 'media_manana' | 'comida' | 'merienda' | 'cena' | 'otra'
+export type MealSlot = 'desayuno' | 'media_manana' | 'comida' | 'merienda' | 'cena' | 'otra' | 'snack_grasa_1' | 'snack_grasa_2'
+/** Estimación del plato según la pauta de la nutricionista (½ verdura · ⅓ proteína · ¼ almidón · grasas añadidas). */
+export interface MealMacros {
+  veg?: 0 | 1 | 2 // nada · poca · ≈ medio plato
+  prot?: 0 | 1 | 2 // nada · poca · ≈ un tercio
+  starch?: 0 | 1 | 2 | 3 // nada · poca · ≈ un cuarto · más
+  fat?: boolean // grasa "invisible" añadida (AOVE, ghee, tahine, coco…)
+}
 export interface Meal {
   slot: MealSlot
   time?: string // HH:MM
@@ -97,6 +119,16 @@ export interface Meal {
   carb?: Carb
   texture?: Texture
   note?: string
+  macros?: MealMacros
+}
+export type WeekMode = 'quimio' | 'nadir'
+export interface SyncEntry { done?: boolean; time?: string; minutes?: number | null }
+/** Campos añadidos en la v0.4 (columna JSONB `extra`). */
+export interface DailyExtra {
+  mode?: WeekMode // modo manual de la semana (si no, se deduce del ciclo)
+  fasting_h?: number | null // horas de ayuno tecleadas (si no, se calculan)
+  infusion_cups?: number | null // infusiones manzanilla / jengibre (medias tazas)
+  sync?: Partial<Record<'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure', SyncEntry>>
 }
 
 export interface DailyLog extends BaseRow {
@@ -138,6 +170,19 @@ export interface DailyLog extends BaseRow {
   activity: Record<string, boolean>
   activity_min?: number | null
   steps?: number | null
+  notes?: string
+  extra?: DailyExtra
+}
+
+export type WeightSource = 'inbody' | 'hospital' | 'casa'
+export interface WeightEntry extends BaseRow {
+  at: string // fecha y hora (datetime-local)
+  kg: number
+  height_cm?: number | null
+  source: WeightSource
+  muscle_kg?: number | null
+  fat_pct?: number | null
+  water_pct?: number | null
   notes?: string
 }
 
@@ -325,11 +370,12 @@ export interface Tables {
   exposures_weekly: ExposuresWeekly
   practices: Practice
   practice_log: PracticeLog
+  weights: WeightEntry
 }
 export type TableName = keyof Tables
 export const TABLE_NAMES = [
   'patients', 'profiles', 'diagnoses', 'cycles', 'daily_logs', 'products', 'intakes',
   'lab_panels', 'lab_results', 'organ_tests', 'microbiome_tests', 'calendar_events',
   'todos', 'questions', 'weekly_child', 'weekly_caregiver', 'caregiver_daily',
-  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log',
+  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights',
 ] as const satisfies readonly TableName[]

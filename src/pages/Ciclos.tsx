@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { currentPatientId, remove, save, useRows } from '../store'
-import type { Cycle, Drug } from '../store/types'
-import { DRUG_LABELS, DRUG_WATCH } from '../domain/catalogs'
+import type { Cycle, Drug, MedRow } from '../store/types'
+import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, ROUTE_LABELS } from '../domain/catalogs'
 import { cumulativeDoses, DOSE_THRESHOLDS } from '../domain/cycle'
 import { fmtDate, fmtDateTime, hoursBetween, todayStr } from '../domain/dates'
-import { Check, Field, Section, Segmented } from '../components/ui'
+import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
 
@@ -46,7 +46,7 @@ export default function Ciclos() {
             Previsto {fmtDate(c.planned_date)}
             {c.start_at && ` · Inicio ${fmtDateTime(c.start_at)}`}
             {c.end_at && ` · Fin ${fmtDateTime(c.end_at)}`}
-            {c.delay_days ? ` · Retraso ${c.delay_days} d (${c.delay_reason ?? 'sin motivo'})` : ''}
+            {c.delay_days ? ` · Retraso ${c.delay_days} d (${c.delay_reason || 'sin motivo'})` : c.delay_days === 0 ? ' · Sin retraso' : ''}
           </div>
           {c.actual_dose && <div className="small">Dosis real: {c.actual_dose}</div>}
           {c.rescue?.substance && <div className="small">Rescate: {c.rescue.substance} {c.rescue.start ? `desde ${fmtDateTime(c.rescue.start)}` : ''} {c.rescue.end ? `hasta ${fmtDateTime(c.rescue.end)}` : '(en curso)'}</div>}
@@ -56,10 +56,58 @@ export default function Ciclos() {
   )
 }
 
+const COLS_BASIC: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'reason', label: 'Motivo' }]
+const COLS_ANTIEMETIC: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'nausea', label: 'Intensidad de náusea' }, { key: 'sufficient', label: '¿Fue suficiente?' }]
+const COLS_BETWEEN: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'route', label: 'Vía' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'reason', label: 'Motivo' }]
+
+function renderMedCell(r: MedRow, key: MedColumn['key'], set: (p: Partial<MedRow>) => void) {
+  switch (key) {
+    case 'route':
+      return (
+        <select value={r.route ?? ''} onChange={(e) => set({ route: (e.target.value || undefined) as MedRow['route'] })}>
+          <option value="">Vía…</option>
+          {Object.entries(ROUTE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+      )
+    case 'nausea':
+      return (
+        <select value={r.nausea ?? ''} onChange={(e) => set({ nausea: (e.target.value === '' ? undefined : Number(e.target.value)) as MedRow['nausea'] })}>
+          <option value="">—</option>
+          {NAUSEA_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
+        </select>
+      )
+    case 'sufficient':
+      return (
+        <select value={r.sufficient ?? ''} onChange={(e) => set({ sufficient: (e.target.value || undefined) as MedRow['sufficient'] })}>
+          <option value="">—</option>
+          <option value="si">Sí</option>
+          <option value="parcial">Parcialmente</option>
+          <option value="no">No</option>
+        </select>
+      )
+    default:
+      return <input type="text" value={r[key] ?? ''} onChange={(e) => set({ [key]: e.target.value } as Partial<MedRow>)} placeholder={key === 'mg' ? 'mg' : ''} inputMode={key === 'mg' ? 'decimal' : undefined} />
+  }
+}
+/** Ciclos guardados con la versión anterior (campos de texto) → filas. */
+function legacyAntiemetic(c: Partial<Cycle>): MedRow[] {
+  if (!c.antiemetic?.drug) return []
+  return [{ name: c.antiemetic.drug, posology: c.antiemetic.scheme, sufficient: c.antiemetic.sufficient }]
+}
+function legacyBetween(c: Partial<Cycle>): MedRow[] {
+  const o = c.other_meds ?? {}
+  const rows: MedRow[] = []
+  if (o.oral_alopatico) rows.push({ name: o.oral_alopatico, route: 'oral' })
+  if (o.oral_suplemento) rows.push({ name: o.oral_suplemento, route: 'oral' })
+  if (o.iv) rows.push({ name: o.iv, route: 'iv' })
+  return rows
+}
+
 function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () => void }) {
   const [c, setC] = useState<Partial<Cycle>>({ drugs: [], corticoid_iv: false, rescue: {}, antiemetic: {}, other_meds: {}, drug_watch: {}, actual_dose_mg_m2: {}, ...initial })
   const set = <K extends keyof Cycle>(k: K, v: Cycle[K]) => setC((x) => ({ ...x, [k]: v }))
   const fasting = hoursBetween(c.fasting_last_meal_at, c.start_at)
+  const hasCorticoRow = /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i.test((c.other_meds?.infusion ?? []).map((m) => m.name).join(' '))
   const delay = c.start_at && c.planned_date ? Math.max(0, Math.round((new Date(c.start_at).getTime() - new Date(c.planned_date + 'T00:00').getTime()) / 86400000)) : null
 
   return (
@@ -98,10 +146,21 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
             </div>
           </Field>
         )}
-        {delay != null && delay > 0 && <div className="notice">Retraso respecto a lo previsto: <strong>{delay} días</strong></div>}
+        {delay != null && delay > 0 && c.delay_days !== 0 && <div className="notice">Retraso respecto a lo previsto: <strong>{delay} días</strong></div>}
+        <Field label="Retraso">
+          <Segmented
+            options={[{ value: 'no', label: 'Sin retraso' }, { value: 'si', label: 'Con retraso' }]}
+            value={c.delay_days == null ? (delay ? 'si' : null) : c.delay_days === 0 ? 'no' : 'si'}
+            onChange={(v) => { if (v === 'no') { set('delay_days', 0); set('delay_reason', '') } else if (v === 'si') set('delay_days', delay || 1); else set('delay_days', null) }}
+          />
+        </Field>
+        {(c.delay_days ?? 0) > 0 && (
+          <div className="grid2">
+            <Field label="Días de retraso"><input type="number" min={1} value={c.delay_days ?? ''} onChange={(e) => set('delay_days', e.target.value === '' ? null : Number(e.target.value))} /></Field>
+            <Field label="Motivo del retraso"><input type="text" value={c.delay_reason ?? ''} onChange={(e) => set('delay_reason', e.target.value)} /></Field>
+          </div>
+        )}
         <div className="grid2">
-          <Field label="Días de retraso"><input type="number" value={c.delay_days ?? delay ?? ''} onChange={(e) => set('delay_days', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-          <Field label="Motivo del retraso"><input type="text" value={c.delay_reason ?? ''} onChange={(e) => set('delay_reason', e.target.value)} /></Field>
           <Field label="Ingreso"><input type="datetime-local" value={c.admission_at ?? ''} onChange={(e) => set('admission_at', e.target.value || null)} /></Field>
           <Field label="Alta"><input type="datetime-local" value={c.discharge_at ?? ''} onChange={(e) => set('discharge_at', e.target.value || null)} /></Field>
         </div>
@@ -111,23 +170,31 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
       </Section>
 
       <Section title="Medicación durante la perfusión">
-        <Field label="Qué se administró (hidratación, alcalinización, antieméticos, protectores…)"><textarea value={c.infusion_meds ?? ''} onChange={(e) => set('infusion_meds', e.target.value)} /></Field>
-        <Check checked={!!c.corticoid_iv} onChange={(v) => set('corticoid_iv', v)}><strong>Corticoide intravenoso</strong> (repercute en glucosa y sueño)</Check>
-        {c.corticoid_iv && <Field label="Cuál, dosis, días"><input type="text" value={c.corticoid_detail ?? ''} onChange={(e) => set('corticoid_detail', e.target.value)} /></Field>}
+        <p className="muted small">Una fila por medicamento (hidratación, alcalinización, protectores, corticoide…). Cuando se pueda subir el informe en PDF, estas filas se rellenarán solas y se podrán corregir a mano.</p>
+        <MedTable<MedRow>
+          rows={c.other_meds?.infusion ?? []}
+          onChange={(rows) => set('other_meds', { ...c.other_meds, infusion: rows })}
+          columns={COLS_BASIC}
+          render={renderMedCell}
+        />
+        {/^\s*$/.test(c.infusion_meds ?? '') ? null : <Field label="Texto libre anterior"><textarea value={c.infusion_meds ?? ''} onChange={(e) => set('infusion_meds', e.target.value)} /></Field>}
+        <Check checked={!!c.corticoid_iv || hasCorticoRow} onChange={(v) => set('corticoid_iv', v)}><strong>Corticoide intravenoso</strong> (repercute en glucosa y sueño: se avisa en la portada)</Check>
+        {(c.corticoid_iv || hasCorticoRow) && <Field label="Cuál, dosis, días"><input type="text" value={c.corticoid_detail ?? ''} onChange={(e) => set('corticoid_detail', e.target.value)} /></Field>}
         <h3>Protocolo antiemético</h3>
-        <div className="grid2">
-          <Field label="Antiemético"><input type="text" value={c.antiemetic?.drug ?? ''} onChange={(e) => set('antiemetic', { ...c.antiemetic, drug: e.target.value })} /></Field>
-          <Field label="Pauta"><input type="text" value={c.antiemetic?.scheme ?? ''} onChange={(e) => set('antiemetic', { ...c.antiemetic, scheme: e.target.value })} /></Field>
-        </div>
-        <Field label="¿Fue suficiente?">
-          <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'parcial', label: 'Parcialmente' }, { value: 'no', label: 'No' }]} value={c.antiemetic?.sufficient} onChange={(v) => set('antiemetic', { ...c.antiemetic, sufficient: v ?? undefined })} />
-        </Field>
+        <MedTable<MedRow>
+          rows={c.antiemetic?.items ?? legacyAntiemetic(c)}
+          onChange={(rows) => set('antiemetic', { ...c.antiemetic, items: rows })}
+          columns={COLS_ANTIEMETIC}
+          render={renderMedCell}
+        />
       </Section>
 
       <Section title="Rescate">
         <div className="grid2">
           <Field label="Sustancia"><input type="text" value={c.rescue?.substance ?? ''} onChange={(e) => set('rescue', { ...c.rescue, substance: e.target.value })} placeholder="folinato (leucovorin)" /></Field>
           <Field label="Dosis"><input type="text" value={c.rescue?.dose ?? ''} onChange={(e) => set('rescue', { ...c.rescue, dose: e.target.value })} /></Field>
+          <Field label="Posología"><input type="text" value={c.rescue?.posology ?? ''} onChange={(e) => set('rescue', { ...c.rescue, posology: e.target.value })} placeholder="cada 6 h…" /></Field>
+          <Field label="Motivo"><input type="text" value={c.rescue?.reason ?? ''} onChange={(e) => set('rescue', { ...c.rescue, reason: e.target.value })} placeholder="rescate de metotrexato…" /></Field>
           <Field label="Inicio"><input type="datetime-local" value={c.rescue?.start ?? ''} onChange={(e) => set('rescue', { ...c.rescue, start: e.target.value })} /></Field>
           <Field label="Cese"><input type="datetime-local" value={c.rescue?.end ?? ''} onChange={(e) => set('rescue', { ...c.rescue, end: e.target.value })} /></Field>
         </div>
@@ -140,10 +207,14 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
         )}
       </Section>
 
-      <Section title="Otros medicamentos durante el ciclo">
-        <Field label="Vía oral — alopáticos"><textarea value={c.other_meds?.oral_alopatico ?? ''} onChange={(e) => set('other_meds', { ...c.other_meds, oral_alopatico: e.target.value })} /></Field>
-        <Field label="Vía oral — suplementos / homeopatía"><textarea value={c.other_meds?.oral_suplemento ?? ''} onChange={(e) => set('other_meds', { ...c.other_meds, oral_suplemento: e.target.value })} /></Field>
-        <Field label="Vía endovenosa"><textarea value={c.other_meds?.iv ?? ''} onChange={(e) => set('other_meds', { ...c.other_meds, iv: e.target.value })} /></Field>
+      <Section title="Medicamentos entre quimio y quimio">
+        <p className="muted small">Lo que se da en casa o en hospital de día entre este ciclo y el siguiente. La suplementación fija va en <em>Medicación</em>.</p>
+        <MedTable<MedRow>
+          rows={c.other_meds?.between ?? legacyBetween(c)}
+          onChange={(rows) => set('other_meds', { ...c.other_meds, between: rows })}
+          columns={COLS_BETWEEN}
+          render={renderMedCell}
+        />
       </Section>
 
       {(c.drugs ?? []).some((d) => DRUG_WATCH[d]?.length) && (
@@ -163,13 +234,6 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
           <p className="muted small">Recordatorio: en neutropenia, la fiebre tras mifamurtida obliga igualmente a descartar infección.</p>
         </Section>
       )}
-      <Section title="Cirugía / radioterapia (si aplica en este ciclo)">
-        <Field label="Tipo"><Segmented options={[{ value: 'cirugia', label: 'Cirugía' }, { value: 'radioterapia', label: 'Radioterapia' }, { value: 'otro', label: 'Otro' }]} value={c.procedure?.type} onChange={(v) => set('procedure', { ...c.procedure, type: v ?? undefined })} /></Field>
-        <div className="grid2">
-          <Field label="Fecha"><input type="date" value={c.procedure?.date ?? ''} onChange={(e) => set('procedure', { ...c.procedure, date: e.target.value })} /></Field>
-        </div>
-        <Field label="Notas (tipo de intervención, reconstrucción, márgenes, % necrosis…)"><textarea value={c.procedure?.notes ?? ''} onChange={(e) => set('procedure', { ...c.procedure, notes: e.target.value })} /></Field>
-      </Section>
       <Field label="Notas"><textarea value={c.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
       <div className="row">
         <button className="btn" disabled={!c.drugs?.length || !c.planned_date} onClick={async () => { await save('cycles', { ...c, patient_id: currentPatientId() } as Cycle); onClose() }}>Guardar</button>

@@ -135,3 +135,19 @@ details.section > .body { padding: 0 .9rem .9rem; }
 .notice { background: #fff7e0; border: 1px solid #f1d98a; padding: .6rem .8rem; border-radius: 10px; font-size: .9rem; margin-bottom: .8rem; }
 .login { max-width: 420px; margin: 3rem auto; padding: 1rem; }
 code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85em; }
+
+/* v0.4 — Bristol con dibujos, tablas de medicación, semáforos de comida */
+.bristol { display: flex; gap: .3rem; }
+.bristol button { flex: 1; display: flex; flex-direction: column; align-items: center; padding: .25rem 0 .15rem; background: #fff; border: 2px solid var(--line); border-radius: 8px; cursor: pointer; font-size: .75rem; color: var(--muted); }
+.bristol button.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.medtable td { padding: .2rem; vertical-align: middle; }
+.medtable input, .medtable select { min-width: 5.5rem; padding: .35rem .4rem; font-size: .85rem; }
+.medtable td:first-child input { min-width: 8rem; }
+.medtable .seg button { padding: .3rem .4rem; font-size: .75rem; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; margin-right: .3rem; }
+.dot.verde { background: #2e9e5b; } .dot.amarillo { background: #e0a800; } .dot.rojo { background: #d9534f; }
+.tag.amarillo { background: #fdf0c2; color: #7a5a00; }
+.mealhead { display: flex; align-items: center; gap: .5rem; }
+.macros { display: grid; grid-template-columns: 1fr; gap: .35rem; margin-top: .4rem; }
+.macros .field { margin: 0; }
+.macros .field > span { font-size: .78rem; }

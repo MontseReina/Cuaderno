@@ -1,11 +1,11 @@
 import { backend } from '../store'
 import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
-import { cycleContext, dailyTraffic, symptomsForToday } from './cycle'
-import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS } from './catalogs'
-import { carbProfile, meanIntake } from './nutrition'
+import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './cycle'
+import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS } from './catalogs'
+import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 
-export const APP_VERSION = '0.3.0'
+export const APP_VERSION = '0.4.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -154,7 +154,11 @@ export function buildAiReport(from: string, to: string): string {
     if (c.actual_dose) L.push(`  - dosis real: ${c.actual_dose}`)
     if (c.corticoid_iv) L.push(`  - corticoide IV: ${c.corticoid_detail ?? 'sí'}`)
     if (c.rescue?.substance) L.push(`  - rescate: ${c.rescue.substance} ${c.rescue.start ?? ''} → ${c.rescue.end ?? 'en curso'}; MTX 24/48/72 h: ${c.rescue.mtx24 ?? '—'} / ${c.rescue.mtx48 ?? '—'} / ${c.rescue.mtx72 ?? '—'}`)
-    if (c.antiemetic?.drug) L.push(`  - antiemético: ${c.antiemetic.drug} ${c.antiemetic.scheme ?? ''} · suficiente: ${c.antiemetic.sufficient ?? '—'}`)
+    const medRow = (m: { name: string; mg?: string; posology?: string; reason?: string; route?: string }) => `${m.name}${m.route ? ` [${m.route}]` : ''}${m.mg ? ` ${m.mg} mg` : ''}${m.posology ? ` · ${m.posology}` : ''}${m.reason ? ` (${m.reason})` : ''}`
+    if (c.other_meds?.infusion?.length) L.push(`  - durante la perfusión: ${c.other_meds.infusion.map(medRow).join('; ')}`)
+    if (c.antiemetic?.items?.length) L.push(`  - antiemético: ${c.antiemetic.items.map((m) => `${medRow(m)}${m.nausea != null ? ` · náusea ${m.nausea}/3` : ''}${m.sufficient ? ` · suficiente: ${m.sufficient}` : ''}`).join('; ')}`)
+    else if (c.antiemetic?.drug) L.push(`  - antiemético: ${c.antiemetic.drug} ${c.antiemetic.scheme ?? ''} · suficiente: ${c.antiemetic.sufficient ?? '—'}`)
+    if (c.other_meds?.between?.length) L.push(`  - entre quimio y quimio: ${c.other_meds.between.map(medRow).join('; ')}`)
     if (c.fasting_last_meal_at && c.start_at) L.push(`  - ayuno previo: desde ${c.fasting_last_meal_at.replace('T', ' ')}`)
     if (c.notes) L.push(`  - notas: ${c.notes}`)
   }
@@ -170,6 +174,7 @@ export function buildAiReport(from: string, to: string): string {
     const c: string[] = []
     if (l.temp_max != null) c.push(`Tª máx ${l.temp_max} °C`)
     if (l.weight != null) c.push(`peso ${l.weight} kg`)
+    for (const w of backend.all('weights').filter((w) => w.at.slice(0, 10) === l.date)) c.push(`peso ${w.kg} kg (${w.source}${w.height_cm ? `, ${w.height_cm} cm` : ''})`)
     if (l.urine_color) c.push(`orina color ${l.urine_color}/6${l.urine_amount ? ` ${l.urine_amount}` : ''}${l.urine_ph ? ` pH ${l.urine_ph}` : ''}${l.urine_ml ? ` ${l.urine_ml} ml` : ''}`)
     if (l.stools_n != null) c.push(`deposiciones ${l.stools_n}${l.bristol ? ` Bristol ${l.bristol}` : ''}${l.stool_color && l.stool_color !== 'normal' ? ` ${l.stool_color}` : ''}`)
     if (l.pain_max != null) c.push(`dolor ${l.pain_max}/10${l.pain_location ? ` (${l.pain_location})` : ''}`)
@@ -178,13 +183,17 @@ export function buildAiReport(from: string, to: string): string {
     if (c.length) L.push(`- Constantes: ${c.join(' · ')}`)
     const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}`)
     if (s.length) L.push(`- Síntomas: ${s.join(' · ')}`)
-    const meals = l.meals.filter((m) => m.fraction != null || m.carb)
-    if (meals.length) L.push(`- Comidas: ${meals.map((m) => `${m.slot}${m.time ? ` ${m.time}` : ''} ${m.fraction != null ? FRACTION_LABELS[String(m.fraction)] : ''}${m.carb ? ` HC ${m.carb}` : ''}${m.texture ? ` ${m.texture}` : ''}${m.note ? ` (${m.note})` : ''}`).join(' · ')} → ingesta media ${meanIntake(l.meals) != null ? Math.round(meanIntake(l.meals)! * 100) + ' %' : '—'}, perfil ${carbProfile(l.meals)}`)
+    const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros)
+    const mode = weekMode(l, ctx)
+    const nut = dayNutrition(l, mode, { cisplatin: isCisplatinDay(ctx) })
+    const fh = fastingHours(l, byDate.get(addDays(l.date, -1)))
+    if (meals.length) L.push(`- Comidas (${MODE_LABELS[mode].toLowerCase()}${fh != null ? `, ayuno ${fh} h` : ''}): ${meals.map((m) => { const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx) }); const mac = m.macros ? ` [verdura ${m.macros.veg ?? '—'}/2, proteína ${m.macros.prot ?? '—'}/2, almidón ${m.macros.starch ?? '—'}/3, grasa ${m.macros.fat ? 'sí' : 'no'}]` : ''; return `${m.slot}${m.time ? ` ${m.time}` : ''} ${m.fraction != null ? FRACTION_LABELS[String(m.fraction)] : ''}${mac}${t ? ` ${t.level}` : ''}${m.carb ? ` HC ${m.carb}` : ''}${m.texture ? ` ${m.texture}` : ''}${m.note ? ` (${m.note})` : ''}` }).join(' · ')} → ingesta media ${meanIntake(l.meals) != null ? Math.round(meanIntake(l.meals)! * 100) + ' %' : '—'}, perfil ${carbProfile(l.meals)}, semáforo del día ${nut.level}${nut.reasons.length ? ` (${nut.reasons.join('; ')})` : ''}`)
     const fl: string[] = []
     if (l.fluids_total_ml != null) fl.push(`total ${l.fluids_total_ml} ml`)
     if (l.water_ml != null) fl.push(`agua ${l.water_ml}`)
     if (l.seawater_ml != null) fl.push(`agua de mar ${l.seawater_ml}`)
     if (l.broth_cups) fl.push(`caldo ${l.broth_cups} medias tazas`)
+    if (l.extra?.infusion_cups) fl.push(`infusiones ${l.extra.infusion_cups} medias tazas`)
     if (fl.length) L.push(`- Líquidos: ${fl.join(' · ')}`)
     const prevDone = Object.entries(l.preventive).filter(([, v]) => v).map(([k]) => PREVENTIVE.find((p) => p.key === k)?.label ?? k)
     if (prevDone.length) L.push(`- Preventivos hechos: ${prevDone.join('; ')}`)
@@ -193,7 +202,9 @@ export function buildAiReport(from: string, to: string): string {
     const sl: string[] = []
     if (l.sleep_start && l.sleep_end) sl.push(`${l.sleep_start}–${l.sleep_end}`)
     if (l.wakeups != null) sl.push(`${l.wakeups} despertares${l.wakeup_cause ? ` (${l.wakeup_cause})` : ''}`)
-    const light = [l.ir_morning && 'IR mañana', l.ir_night && 'IR noche', l.glasses && 'gafas', l.daylight_morning && 'luz mañana', l.daylight_afternoon && 'luz tarde', l.sun_exposure && 'sol'].filter(Boolean)
+    const sy = l.extra?.sync ?? {}
+    const lt = (k: keyof typeof sy, label: string) => (l[k] ? `${label}${sy[k]?.time ? ` ${sy[k]!.time}` : ''}${sy[k]?.minutes ? ` ${sy[k]!.minutes} min` : ''}` : '')
+    const light = [lt('ir_morning', 'IR mañana'), lt('ir_night', 'IR noche'), lt('glasses', 'gafas'), lt('daylight_morning', 'luz mañana'), lt('daylight_afternoon', 'luz tarde'), lt('sun_exposure', 'sol')].filter(Boolean)
     if (light.length) sl.push(light.join(', '))
     if (sl.length) L.push(`- Sueño y luz: ${sl.join(' · ')}`)
     const act = Object.entries(l.activity).filter(([, v]) => v).map(([k]) => k)
@@ -234,7 +245,8 @@ export function buildAiReport(from: string, to: string): string {
   const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null)
   L.push(`- Días registrados: ${n} de ${Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000) + 1}`)
   L.push(`- Días con Tª ≥ 38 °C: ${logs.filter((l) => (l.temp_max ?? 0) >= 38).length} · semáforo rojo: ${logs.filter((l) => { const c = cycleContext(cycles, l.date); return dailyTraffic(l, [], c, symptomsForToday(c, diagnoses)).level === 'rojo' }).length} días`)
-  L.push(`- Peso: ${logs.filter((l) => l.weight != null).map((l) => `${l.date.slice(5)} ${l.weight}`).join(', ') || '—'}`)
+  const wts = backend.all('weights').filter((w) => inRange(w.at.slice(0, 10))).sort((a, b) => a.at.localeCompare(b.at))
+  L.push(`- Peso: ${[...logs.filter((l) => l.weight != null).map((l) => `${l.date.slice(5)} ${l.weight}`), ...wts.map((w) => `${w.at.slice(5, 10)} ${w.kg} (${w.source})`)].join(', ') || '—'}`)
   L.push(`- Ingesta media: ${avg(logs.map((l) => meanIntake(l.meals)).filter((x): x is number => x != null).map((x) => x * 100)) ?? '—'} % · líquidos medios: ${avg(logs.map((l) => l.fluids_total_ml).filter((x): x is number => x != null)) ?? '—'} ml`)
   L.push(`- Dolor medio: ${avg(logs.map((l) => l.pain_max).filter((x): x is number => x != null)) ?? '—'} · despertares medios: ${avg(logs.map((l) => l.wakeups).filter((x): x is number => x != null)) ?? '—'} · actividad media: ${avg(logs.map((l) => l.activity_min).filter((x): x is number => x != null)) ?? '—'} min`)
   const symCount: Record<string, number> = {}

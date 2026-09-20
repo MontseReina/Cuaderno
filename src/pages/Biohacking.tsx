@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
-import type { Practice, PracticeLog, Safety } from '../store/types'
+import { useDailyDraft } from '../store/useDailyDraft'
+import type { Practice, PracticeLog, Safety, SyncEntry } from '../store/types'
 import { addDays, fmtDate, todayStr, weekStart } from '../domain/dates'
-import { cycleContext } from '../domain/cycle'
-import { Check, Field, Section, Segmented } from '../components/ui'
+import { corticoidAlert, cycleContext } from '../domain/cycle'
+import { SYNC_ITEMS, WAKEUP_CAUSES } from '../domain/catalogs'
+import { DateNav } from '../components/DateNav'
+import { Check, Field, Section, Segmented, Stepper } from '../components/ui'
 
 export const EXPOSURE_ITEMS = [
   { key: 'limpieza', label: 'Productos de limpieza sin fragancia; sin ambientadores' },
@@ -15,6 +18,8 @@ export const EXPOSURE_ITEMS = [
   { key: 'obras', label: 'Sin obras, tierra removida ni jardinería cerca del niño' },
   { key: 'animales', label: 'El niño no maneja heces ni arenero de animales' },
   { key: 'ventilacion', label: 'Ventilación diaria de las habitaciones' },
+  { key: 'bicarbonato', label: 'Limpieza de verduras con bicarbonato antes de cocinarlas' },
+  { key: 'ropa', label: 'Lavado de la ropa sin tóxicos (detergente sin perfume, sin suavizante)' },
 ]
 
 const DEFAULT_PRACTICES: Omit<Practice, keyof import('../store/types').BaseRow>[] = [
@@ -32,10 +37,21 @@ const DEFAULT_PRACTICES: Omit<Practice, keyof import('../store/types').BaseRow>[
 
 /** Pilar 9 · Biohacking: sueño y ritmo circadiano (se registra en el Diario), exposiciones (semanal) y prácticas con semáforo de seguridad. */
 export default function Biohacking() {
+  const params = useParams()
+  const date = params.date ?? todayStr()
   const today = todayStr()
   const ws = weekStart(today)
-  const logs = useRows('daily_logs')
+  const { draft, set, setExtra, logs, toastNode } = useDailyDraft(date)
   const cycles = useRows('cycles')
+  const cortico = corticoidAlert(cycles, date)
+  const dctx = cycleContext(cycles, date)
+  const sync = draft.extra?.sync ?? {}
+  const setSync = (k: keyof NonNullable<typeof sync>, patch: Partial<SyncEntry>) => {
+    const cur = sync[k] ?? { done: !!draft[k] }
+    const next = { ...cur, ...patch }
+    setExtra({ sync: { ...sync, [k]: next } })
+    set(k, !!next.done)
+  }
   const exposures = useRows('exposures_weekly')
   const practices = useRows('practices', (p) => p.active)
   const plog = useRows('practice_log', (l) => l.date === today)
@@ -73,10 +89,50 @@ export default function Biohacking() {
 
   return (
     <div>
+      {toastNode}
       <h1>Biohacking</h1>
-      <p className="muted small">Sueño, luz y prácticas diarias se marcan en el <Link to="/diario">Registro diario</Link>. Aquí: tendencias, exposiciones de la semana y el catálogo de prácticas con su semáforo de seguridad.</p>
+      <DateNav date={date} base="/biohacking" sub={dctx.cycle ? `Ciclo ${dctx.cycle.number} · D${dctx.day}` : 'sin ciclo'} />
+      {cortico && <div className="notice"><strong>Corticoide IV en el ciclo {cortico.number}:</strong> es normal que duerma peor estos días; anotar despertares y causa.</div>}
 
-      <Section title="Sueño y ritmo circadiano · 14 días" open>
+      <Section title="Sueño de esta noche" open>
+        <div className="grid2">
+          <Field label="Se durmió a las"><input type="time" value={draft.sleep_start ?? ''} onChange={(e) => set('sleep_start', e.target.value || null)} /></Field>
+          <Field label="Se despertó a las"><input type="time" value={draft.sleep_end ?? ''} onChange={(e) => set('sleep_end', e.target.value || null)} /></Field>
+        </div>
+        <div className="muted small">Horas dormidas: <strong>{hours(draft.sleep_start, draft.sleep_end) ?? '—'}</strong>{draft.nap_min ? ` (+ siesta ${draft.nap_min} min)` : ''}</div>
+        <div className="grid2">
+          <Field label="Despertares"><Stepper value={draft.wakeups} onChange={(v) => set('wakeups', v)} /></Field>
+          <Field label="Siesta (min)"><input type="number" inputMode="numeric" min={0} value={draft.nap_min ?? ''} onChange={(e) => set('nap_min', e.target.value === '' ? null : Number(e.target.value))} /></Field>
+        </div>
+        {(draft.wakeups ?? 0) > 0 && (
+          <Field label="Causa principal de los despertares">
+            <Segmented options={WAKEUP_CAUSES.map((c) => ({ value: c, label: c }))} value={draft.wakeup_cause} onChange={(v) => set('wakeup_cause', v ?? undefined)} />
+          </Field>
+        )}
+      </Section>
+
+      <Section title="Sincronizadores del día (luz y gafas)" open>
+        <p className="muted small">Marca lo hecho y, si puedes, la hora del día y el tiempo de exposición.</p>
+        {SYNC_ITEMS.map((it) => {
+          const e = sync[it.key] ?? { done: !!draft[it.key] }
+          return (
+            <div key={it.key} className="item" style={{ alignItems: 'center' }}>
+              <input type="checkbox" checked={!!e.done} onChange={(ev) => setSync(it.key, { done: ev.target.checked })} />
+              <div className="main">
+                <div className="small">{it.label}</div>
+                {e.done && (
+                  <div className="row" style={{ marginTop: '.2rem' }}>
+                    <input type="time" style={{ width: 'auto' }} value={e.time ?? ''} onChange={(ev) => setSync(it.key, { time: ev.target.value })} />
+                    {it.minutes && <input type="number" inputMode="numeric" min={0} max={600} style={{ width: '5.5rem' }} placeholder="min" value={e.minutes ?? ''} onChange={(ev) => setSync(it.key, { minutes: ev.target.value === '' ? null : Number(ev.target.value) })} />}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </Section>
+
+      <Section title="Sueño y ritmo circadiano · 14 días">
         {withSleep.length === 0 ? <div className="muted">Sin registros de sueño.</div> : (
           <>
             <div className="grid3">
@@ -86,7 +142,7 @@ export default function Biohacking() {
             </div>
             <h3>Cumplimiento de los sincronizadores</h3>
             <div className="table-wrap"><table className="table"><tbody>
-              {([['ir_morning', 'Luz infrarroja mañana'], ['ir_night', 'Luz infrarroja noche'], ['glasses', 'Gafas de bloqueo azul'], ['daylight_morning', 'Luz natural mañana'], ['daylight_afternoon', 'Luz natural tarde'], ['sun_exposure', 'Exposición solar cuidada']] as const).map(([k, label]) => (
+              {SYNC_ITEMS.map(({ key: k, label }) => (
                 <tr key={k}><td>{label}</td><td>{adherence(k)} %</td><td><span style={{ display: 'inline-block', width: 80, height: 8, background: 'var(--line)', borderRadius: 4 }}><span style={{ display: 'block', width: `${adherence(k)}%`, height: 8, background: 'var(--primary)', borderRadius: 4 }} /></span></td></tr>
               ))}
             </tbody></table></div>
