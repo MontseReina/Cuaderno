@@ -62,7 +62,7 @@ export interface Diagnosis extends BaseRow {
   findings?: Finding[]
 }
 
-export type MedRoute = 'oral' | 'im' | 'iv'
+export type MedRoute = 'oral' | 'sc' | 'im' | 'iv'
 export interface MedRow {
   name: string
   mg?: string
@@ -206,7 +206,7 @@ export interface WeightEntry extends BaseRow {
   notes?: string
 }
 
-export type ProductBlock = 'alopatico' | 'sup_ciclo' | 'sup_fuera'
+export type ProductBlock = 'hospital' | 'alopatico' | 'sup_ciclo' | 'sup_fuera'
 export type Traffic = 'verde' | 'ambar' | 'rojo'
 export type Moment = 'ayunas' | 'manana' | 'media_manana' | 'comida' | 'media_tarde' | 'cena' | 'dormir'
 export interface Product extends BaseRow {
@@ -226,6 +226,14 @@ export interface Product extends BaseRow {
   /** Al retirarlo: ¿qué tal fue? (para el registro de anteriores) */
   outcome?: 'funciono' | 'parcial' | 'no_funciono' | 'no_se'
   outcome_notes?: string
+  /** Vía de administración (medicación del hospital). */
+  route?: MedRoute | null
+  /** Solo algunos días de la semana (0 = domingo … 6 = sábado). Vacío/nulo = todos. */
+  weekdays?: number[] | null
+  /** Empezar N días después de la última quimio (p. ej. ginseng a los 5 días). */
+  after_chemo_days?: number | null
+  /** Solo si… (p. ej. «hay fatiga»). */
+  condition?: string | null
 }
 
 export interface Intake extends BaseRow {

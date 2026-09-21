@@ -272,3 +272,9 @@ end $$;
 --
 -- ---------- Consultar el registro de actividad (oculto en la app) -----
 -- select at, user_email, table_name, action, row_id from audit_log order by at desc limit 200;
+
+-- v0.7: medicación del hospital (vía, días de la semana) y reglas «N días tras la quimio» / «solo si…»
+alter table products add column if not exists route text;
+alter table products add column if not exists weekdays jsonb;
+alter table products add column if not exists after_chemo_days int;
+alter table products add column if not exists condition text;

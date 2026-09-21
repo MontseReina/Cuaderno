@@ -162,7 +162,8 @@ export function suggestSigns(name: string): string[] {
   return out
 }
 export const DX_SIGNS_GENERIC = ['Fiebre ≥ 38 °C', 'Decaimiento o somnolencia inusual', 'Dolor nuevo o que aumenta']
-export const ROUTE_LABELS: Record<string, string> = { oral: 'Oral', im: 'Intramuscular', iv: 'Endovenoso' }
+export const ROUTE_LABELS: Record<string, string> = { oral: 'Oral', sc: 'Subcutánea', im: 'Intramuscular', iv: 'Endovenoso' }
+export const WEEKDAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 export const NAUSEA_LABELS = ['Sin náusea', 'Leve', 'Moderada', 'Intensa']
 export const WEIGHT_SOURCES: { value: 'inbody' | 'hospital' | 'casa'; label: string }[] = [
   { value: 'inbody', label: 'Báscula InBody' }, { value: 'hospital', label: 'Hospital Gregorio Marañón' }, { value: 'casa', label: 'Báscula de casa' },
@@ -204,16 +205,19 @@ export const DRUG_WATCH: Record<string, string[]> = {
 }
 export const TRAFFIC_LABELS: Record<string, string> = { verde: 'Verde', ambar: 'Ámbar', rojo: 'Rojo' }
 export const BLOCK_LABELS: Record<string, string> = {
+  hospital: 'Medicación del hospital',
   sup_ciclo: 'Suplementación en ciclo',
   sup_fuera: 'Suplementación fuera de ciclo',
   alopatico: 'Medicamentos (registro anterior)', // ya no se ofrece: la medicación entre ciclos va en Ciclos
 }
 export const BLOCK_HELP: Record<string, string> = {
+  hospital: 'Pautada por oncología del hospital (informe de alta o consulta). Solo la cambia o la suspende el equipo del hospital.',
   sup_ciclo: 'Se mantiene también los días de quimio e ingreso.',
   sup_fuera: 'Se pausa los días de quimio e ingreso y se retoma al alta (o cuando se indique).',
 }
 /** Semáforo por defecto al elegir el bloque de un producto nuevo (se puede cambiar). */
 export const BLOCK_DEFAULT_TRAFFIC: Record<string, Record<string, 'verde' | 'ambar' | 'rojo'>> = {
+  hospital: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde' },
   sup_ciclo: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde' },
   sup_fuera: { mtx: 'rojo', cddp_adm: 'rojo', nadir: 'ambar', infusion: 'rojo' },
 }
@@ -227,7 +231,7 @@ export const MOMENTS: { key: string; label: string }[] = [
   { key: 'dormir', label: 'Antes de dormir' },
 ]
 /** Quién pauta (desplegable). "Otro" permite escribirlo a mano. */
-export const PRESCRIBERS = ['Oncóloga integrativa', 'Oncólogo', 'Digestivo', 'Nutricionista'] as const
+export const PRESCRIBERS = ['Oncología del hospital', 'Oncóloga integrativa', 'Oncólogo', 'Digestivo', 'Nutricionista'] as const
 export const OUTCOME_LABELS: Record<string, { label: string; tag: string }> = {
   funciono: { label: 'Funcionó', tag: 'verde' },
   parcial: { label: 'Funcionó en parte', tag: 'ambar' },

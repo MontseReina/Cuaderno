@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { backend, useRows, save, currentPatientId } from '../store'
 import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
-import { corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
+import { afterChemoGate, corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import { dayNutrition, weekMode } from '../domain/nutrition'
 import { MODE_LABELS } from '../domain/catalogs'
 import { DRUG_LABELS } from '../domain/catalogs'
@@ -24,6 +24,11 @@ export default function Home() {
   const todayLog = byDate.get(today)
   const traffic = dailyTraffic(todayLog, prev, ctx, defs)
   const cortico = corticoidAlert(cycles, today)
+  // Productos con la regla «N días tras la quimio» que se pueden empezar hoy o en los 2 días siguientes al desbloqueo.
+  const products = useRows('products', (p) => !!p.after_chemo_days && (!p.end_date || p.end_date > today))
+  const unlocked = products
+    .map((p) => ({ p, g: afterChemoGate(p, cycles, today) }))
+    .filter((x) => x.g && !x.g.waiting && today <= addDays(x.g.from, 2))
   const mode = weekMode(todayLog, ctx)
   const nut = dayNutrition(todayLog, mode, { cisplatin: !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP') })
 
@@ -116,6 +121,11 @@ export default function Home() {
           <strong>Corticoide intravenoso en el ciclo {cortico.number}</strong>{cortico.corticoid_detail ? ` (${cortico.corticoid_detail})` : ''}: puede subir la glucosa y alterar el sueño estos días. Vigilar apetito, sed, pipí abundante y despertares; anotar en <Link to="/nutricion">Nutrición</Link> y <Link to="/biohacking">Biohacking</Link>.
         </div>
       )}
+      {unlocked.map(({ p, g }) => (
+        <div className="notice" key={p.id}>
+          <strong>{p.name}</strong>: desde el {fmtDate(g!.from)} ({p.after_chemo_days} días tras la última quimio) se puede dar{p.condition ? <> <strong>si {p.condition}</strong></> : ''}. Pauta en <Link to="/medicacion">Medicación</Link>.
+        </div>
+      ))}
       {todayLog && (
         <div className="card tight">
           <div className="row between">

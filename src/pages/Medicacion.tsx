@@ -1,20 +1,25 @@
 import { useState } from 'react'
 import { currentPatientId, remove, save, useRows } from '../store'
-import type { Intake, Moment, Product, ProductBlock, Traffic } from '../store/types'
+import type { Intake, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
 import {
   ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, MOMENTS,
-  OUTCOME_LABELS, PRESCRIBERS, TRAFFIC_LABELS,
+  OUTCOME_LABELS, PRESCRIBERS, ROUTE_LABELS, TRAFFIC_LABELS, WEEKDAYS,
 } from '../domain/catalogs'
-import { cycleContext } from '../domain/cycle'
+import { afterChemoGate, cycleContext } from '../domain/cycle'
 import { fmtDate, todayStr } from '../domain/dates'
 import { Field, Section, Segmented } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
 
-const BLOCKS: ProductBlock[] = ['sup_ciclo', 'sup_fuera']
+const BLOCKS: ProductBlock[] = ['hospital', 'sup_ciclo', 'sup_fuera']
 type Outcome = NonNullable<Product['outcome']>
 
 /** Activo = sin fecha de retirada o con retirada futura. Retirado = fecha de retirada hoy o antes. */
 const isActive = (p: Product, today: string) => !p.end_date || p.end_date > today
+const dow = (d: string) => new Date(d + 'T12:00').getDay()
+/** Días de la semana en texto: «solo Sáb, Dom». */
+const weekdaysText = (w?: number[] | null) => (w && w.length && w.length < 7 ? 'solo ' + [1, 2, 3, 4, 5, 6, 0].filter((d) => w.includes(d)).map((d) => WEEKDAYS[d]).join(', ') : '')
+/** Línea de detalle común: vía · días · condición. */
+const extraMeta = (p: Product) => [p.route ? ROUTE_LABELS[p.route] : '', weekdaysText(p.weekdays), p.condition ? `solo si ${p.condition}` : ''].filter(Boolean).join(' · ')
 
 export default function Medicacion() {
   const today = todayStr()
@@ -23,6 +28,8 @@ export default function Medicacion() {
   const retired = all.filter((p) => !isActive(p, today)).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
   const intakes = useRows('intakes', (i) => i.date === today)
   const cycles = useRows('cycles')
+  const panels = useRows('lab_panels')
+  const labResults = useRows('lab_results', (r) => r.analyte === 'plaquetas')
   const [editing, setEditing] = useState<Partial<Product> | null>(null)
   const [retiring, setRetiring] = useState<Product | null>(null)
   const ctx = cycleContext(cycles, today)
@@ -39,6 +46,16 @@ export default function Medicacion() {
 
   const anticoag = products.some((p) => ANTICOAG_KEYWORDS.some((k) => (p.name + ' ' + (p.composition ?? '')).toLowerCase().includes(k)))
   const antiplateletActive = anticoag ? products.filter((p) => ANTIPLATELET_SUPP.some((k) => (p.name + ' ' + (p.composition ?? '')).toLowerCase().includes(k))) : []
+  // Última cifra de plaquetas registrada (×10³/µL) para el aviso de la enoxaparina (< 50.000).
+  const lastPlt = labResults
+    .map((r) => ({ r, date: panels.find((x) => x.id === r.panel_id)?.date ?? '' }))
+    .sort((a, b) => b.date.localeCompare(a.date))[0]
+  const pltValue = lastPlt ? (lastPlt.r.value >= 1000 ? lastPlt.r.value / 1000 : lastPlt.r.value) : null
+  // Días de la semana y regla «N días tras la quimio».
+  const notToday = (p: Product) => !!p.weekdays?.length && !p.weekdays.includes(dow(today))
+  const gateOf = (p: Product) => afterChemoGate(p, cycles, today)
+  const waiting = (p: Product) => !!gateOf(p)?.waiting
+  const gated = products.filter((p) => gateOf(p))
 
   if (editing) return <ProductForm initial={editing} onClose={() => setEditing(null)} />
 
@@ -47,7 +64,7 @@ export default function Medicacion() {
     await save('intakes', { ...(ex ?? {}), patient_id: currentPatientId(), product_id: p.id, date: today, moment: m, taken: !(ex?.taken ?? false) } as Intake)
   }
   const markAll = async (m: Moment) => {
-    for (const p of products.filter((x) => x.moments.includes(m) && trafficNow(x) !== 'rojo')) {
+    for (const p of products.filter((x) => x.moments.includes(m) && trafficNow(x) !== 'rojo' && !waiting(x) && !notToday(x) && !x.condition)) {
       const ex = intakes.find((i) => i.product_id === p.id && i.moment === m)
       if (!ex?.taken) await save('intakes', { ...(ex ?? {}), patient_id: currentPatientId(), product_id: p.id, date: today, moment: m, taken: true } as Intake)
     }
@@ -55,6 +72,8 @@ export default function Medicacion() {
   // Solo las columnas de momentos que usa algún producto (para que la tabla quepa en el móvil).
   const usedMoments = MOMENTS.filter((m) => products.some((p) => p.moments.includes(m.key as Moment)))
   const onDemand = products.filter((p) => p.moments.length === 0)
+  const scheduled = products.filter((p) => p.moments.length > 0 && !notToday(p))
+  const skippedToday = products.filter((p) => p.moments.length > 0 && notToday(p))
   const legacy = products.filter((p) => !BLOCKS.includes(p.block))
 
   return (
@@ -69,6 +88,22 @@ export default function Medicacion() {
           <strong>Hay un anticoagulante en la pauta.</strong> Revisar con el equipo estos productos con efecto antiagregante: {antiplateletActive.map((p) => p.name).join(', ')}.
         </div>
       )}
+      {anticoag && pltValue != null && pltValue < 50 && (
+        <div className="notice">
+          <strong>Plaquetas {Math.round(pltValue * 1000).toLocaleString('es-ES')} (analítica del {fmtDate(lastPlt!.date)}).</strong> El informe de alta indica suspender la enoxaparina si las plaquetas bajan de 50.000: llamar a oncología antes de la siguiente dosis.
+        </div>
+      )}
+      {gated.map((p) => {
+        const g = gateOf(p)!
+        return (
+          <div className="notice" key={'g' + p.id}>
+            <strong>{p.name}:</strong>{' '}
+            {g.waiting
+              ? <>todavía no. Se puede empezar el <strong>{fmtDate(g.from)}</strong>, {p.after_chemo_days} días después de la última quimio ({fmtDate(g.chemo)}){p.condition ? `, solo si ${p.condition}` : ''}.</>
+              : <>desde el {fmtDate(g.from)} ({p.after_chemo_days} días tras la última quimio, {fmtDate(g.chemo)}) {p.condition ? <>se puede dar <strong>si {p.condition}</strong></> : 'se puede dar'}.</>}
+          </div>
+        )
+      })}
       {retiring && <RetirePanel product={retiring} onClose={() => setRetiring(null)} />}
       {products.length === 0 && retired.length === 0 && (
         <div className="empty">
@@ -91,14 +126,18 @@ export default function Medicacion() {
                 </tr>
               </thead>
               <tbody>
-                {products.filter((p) => p.moments.length > 0).map((p) => {
+                {scheduled.map((p) => {
                   const t = trafficNow(p)
+                  const wait = waiting(p)
+                  const blocked = t === 'rojo' || wait
                   return (
-                    <tr key={p.id} style={t === 'rojo' ? { opacity: 0.55 } : undefined}>
+                    <tr key={p.id} style={blocked ? { opacity: 0.55 } : undefined}>
                       <td>
                         <div onClick={() => setEditing(p)} style={{ cursor: 'pointer' }}>
                           {p.name} {t && <span className={'tag ' + t}>{TRAFFIC_LABELS[t]}</span>}
-                          <div className="meta">{p.dose}{p.lab ? ` · ${p.lab}` : ''}</div>
+                          {wait && <span className="tag gray">desde {fmtDate(gateOf(p)!.from)}</span>}
+                          {p.condition && !wait && <span className="tag amarillo">si {p.condition}</span>}
+                          <div className="meta">{p.dose}{p.lab ? ` · ${p.lab}` : ''}{p.route ? ` · ${ROUTE_LABELS[p.route]}` : ''}</div>
                         </div>
                         <button className="linkbtn" onClick={() => setRetiring(p)}>Retirar</button>
                       </td>
@@ -108,7 +147,7 @@ export default function Medicacion() {
                         return (
                           <td key={m.key} style={{ textAlign: 'center' }}>
                             {planned && (
-                              <button type="button" className={'chip ' + (taken ? 'on' : '')} style={{ padding: '.3rem .6rem' }} onClick={() => toggle(p, m.key as Moment)} disabled={t === 'rojo'}>
+                              <button type="button" className={'chip ' + (taken ? 'on' : '')} style={{ padding: '.3rem .6rem' }} onClick={() => toggle(p, m.key as Moment)} disabled={blocked}>
                                 {taken ? '✓' : '○'}
                               </button>
                             )}
@@ -121,6 +160,7 @@ export default function Medicacion() {
               </tbody>
             </table>
           </div>
+          {skippedToday.length > 0 && <p className="muted small">Hoy no toca: {skippedToday.map((p) => `${p.name} (${weekdaysText(p.weekdays)})`).join('; ')}.</p>}
           {onDemand.length > 0 && (
             <div style={{ marginTop: '.5rem' }}>
               <h3>A demanda</h3>
@@ -128,7 +168,7 @@ export default function Medicacion() {
                 <div className="item" key={p.id}>
                   <div className="main" onClick={() => setEditing(p)} style={{ cursor: 'pointer' }}>
                     <div>{p.name} {trafficNow(p) && <span className={'tag ' + trafficNow(p)}>{TRAFFIC_LABELS[trafficNow(p)!]}</span>}</div>
-                    <div className="meta">{p.dose}</div>
+                    <div className="meta">{p.dose}{extraMeta(p) ? ` · ${extraMeta(p)}` : ''}</div>
                   </div>
                   <button className="btn sm ghost" onClick={() => setRetiring(p)}>Retirar</button>
                 </div>
@@ -151,6 +191,7 @@ export default function Medicacion() {
                   <div className="meta">
                     {p.moments.length ? p.moments.map((m) => MOMENTS.find((x) => x.key === m)?.label).join(', ') : 'a demanda'}
                     {p.lab ? ` · ${p.lab}` : ''}{p.prescribed_by ? ` · ${p.prescribed_by}` : ''}
+                    {extraMeta(p) ? ` · ${extraMeta(p)}` : ''}{p.after_chemo_days ? ` · desde ${p.after_chemo_days} días tras la quimio` : ''}
                   </div>
                   <div>
                     {(['mtx', 'cddp_adm', 'nadir', 'infusion'] as const).map((k) => p.traffic?.[k] && <span key={k} className={'tag ' + p.traffic[k]}>{k === 'mtx' ? 'MTX' : k === 'cddp_adm' ? 'CDDP+ADM' : k === 'nadir' ? 'nadir' : 'infusión'}: {TRAFFIC_LABELS[p.traffic[k]!]}</span>)}
@@ -259,7 +300,30 @@ function ProductForm({ initial, onClose }: { initial: Partial<Product>; onClose:
             ))}
           </div>
         </Field>
-        <Field label="Inicio"><input type="date" value={p.start_date ?? ''} onChange={(e) => set('start_date', e.target.value)} /></Field>
+        <Field label="Días de la semana" hint="Si no se marca ninguno, todos los días.">
+          <div className="chips">
+            {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+              <button key={d} type="button" className={'chip ' + (p.weekdays?.includes(d) ? 'on' : '')} onClick={() => set('weekdays', p.weekdays?.includes(d) ? p.weekdays.filter((x) => x !== d) : [...(p.weekdays ?? []), d])}>{WEEKDAYS[d]}</button>
+            ))}
+          </div>
+        </Field>
+        <div className="grid2">
+          <Field label="Vía">
+            <select value={p.route ?? ''} onChange={(e) => set('route', (e.target.value || null) as MedRoute | null)}>
+              <option value="">—</option>
+              {Object.entries(ROUTE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </Field>
+          <Field label="Inicio"><input type="date" value={p.start_date ?? ''} onChange={(e) => set('start_date', e.target.value)} /></Field>
+        </div>
+        <div className="grid2">
+          <Field label="Empezar … días después de la última quimio" hint="Déjalo vacío si no aplica.">
+            <input type="number" min={1} max={30} value={p.after_chemo_days ?? ''} onChange={(e) => set('after_chemo_days', e.target.value ? Number(e.target.value) : null)} />
+          </Field>
+          <Field label="Solo si…" hint="Condición para darlo, p. ej. «hay fatiga».">
+            <input type="text" value={p.condition ?? ''} onChange={(e) => set('condition', e.target.value || null)} placeholder="hay fatiga" />
+          </Field>
+        </div>
       </div>
       <div className="card">
         <h3>Semáforo por ventana</h3>

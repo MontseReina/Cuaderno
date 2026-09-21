@@ -1,5 +1,5 @@
 import type { Cycle, DailyLog, Diagnosis } from '../store/types'
-import { diffDays } from './dates'
+import { addDays, diffDays } from './dates'
 import { SYMPTOMS, type SymptomDef } from './catalogs'
 
 export interface CycleContext {
@@ -130,4 +130,23 @@ export function corticoidAlert(cycles: Cycle[], date: string): Cycle | null {
     if (d >= 0 && d <= 5) return c
   }
   return null
+}
+
+/** Fecha (YYYY-MM-DD) del final de la última quimio iniciada hasta `date` (fin de la infusión o, si no consta, inicio). */
+export function lastChemoDate(cycles: Cycle[], date: string): string | null {
+  const started = cycles
+    .filter((c) => (c.start_at ?? c.planned_date).slice(0, 10) <= date)
+    .map((c) => (c.end_at ?? c.start_at ?? c.planned_date).slice(0, 10))
+    .filter((d) => d <= date)
+    .sort()
+  return started.length ? started[started.length - 1] : null
+}
+
+/** Regla «empezar N días después de la última quimio»: devuelve desde cuándo se puede dar y si hoy aún no toca. */
+export function afterChemoGate(p: { after_chemo_days?: number | null }, cycles: Cycle[], date: string): { from: string; chemo: string; waiting: boolean } | null {
+  if (!p.after_chemo_days) return null
+  const chemo = lastChemoDate(cycles, date)
+  if (!chemo) return null
+  const from = addDays(chemo, p.after_chemo_days)
+  return { from, chemo, waiting: date < from }
 }
