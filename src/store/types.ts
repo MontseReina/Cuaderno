@@ -208,7 +208,7 @@ export interface WeightEntry extends BaseRow {
 
 export type ProductBlock = 'alopatico' | 'sup_ciclo' | 'sup_fuera'
 export type Traffic = 'verde' | 'ambar' | 'rojo'
-export type Moment = 'ayunas' | 'manana' | 'comida' | 'cena' | 'dormir'
+export type Moment = 'ayunas' | 'manana' | 'media_manana' | 'comida' | 'media_tarde' | 'cena' | 'dormir'
 export interface Product extends BaseRow {
   name: string
   block: ProductBlock
@@ -219,9 +219,13 @@ export interface Product extends BaseRow {
   end_date?: string | null
   end_reason?: string
   prescribed_by?: string
+  lab?: string // laboratorio / marca
   traffic: { mtx?: Traffic; cddp_adm?: Traffic; nadir?: Traffic; infusion?: Traffic }
   traffic_reason?: string
   notes?: string
+  /** Al retirarlo: ¿qué tal fue? (para el registro de anteriores) */
+  outcome?: 'funciono' | 'parcial' | 'no_funciono' | 'no_se'
+  outcome_notes?: string
 }
 
 export interface Intake extends BaseRow {

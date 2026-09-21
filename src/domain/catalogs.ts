@@ -204,17 +204,36 @@ export const DRUG_WATCH: Record<string, string[]> = {
 }
 export const TRAFFIC_LABELS: Record<string, string> = { verde: 'Verde', ambar: 'Ámbar', rojo: 'Rojo' }
 export const BLOCK_LABELS: Record<string, string> = {
-  alopatico: 'Medicamentos pautados (medicina tradicional)',
   sup_ciclo: 'Suplementación en ciclo',
   sup_fuera: 'Suplementación fuera de ciclo',
+  alopatico: 'Medicamentos (registro anterior)', // ya no se ofrece: la medicación entre ciclos va en Ciclos
+}
+export const BLOCK_HELP: Record<string, string> = {
+  sup_ciclo: 'Se mantiene también los días de quimio e ingreso.',
+  sup_fuera: 'Se pausa los días de quimio e ingreso y se retoma al alta (o cuando se indique).',
+}
+/** Semáforo por defecto al elegir el bloque de un producto nuevo (se puede cambiar). */
+export const BLOCK_DEFAULT_TRAFFIC: Record<string, Record<string, 'verde' | 'ambar' | 'rojo'>> = {
+  sup_ciclo: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde' },
+  sup_fuera: { mtx: 'rojo', cddp_adm: 'rojo', nadir: 'ambar', infusion: 'rojo' },
 }
 export const MOMENTS: { key: string; label: string }[] = [
   { key: 'ayunas', label: 'Ayunas' },
   { key: 'manana', label: 'Mañana' },
+  { key: 'media_manana', label: 'Media mañana' },
   { key: 'comida', label: 'Comida' },
+  { key: 'media_tarde', label: 'Media tarde' },
   { key: 'cena', label: 'Cena' },
   { key: 'dormir', label: 'Antes de dormir' },
 ]
+/** Quién pauta (desplegable). "Otro" permite escribirlo a mano. */
+export const PRESCRIBERS = ['Oncóloga integrativa', 'Oncólogo', 'Digestivo', 'Nutricionista'] as const
+export const OUTCOME_LABELS: Record<string, { label: string; tag: string }> = {
+  funciono: { label: 'Funcionó', tag: 'verde' },
+  parcial: { label: 'Funcionó en parte', tag: 'ambar' },
+  no_funciono: { label: 'No funcionó / no lo toleró', tag: 'rojo' },
+  no_se: { label: 'No se sabe', tag: 'gray' },
+}
 /** Productos que exigen consulta antes de añadirse. */
 export const CONSULT_FIRST = ['ibuprofeno', 'aine', 'naproxeno', 'aspirina', 'omeprazol', 'ibp', 'pantoprazol', 'fólico', 'folico', 'hierro', 'floradix', 'ginseng', 'curcumina', 'cúrcuma', 'vitamina e', 'hipérico', 'hierba de san juan']
 export const ANTICOAG_KEYWORDS = ['heparina', 'enoxaparina', 'clexane', 'hibor', 'bemiparina', 'acenocumarol', 'sintrom', 'rivaroxaban', 'apixaban', 'dabigatran', 'anticoagulante']

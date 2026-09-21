@@ -145,7 +145,7 @@ $c$);
 
 select _mk('products', $c$
   name text not null, block text not null default 'sup_fuera', composition text, dose text,
-  moments jsonb not null default '[]', start_date date, end_date date, end_reason text, prescribed_by text,
+  moments jsonb not null default '[]', start_date date, end_date date, end_reason text, prescribed_by text, lab text, outcome text, outcome_notes text,
   traffic jsonb not null default '{}', traffic_reason text, notes text
 $c$);
 

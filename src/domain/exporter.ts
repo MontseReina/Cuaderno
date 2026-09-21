@@ -5,7 +5,7 @@ import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 
-export const APP_VERSION = '0.4.0'
+export const APP_VERSION = '0.6.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -134,12 +134,14 @@ export function buildAiReport(from: string, to: string): string {
   L.push(`- Paciente: ${name}${patient?.birth_year ? ` (nacido en ${patient.birth_year})` : ''} · Protocolo: ${patient?.protocol ?? '—'}${patient?.arm ? ` · brazo ${patient.arm}` : ''}${patient?.pgp ? ` · Pgp ${patient.pgp}` : ''}${patient?.necrosis_pct != null ? ` · necrosis ${patient.necrosis_pct} %` : ''}`)
   L.push(`- Catéter: ${patient?.catheter_type ?? '—'} · Límites de traumatología: ${patient?.load_limits ?? '—'}`)
   L.push('- Diagnósticos:')
-  for (const d of diagnoses) L.push(`  - ${d.name} (${d.kind}, ${d.date}) — ${d.status}${d.watch_signs.length ? ` · vigilar: ${d.watch_signs.join(', ')}` : ''}${d.evolution.length ? `\n    - evolución: ${d.evolution.map((e) => `${e.date}: ${e.text}`).join(' | ')}` : ''}`)
+  for (const d of diagnoses) L.push(`  - ${d.name} (${d.kind}, ${d.date}) — ${d.status}${d.watch_signs.length ? ` · vigilar: ${d.watch_signs.join(', ')}` : ''}${d.evolution.length ? `\n    - evolución: ${d.evolution.map((e) => `${e.date}: ${e.text}`).join(' | ')}` : ''}${(d.findings ?? []).length ? `\n    - hallazgos medibles: ${(d.findings ?? []).slice().sort((a, b) => a.date.localeCompare(b.date)).map((f) => `${f.date} ${f.name}${f.location ? ` (${f.location})` : ''}${f.size_mm != null ? ` ${f.size_mm} mm` : ''}${f.count != null ? ` ×${f.count}` : ''}${f.source ? ` [${f.source}]` : ''}`).join(' | ')}` : ''}`)
   L.push('- Todo lo que toma (vigente a fecha del informe):')
   for (const b of ['alopatico', 'sup_ciclo', 'sup_fuera'] as const) {
     const list = products.filter((p) => p.block === b && (!p.end_date || p.end_date >= to))
-    if (list.length) L.push(`  - ${BLOCK_LABELS[b]}: ${list.map((p) => `${p.name} (${p.dose ?? ''} · ${p.moments.join('/')}${p.prescribed_by ? ` · ${p.prescribed_by}` : ''})`).join('; ')}`)
+    if (list.length) L.push(`  - ${BLOCK_LABELS[b]}: ${list.map((p) => `${p.name}${p.lab ? ` [${p.lab}]` : ''} (${p.dose ?? ''} · ${p.moments.join('/') || 'a demanda'}${p.prescribed_by ? ` · ${p.prescribed_by}` : ''})`).join('; ')}`)
   }
+  const prev = products.filter((p) => p.end_date && p.end_date < to)
+  if (prev.length) L.push(`- Retirado anteriormente (y resultado): ${prev.map((p) => `${p.name}${p.lab ? ` [${p.lab}]` : ''} hasta ${p.end_date}${p.end_reason ? ` (${p.end_reason})` : ''}${p.outcome ? ` · ${{ funciono: 'funcionó', parcial: 'funcionó en parte', no_funciono: 'no funcionó / no lo toleró', no_se: 'no se sabe' }[p.outcome]}` : ''}${p.outcome_notes ? ` · ${p.outcome_notes}` : ''}`).join('; ')}`)
   const changes = products.filter((p) => (p.start_date && inRange(p.start_date)) || (p.end_date && inRange(p.end_date)))
   if (changes.length) {
     L.push('- Cambios de medicación/suplementación en el período:')
