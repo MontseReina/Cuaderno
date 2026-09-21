@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { viteSingleFile } from 'vite-plugin-singlefile'
+import { fileURLToPath } from 'node:url'
 
 const demo = !!process.env.DEMO_SINGLEFILE
 const base = demo ? './' : (process.env.VITE_BASE || '/')
@@ -13,6 +14,7 @@ export default defineConfig({
         react(),
         VitePWA({
           registerType: 'autoUpdate',
+          injectRegister: false, // el registro lo hace src/main.tsx (con recarga automática al actualizar)
           includeAssets: ['icon.svg'],
           manifest: {
             name: 'Cuaderno de cuidados',
@@ -39,6 +41,8 @@ export default defineConfig({
     ...(demo ? { 'import.meta.env.VITE_SUPABASE_URL': '""', 'import.meta.env.VITE_SUPABASE_ANON_KEY': '""' } : {}),
   },
   base,
+  // En la demo de un solo fichero no hay plugin PWA: el registro es un sustituto vacío.
+  resolve: demo ? { alias: { 'virtual:pwa-register': fileURLToPath(new URL('./src/pwa/register-stub.ts', import.meta.url)) } } : undefined,
   publicDir: demo ? 'public-demo' : 'public',
   build: { target: 'es2020' },
 })
