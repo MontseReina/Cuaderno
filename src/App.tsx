@@ -61,7 +61,16 @@ function Shell() {
   return (
     <div className="app">
       <header className="topbar">
-        <Link to="/" className="title" style={{ color: '#fff', textDecoration: 'none' }}>Cuaderno de cuidados</Link>
+        <Link to="/" className="title" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.45rem' }}>
+          <svg width="30" height="18" viewBox="0 0 96 48" aria-hidden="true" style={{ flex: 'none' }}>
+            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <ellipse cx="26" cy="24" rx="17" ry="8" transform="rotate(-18 26 24)" />
+              <ellipse cx="26" cy="24" rx="17" ry="8" transform="rotate(18 26 24)" />
+              <path d="M43 24c9 0 13-7 20-7 6 0 10 5 10 10 0 5-4 9-9 9-4 0-7-3-7-7 0-4 3-6 6-6" />
+            </g>
+          </svg>
+          Huma
+        </Link>
         <Link to="/pendientes" className={'badge ' + (overdue ? 'alert' : todos.length ? 'warn' : '')} title="Pendientes">
           ☑ {todos.length}
         </Link>

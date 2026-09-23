@@ -64,7 +64,7 @@ export function exportBackup() {
 /** Importar y fusionar: por id; si existe en ambos, gana el updated_at más reciente. Nunca sobrescribe sin más. */
 export async function importBackup(text: string): Promise<{ added: number; updated: number; skipped: number }> {
   const b = JSON.parse(text) as Partial<FullBackup>
-  if (b.app !== 'cuaderno-cuidados' || !b.tables) throw new Error('El archivo no es una copia de Cuaderno de cuidados')
+  if (b.app !== 'cuaderno-cuidados' || !b.tables) throw new Error('El archivo no es una copia de Huma')
   const migrated = migrate(b as FullBackup)
   let added = 0, updated = 0, skipped = 0
   for (const t of TABLE_NAMES) {
@@ -128,7 +128,7 @@ export function buildAiReport(from: string, to: string): string {
   const L: string[] = []
   L.push(`# Informe de seguimiento — ${name} — ${fmtDate(from)} a ${fmtDate(to)}`)
   L.push('')
-  L.push(`Generado por Cuaderno de cuidados v${APP_VERSION} el ${new Date().toLocaleString('es-ES')}. Solo iniciales; sin datos identificativos. La IA ordena información y prepara preguntas; no diagnostica ni propone cambios de tratamiento.`)
+  L.push(`Generado por Huma v${APP_VERSION} el ${new Date().toLocaleString('es-ES')}. Solo iniciales; sin datos identificativos. La IA ordena información y prepara preguntas; no diagnostica ni propone cambios de tratamiento.`)
   L.push('')
   L.push('## 1. Perfil y pautas vigentes')
   L.push(`- Paciente: ${name}${patient?.birth_year ? ` (nacido en ${patient.birth_year})` : ''} · Protocolo: ${patient?.protocol ?? '—'}${patient?.arm ? ` · brazo ${patient.arm}` : ''}${patient?.pgp ? ` · Pgp ${patient.pgp}` : ''}${patient?.necrosis_pct != null ? ` · necrosis ${patient.necrosis_pct} %` : ''}`)

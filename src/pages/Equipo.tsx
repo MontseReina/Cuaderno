@@ -144,7 +144,7 @@ function Informe({ onClose }: { onClose: () => void }) {
         <h3>Preguntas pendientes{prof ? ` para ${prof}` : ''}</h3>
         <ol className="small">{questions.map((q) => <li key={q.id}>{q.question} <span className="muted">({q.professional})</span></li>)}</ol>
         {questions.length === 0 && <p className="small muted">Ninguna.</p>}
-        <p className="muted small">Registro elaborado por la familia con la app Cuaderno de cuidados. No sustituye la valoración clínica.</p>
+        <p className="muted small">Registro elaborado por la familia con la app Huma. No sustituye la valoración clínica.</p>
       </div>
       <style>{`@media print { .topbar, .tabbar, .no-print { display: none !important } .content { padding: 0 } .card { border: none } }`}</style>
     </div>

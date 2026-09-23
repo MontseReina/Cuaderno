@@ -54,7 +54,7 @@ export default function Ajustes() {
           <button className="btn secondary" onClick={() => (backend as SupabaseBackend).signOut()}>Cerrar sesión</button>
         )}
       </div>
-      <p className="muted small">Cuaderno de cuidados v0.3 · Esta app registra y organiza; no da indicaciones médicas. Ante cualquier duda, el equipo tratante.</p>
+      <p className="muted small">Huma · Esta app registra y organiza; no da indicaciones médicas. Ante cualquier duda, el equipo tratante.</p>
     </div>
   )
 }
