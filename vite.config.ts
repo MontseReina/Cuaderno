@@ -17,7 +17,7 @@ export default defineConfig({
           injectRegister: false, // el registro lo hace src/main.tsx (con recarga automática al actualizar)
           includeAssets: ['icon.svg'],
           manifest: {
-            name: 'Huma',
+            name: 'Huma onco diario',
             short_name: 'Huma',
             description: 'Seguimiento diario del paciente para sus cuidadores',
             lang: 'es',

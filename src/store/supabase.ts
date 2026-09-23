@@ -77,6 +77,23 @@ export class SupabaseBackend implements Backend {
   async signInWithEmail(email: string) {
     return this.client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } })
   }
+
+  /** Entrar con el código de 6 cifras del correo. */
+  async signInWithCode(email: string, token: string) {
+    return this.client.auth.verifyOtp({ email, token, type: 'email' })
+  }
+
+  /** Entrar pegando el enlace del correo: sirve dentro de la app instalada, donde el enlace abre el navegador y no la app. */
+  async signInWithLink(link: string) {
+    let token_hash = ''
+    try {
+      const u = new URL(link.trim())
+      token_hash = u.searchParams.get('token_hash') ?? u.searchParams.get('token') ?? ''
+      if (!token_hash && u.hash) token_hash = new URLSearchParams(u.hash.slice(1)).get('token_hash') ?? ''
+    } catch { /* no es una URL válida */ }
+    if (!token_hash) return { error: { message: 'Ese enlace no vale. Copia el enlace entero del correo.' } as { message: string } }
+    return this.client.auth.verifyOtp({ token_hash, type: 'magiclink' })
+  }
   async signOut() {
     await this.client.auth.signOut()
     location.reload()
