@@ -3,9 +3,10 @@ import { backend, useRows, save, currentPatientId } from '../store'
 import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
 import { afterChemoGate, corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import { dayCompleteness } from '../domain/completeness'
+import { protocolPoint } from '../domain/protocol'
 import { knownUsers } from '../domain/users'
 import { dayNutrition, weekMode } from '../domain/nutrition'
-import { MODE_LABELS } from '../domain/catalogs'
+import { LOCATIONS, MODE_LABELS } from '../domain/catalogs'
 import { DRUG_LABELS } from '../domain/catalogs'
 import { useEffect } from 'react'
 
@@ -29,6 +30,10 @@ export default function Home() {
   // Barra de arriba: cómo va el registro de hoy (rojo sin empezar, ámbar a medias, verde completo).
   const reg = dayCompleteness(todayLog, today, defs)
   const cortico = corticoidAlert(cycles, today)
+  // Fase del tratamiento: semana y día del protocolo (Anexo 2, 34 semanas) y dónde está hoy.
+  const pp = protocolPoint(patient?.protocol_start, today)
+  const lugar = LOCATIONS.find((l) => l.value === todayLog?.location)
+  const estado = ctx.nadir ? 'Nadir (D7-14)' : 'En ciclo'
   // Productos con la regla «N días tras la quimio» que se pueden empezar hoy o en los 2 días siguientes al desbloqueo.
   const products = useRows('products', (p) => !!p.after_chemo_days && (!p.end_date || p.end_date > today))
   const unlocked = products
@@ -99,12 +104,16 @@ export default function Home() {
             <strong>{patient?.name}</strong>
             <div className="muted small">
               {ctx.cycle
-                ? `Ciclo ${ctx.cycle.number} · ${ctx.cycle.drugs.map((d) => DRUG_LABELS[d] ?? d).join(' + ')} · D${ctx.day} · ${
-                    ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle (D7-14): máxima precaución' : 'fuera de ciclo'
-                  }`
+                ? `Ciclo ${ctx.cycle.number} · ${ctx.cycle.drugs.map((d) => DRUG_LABELS[d] ?? d).join(' + ')}${pp ? ` · Semana ${pp.week} · Día ${pp.day}` : ` · D${ctx.day}`} · ${estado}`
                 : 'Sin ciclos registrados · '}
               {!ctx.cycle && <Link to="/ciclos">añadir el primer ciclo</Link>}
             </div>
+            {pp && (
+              <div className="muted small">
+                Semana {pp.week} de {pp.total} del protocolo{pp.plan ? ` · esta semana toca ${pp.plan}` : ' · semana de descanso'}
+              </div>
+            )}
+            {lugar && <div className="small" style={{ marginTop: '.2rem' }}>{lugar.emoji} {lugar.short}</div>}
           </div>
           <Link className="btn sm secondary" to="/ciclos">Ciclos</Link>
         </div>
@@ -123,6 +132,7 @@ export default function Home() {
           )}
         </div>
         <div style={{ marginTop: '.6rem' }}>
+          <h3 style={{ margin: '0 0 .3rem' }}>Cómo ha estado {patient?.name ?? 'el niño'} estos días</h3>
           <div className="strip">
             {strip.map((s) => (
               <Link key={s.d} to={`/diario/${s.d}`} style={{ flex: 1, display: 'contents' }}>
@@ -130,7 +140,10 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <div className="muted small" style={{ marginTop: '.5rem' }}>Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando`}</div>
+          <div className="muted small" style={{ marginTop: '.4rem' }}>
+            <span className="dot verde" />sin alarmas <span className="dot amarillo" />vigilar <span className="dot rojo" />alarma · gris: sin registro
+          </div>
+          <div className="muted small" style={{ marginTop: '.2rem' }}>Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando`}</div>
         </div>
       </div>
       {cortico && (

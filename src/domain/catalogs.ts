@@ -192,6 +192,23 @@ export const ZARIT7 = [
 export const ZARIT_SCALE = ['Nunca', 'Rara vez', 'A veces', 'Bastante', 'Casi siempre']
 export const ZARIT_CUTOFF = 17
 
+export const LOCATIONS: { value: 'casa' | 'ingreso' | 'hospital_dia' | 'urgencias'; label: string; short: string; emoji: string }[] = [
+  { value: 'casa', label: 'Casa', short: 'En casa', emoji: '🏠' },
+  { value: 'ingreso', label: 'Ingreso', short: 'Ingresado', emoji: '🏥' },
+  { value: 'hospital_dia', label: 'Hospital de día', short: 'Hospital de día', emoji: '💉' },
+  { value: 'urgencias', label: 'Urgencias', short: 'En urgencias', emoji: '🚑' },
+]
+
+/** Anexo 2 del protocolo ISG-GEIS-OS-2, pacientes ABCB1/P-glicoproteína negativos: 34 semanas. */
+export const PROTOCOL_34: { week: number; label: string }[] = [
+  { week: 0, label: 'MTX' }, { week: 1, label: 'CDP + ADM' }, { week: 4, label: 'MTX' }, { week: 5, label: 'CDP + ADM' },
+  { week: 8, label: 'Cirugía' }, { week: 9, label: 'ADM*' }, { week: 12, label: 'MTX' }, { week: 13, label: 'MTX' },
+  { week: 14, label: 'CDP' }, { week: 17, label: 'ADM*' }, { week: 20, label: 'MTX' }, { week: 21, label: 'MTX' },
+  { week: 22, label: 'CDP' }, { week: 25, label: 'ADM*' }, { week: 28, label: 'MTX' }, { week: 29, label: 'MTX' },
+  { week: 30, label: 'CDP' }, { week: 33, label: 'MTX' }, { week: 34, label: 'MTX' },
+]
+export const PROTOCOL_WEEKS = 34
+
 export const DRUG_LABELS: Record<string, string> = {
   MTX: 'Metotrexato', CDDP: 'Cisplatino', ADM: 'Doxorrubicina (adriamicina)', HDIFO: 'Ifosfamida', MTP: 'Mifamurtida', OTRO: 'Otro',
 }

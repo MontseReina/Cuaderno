@@ -8,6 +8,7 @@ import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import {
   BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
   PREVENTIVE, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
+  LOCATIONS,
 } from '../domain/catalogs'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { DateNav } from '../components/DateNav'
@@ -53,7 +54,7 @@ export default function Diario() {
 
       <Section title="Dónde está y constantes" open>
         <Segmented
-          options={[{ value: 'casa', label: 'Casa' }, { value: 'ingreso', label: 'Ingreso' }, { value: 'hospital_dia', label: 'Hospital de día' }]}
+          options={LOCATIONS.map((l) => ({ value: l.value, label: l.label }))}
           value={draft.location}
           onChange={(v) => set('location', v ?? undefined)}
         />

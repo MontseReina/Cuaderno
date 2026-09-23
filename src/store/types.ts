@@ -22,6 +22,8 @@ export interface Patient extends Omit<BaseRow, 'patient_id'> {
   catheter_dressing_days?: number | null
   bsa_m2?: number | null
   protocol?: string
+  /** Día 1 del tratamiento (primera quimio). Sirve para calcular la semana del protocolo. */
+  protocol_start?: string | null
   arm?: string
   pgp?: string
   necrosis_pct?: number | null
@@ -154,7 +156,7 @@ export interface DailyExtra {
 
 export interface DailyLog extends BaseRow {
   date: string // YYYY-MM-DD
-  location?: 'casa' | 'ingreso' | 'hospital_dia'
+  location?: 'casa' | 'ingreso' | 'hospital_dia' | 'urgencias'
   temp_max?: number | null
   weight?: number | null
   height_cm?: number | null

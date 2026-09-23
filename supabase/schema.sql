@@ -281,3 +281,6 @@ alter table products add column if not exists condition text;
 
 -- v0.9: día en el que toca hacer cada pendiente (lo que sale en «Hoy»)
 alter table todos add column if not exists do_date date;
+
+-- v0.10: día 1 del tratamiento (semana 0 del protocolo)
+alter table patients add column if not exists protocol_start date;

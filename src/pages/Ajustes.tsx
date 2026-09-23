@@ -21,6 +21,7 @@ export default function Ajustes() {
           <Field label="Hospital"><input type="text" value={p.hospital ?? ''} onChange={(e) => set('hospital', e.target.value)} /></Field>
           <Field label="Teléfono oncología de guardia"><input type="text" value={p.phone_oncology ?? ''} onChange={(e) => set('phone_oncology', e.target.value)} /></Field>
           <Field label="Otro teléfono de urgencia"><input type="text" value={p.phone_emergency ?? ''} onChange={(e) => set('phone_emergency', e.target.value)} /></Field>
+          <Field label="Día 1 del tratamiento" hint="La primera quimio: marca la semana 0 del protocolo"><input type="date" value={p.protocol_start ?? ''} onChange={(e) => set('protocol_start', e.target.value || null)} /></Field>
           <Field label="Superficie corporal (m²)"><input type="number" step="0.01" value={p.bsa_m2 ?? ''} onChange={(e) => set('bsa_m2', e.target.value === '' ? null : Number(e.target.value))} /></Field>
           <Field label="Tipo de catéter"><input type="text" value={p.catheter_type ?? ''} onChange={(e) => set('catheter_type', e.target.value)} /></Field>
           <Field label="Catéter desde"><input type="date" value={p.catheter_since ?? ''} onChange={(e) => set('catheter_since', e.target.value)} /></Field>
