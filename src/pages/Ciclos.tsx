@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { currentPatientId, remove, save, useRows } from '../store'
 import type { Cycle, Drug, MedRow } from '../store/types'
 import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, ROUTE_LABELS } from '../domain/catalogs'
@@ -8,18 +8,27 @@ import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../c
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
 
+/** Los ciclos se numeran por separado según los fármacos: el 1º de metotrexato,
+ *  el 1º de cisplatino + adriamicina, el 2º de metotrexato… */
+const schemeKey = (drugs?: Drug[] | null) => [...(drugs ?? [])].sort().join('+')
+function suggestNumber(cycles: Cycle[], drugs: Drug[] | undefined, selfId?: string) {
+  const k = schemeKey(drugs)
+  if (!k) return 1
+  return cycles.filter((x) => x.id !== selfId && schemeKey(x.drugs) === k).length + 1
+}
+
 export default function Ciclos() {
   const cycles = useRows('cycles').sort((a, b) => b.planned_date.localeCompare(a.planned_date))
   const [editing, setEditing] = useState<Partial<Cycle> | null>(null)
   const acc = cumulativeDoses(cycles)
 
-  if (editing) return <CycleForm initial={editing} onClose={() => setEditing(null)} />
+  if (editing) return <CycleForm initial={editing} cycles={cycles} onClose={() => setEditing(null)} />
 
   return (
     <div>
       <div className="row between">
         <h1>Tratamiento y ciclos</h1>
-        <button className="btn sm" onClick={() => setEditing({ number: (cycles[0]?.number ?? 0) + 1, drugs: [], planned_date: todayStr(), corticoid_iv: false })}>+ Ciclo</button>
+        <button className="btn sm" onClick={() => setEditing({ drugs: [], planned_date: todayStr(), corticoid_iv: false })}>+ Ciclo</button>
       </div>
       {Object.keys(acc).length > 0 && (
         <div className="card tight accent">
@@ -103,12 +112,22 @@ function legacyBetween(c: Partial<Cycle>): MedRow[] {
   return rows
 }
 
-function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () => void }) {
+function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycles: Cycle[]; onClose: () => void }) {
   const [c, setC] = useState<Partial<Cycle>>({ drugs: [], corticoid_iv: false, rescue: {}, antiemetic: {}, other_meds: {}, drug_watch: {}, actual_dose_mg_m2: {}, ...initial })
   const set = <K extends keyof Cycle>(k: K, v: Cycle[K]) => setC((x) => ({ ...x, [k]: v }))
+  // En un ciclo nuevo el número se propone solo según los fármacos elegidos; se puede corregir a mano.
+  const [numeroAMano, setNumeroAMano] = useState(false)
+  const drugsKey = schemeKey(c.drugs)
+  useEffect(() => {
+    if (initial.id || numeroAMano) return
+    setC((x) => {
+      const n = suggestNumber(cycles, x.drugs, initial.id)
+      return x.number === n ? x : { ...x, number: n }
+    })
+  }, [drugsKey, initial.id, numeroAMano, cycles])
   const fasting = hoursBetween(c.fasting_last_meal_at, c.start_at)
   const hasCorticoRow = /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i.test((c.other_meds?.infusion ?? []).map((m) => m.name).join(' '))
-  const delay = c.start_at && c.planned_date ? Math.max(0, Math.round((new Date(c.start_at).getTime() - new Date(c.planned_date + 'T00:00').getTime()) / 86400000)) : null
+  const delay = c.start_at && c.planned_date ? Math.max(0, Math.round((new Date(toLocalInput(c.start_at)).getTime() - new Date(c.planned_date.slice(0, 10) + 'T00:00').getTime()) / 86400000)) : null
 
   return (
     <div>
@@ -118,7 +137,9 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
       </div>
       <Section title="Quimioterápico" open>
         <div className="grid2">
-          <Field label="Nº de ciclo"><input type="number" value={c.number ?? ''} onChange={(e) => set('number', Number(e.target.value))} /></Field>
+          <Field label="Nº de ciclo" hint="Se cuentan por separado: 1º de metotrexato, 1º de cisplatino + adriamicina, 2º de metotrexato…">
+            <input type="number" value={c.number ?? ''} onChange={(e) => { setNumeroAMano(true); set('number', Number(e.target.value)) }} />
+          </Field>
           <Field label="Semana del protocolo"><input type="number" value={c.protocol_week ?? ''} onChange={(e) => set('protocol_week', e.target.value === '' ? null : Number(e.target.value))} /></Field>
         </div>
         <Field label="Fármacos">
