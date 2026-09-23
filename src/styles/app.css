@@ -9,7 +9,7 @@
   --primary: #3D4126;     /* verde oliva del manual */
   --primary-soft: #CCDEDF;/* azul grisáceo del manual */
   --ink-deep: #242A1C;    /* verde casi negro del manual */
-  --green: #4f7a46;
+  --green: #3F6E78;   /* «verde» del semáforo, en el azul profundo de la marca */
   --amber: #c08a1e;
   --red: #b23a2f;
   --radius: 12px;
@@ -74,7 +74,7 @@ input[type=checkbox] { width: 1.25rem; height: 1.25rem; accent-color: var(--prim
 .seg { display: flex; flex-wrap: wrap; gap: .35rem; }
 .seg button { flex: 1 1 auto; min-width: 3rem; padding: .5rem .6rem; border: 1px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer; font-size: .9rem; }
 .seg button.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 600; }
-.seg.severity button.on.s1 { background: #eef7ee; border-color: var(--green); color: var(--green); }
+.seg.severity button.on.s1 { background: #e8f0f2; border-color: var(--green); color: var(--green); }
 .seg.severity button.on.s2 { background: #fdf5dd; border-color: var(--amber); color: #7a5600; }
 .seg.severity button.on.s3 { background: #fbe4e4; border-color: var(--red); color: var(--red); }
 
@@ -106,7 +106,7 @@ input[type=checkbox] { width: 1.25rem; height: 1.25rem; accent-color: var(--prim
 .tag { display: inline-block; font-size: .75rem; padding: .1rem .5rem; border-radius: 999px; background: var(--primary-soft); color: var(--ink-deep); margin-right: .3rem; }
 .tag.rojo { background: #fbe4e4; color: var(--red); }
 .tag.ambar { background: #fdf5dd; color: #7a5600; }
-.tag.verde { background: #eef7ee; color: var(--green); }
+.tag.verde { background: #e8f0f2; color: var(--green); }
 .tag.gray { background: #eef0f3; color: var(--muted); }
 
 .urine { display: flex; gap: .3rem; }
@@ -151,7 +151,7 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .medtable td:first-child input { min-width: 8rem; }
 .medtable .seg button { padding: .3rem .4rem; font-size: .75rem; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; margin-right: .3rem; }
-.dot.verde { background: #2e9e5b; } .dot.amarillo { background: #e0a800; } .dot.rojo { background: #d9534f; }
+.dot.verde { background: var(--green); } .dot.amarillo { background: var(--amber); } .dot.rojo { background: var(--red); }
 .tag.amarillo { background: #fdf0c2; color: #7a5a00; }
 .mealhead { display: flex; align-items: center; gap: .5rem; }
 .macros { display: grid; grid-template-columns: 1fr; gap: .35rem; margin-top: .4rem; }

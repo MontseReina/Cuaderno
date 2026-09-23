@@ -47,7 +47,7 @@ export default function Diario() {
 
       <div className={'traffic ' + traffic.level} style={{ padding: '.6rem .9rem' }}>
         <strong>
-          {traffic.level === 'rojo' ? 'ROJO: llamar a oncología / urgencias' : traffic.level === 'amarillo' ? 'AMARILLO: vigilar y consultar hoy' : 'Verde'}
+          {traffic.level === 'rojo' ? 'ROJO: llamar a oncología / urgencias' : traffic.level === 'amarillo' ? 'AMARILLO: vigilar y consultar hoy' : 'Sin señales de alarma'}
         </strong>
         {traffic.reasons.length > 0 && <div className="small">{traffic.reasons.join(' · ')}</div>}
         {traffic.level === 'rojo' && patient?.phone_oncology && <div><a href={`tel:${patient.phone_oncology}`} style={{ color: 'inherit' }}>📞 {patient.phone_oncology}</a></div>}

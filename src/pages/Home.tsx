@@ -151,7 +151,7 @@ export default function Home() {
           <h2>
             {traffic.level === 'rojo' && 'ROJO — llama a oncología o acude a urgencias'}
             {traffic.level === 'amarillo' && 'AMARILLO — vigilar y consultar hoy'}
-            {traffic.level === 'verde' && (todayLog ? 'VERDE — sin señales de alarma' : 'Sin señales de alarma registradas hoy')}
+            {traffic.level === 'verde' && (todayLog ? 'Sin señales de alarma' : 'Sin señales de alarma registradas hoy')}
           </h2>
           <div className="small">Cómo está {patient?.name ?? 'el niño'} hoy, según el registro del día.</div>
           {todayLog && traffic.reasons.length > 0 && <ul>{traffic.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}

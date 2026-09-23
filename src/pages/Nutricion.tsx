@@ -52,7 +52,7 @@ export default function Nutricion() {
       <DateNav date={date} base="/nutricion" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day}${cisplatin ? ' · día de cisplatino' : ''}` : 'sin ciclo'} />
 
       <div className={'traffic ' + day.level} style={{ padding: '.6rem .9rem' }}>
-        <strong>{day.level === 'verde' ? 'VERDE — objetivos del día cumplidos' : day.level === 'amarillo' ? 'AMARILLO — casi' : 'ROJO — lejos de la pauta'}</strong>
+        <strong>{day.level === 'verde' ? 'Objetivos del día cumplidos' : day.level === 'amarillo' ? 'AMARILLO — casi' : 'ROJO — lejos de la pauta'}</strong>
         <div className="small">
           {day.meals}/{day.target} comidas{day.fatTarget ? ` · ${day.fatSnacks}/${day.fatTarget} snacks de grasa` : ''} · {day.greens} platos en verde · líquidos {day.fluids ?? '—'} ml (objetivo {day.fluidTarget})
           {day.reasons.length > 0 && <div>{day.reasons.join(' · ')}</div>}
