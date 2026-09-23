@@ -5,6 +5,8 @@ export interface CheckItem {
   key: string
   label: string
   done: boolean
+  /** El Diario es el registro principal: si no hay nada suyo, la barra está en rojo. */
+  diario?: boolean
   /** Dónde se rellena (para el enlace). */
   to: string
 }
@@ -25,15 +27,15 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, symptom
   const has = (v: unknown) => v !== undefined && v !== null && v !== ''
   const symptomsMarked = log ? symptomDefs.some((d) => log.symptoms?.[d.key] != null) || Object.keys(log.symptoms ?? {}).length > 0 : false
   const items: CheckItem[] = [
-    { key: 'location', label: 'Dónde está', done: has(log?.location), to: diario },
-    { key: 'temp', label: 'Temperatura', done: has(log?.temp_max), to: diario },
-    { key: 'orina', label: 'Orina', done: has(log?.urine_color) || has(log?.urine_amount), to: diario },
-    { key: 'deposiciones', label: 'Deposiciones', done: has(log?.stools_n), to: diario },
-    { key: 'dolor', label: 'Dolor', done: has(log?.pain_max), to: diario },
-    { key: 'fatiga', label: 'Fatiga', done: has(log?.fatigue), to: diario },
-    { key: 'animo', label: 'Ánimo', done: has(log?.mood_child), to: diario },
-    { key: 'sintomas', label: 'Síntomas', done: symptomsMarked || !!log?.extra?.symptoms_ok, to: diario },
-    { key: 'preventivos', label: 'Cuidados preventivos', done: Object.values(log?.preventive ?? {}).some(Boolean), to: diario },
+    { key: 'location', label: 'Dónde está', done: has(log?.location), to: diario, diario: true },
+    { key: 'temp', label: 'Temperatura', done: has(log?.temp_max), to: diario, diario: true },
+    { key: 'orina', label: 'Orina', done: has(log?.urine_color) || has(log?.urine_amount), to: diario, diario: true },
+    { key: 'deposiciones', label: 'Deposiciones', done: has(log?.stools_n), to: diario, diario: true },
+    { key: 'dolor', label: 'Dolor', done: has(log?.pain_max), to: diario, diario: true },
+    { key: 'fatiga', label: 'Fatiga', done: has(log?.fatigue), to: diario, diario: true },
+    { key: 'animo', label: 'Ánimo', done: has(log?.mood_child), to: diario, diario: true },
+    { key: 'sintomas', label: 'Síntomas', done: symptomsMarked || !!log?.extra?.symptoms_ok, to: diario, diario: true },
+    { key: 'preventivos', label: 'Cuidados preventivos', done: Object.values(log?.preventive ?? {}).some(Boolean), to: diario, diario: true },
     { key: 'comidas', label: 'Comidas', done: (log?.meals?.length ?? 0) >= 3, to: `/nutricion/${date}` },
     {
       key: 'liquidos',
@@ -49,8 +51,8 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, symptom
     },
   ]
   const done = items.filter((i) => i.done).length
-  // Empezado = hay algo anotado, aunque ningún apartado esté terminado (p. ej. una sola comida).
-  const started = done > 0 || (log?.meals?.length ?? 0) > 0 || (log?.fluids_total_ml ?? 0) > 0 || !!log?.notes
+  // Rojo mientras no se haya empezado el Diario, aunque ya haya comidas o líquidos anotados.
+  const started = items.some((i) => i.diario && i.done) || !!log?.notes
   return {
     items,
     done,
