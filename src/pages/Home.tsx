@@ -119,7 +119,7 @@ export default function Home() {
           ))}
         </div>
         <div className="muted small" style={{ marginTop: '.4rem' }}>
-          <span className="dot verde" />completo <span className="dot amarillo" />a medias <span className="dot rojo" />casi sin rellenar · gris: sin registro
+          <span className="dot verde" />100 % <span className="dot amarillo" />50 % <span className="dot rojo" />0 % · gris: sin registro
         </div>
         <div className="muted small" style={{ marginTop: '.2rem' }}>
           Últimos 21 días, hoy a la izquierda{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando, al ${streakPct} % de media`}
