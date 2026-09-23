@@ -59,11 +59,11 @@ export default function Diario() {
           value={draft.location}
           onChange={(v) => set('location', v ?? undefined)}
         />
-        <Field label="Temperatura y tensión" hint="Mañana, tarde y noche. Con rellenar lo que se mida es suficiente.">
+        <Field label="Constantes del día" hint="Mañana, tarde y noche. Con rellenar lo que se mida es suficiente.">
           <div className="table-wrap">
             <table className="table vitals">
               <thead>
-                <tr><th></th><th>Temp. (°C)</th><th>Tensión (alta / baja)</th><th>Pulso</th></tr>
+                <tr><th></th><th>Temp. (°C)</th><th>Tensión (alta / baja)</th><th>Pulso</th><th>Sat. O₂ (%)</th></tr>
               </thead>
               <tbody>
                 {VITAL_SLOTS.map((sl) => {
@@ -87,6 +87,7 @@ export default function Diario() {
                         </div>
                       </td>
                       <td><input type="number" inputMode="numeric" min={30} max={220} value={v.pulse ?? ''} onChange={(e) => setV({ pulse: num(e) })} /></td>
+                      <td><input type="number" inputMode="numeric" min={50} max={100} value={v.spo2 ?? ''} onChange={(e) => setV({ spo2: num(e) })} /></td>
                     </tr>
                   )
                 })}
@@ -94,6 +95,9 @@ export default function Diario() {
             </table>
           </div>
           <div className="muted small">Temperatura máxima del día: <strong>{draft.temp_max ?? '—'}</strong>{draft.temp_max != null && draft.temp_max >= 38 ? ' — 38 °C o más: llamar a oncología' : ''}</div>
+          {VITAL_SLOTS.some((sl) => { const o = draft.extra?.vitals?.[sl.key]?.spo2; return o != null && o < 94 }) && (
+            <div className="notice">Saturación por debajo de 94 %: repetir la medición con la mano caliente y quieta y, si se confirma, comentarlo con oncología.</div>
+          )}
         </Field>
         <Field label="Color de la orina">
           <div className="urine">

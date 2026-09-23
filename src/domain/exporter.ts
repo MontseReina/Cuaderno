@@ -179,7 +179,7 @@ export function buildAiReport(from: string, to: string): string {
     if (vit) {
       const det = (['manana', 'tarde', 'noche'] as const)
         .map((k) => { const v = vit[k]; if (!v) return null
-          const parts = [v.temp != null ? `${v.temp} °C` : null, v.sys != null || v.dia != null ? `TA ${v.sys ?? '—'}/${v.dia ?? '—'}` : null, v.pulse != null ? `${v.pulse} lpm` : null].filter(Boolean)
+          const parts = [v.temp != null ? `${v.temp} °C` : null, v.sys != null || v.dia != null ? `TA ${v.sys ?? '—'}/${v.dia ?? '—'}` : null, v.pulse != null ? `${v.pulse} lpm` : null, v.spo2 != null ? `SatO2 ${v.spo2} %` : null].filter(Boolean)
           return parts.length ? `${k === 'manana' ? 'mañana' : k} ${parts.join(' ')}` : null })
         .filter(Boolean)
       if (det.length) c.push(`constantes: ${det.join(' · ')}`)

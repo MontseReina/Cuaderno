@@ -162,6 +162,7 @@ export interface VitalEntry {
   sys?: number | null // tensión sistólica (la alta)
   dia?: number | null // tensión diastólica (la baja)
   pulse?: number | null
+  spo2?: number | null // saturación de oxígeno (%)
 }
 
 export interface DailyLog extends BaseRow {
