@@ -60,8 +60,9 @@ export default function Home() {
     }
   }, [traffic.level, today, traffic.reasons])
 
+  // Hoy a la izquierda y hacia atrás en el tiempo hacia la derecha.
   const strip = Array.from({ length: 21 }, (_, i) => {
-    const d = addDays(today, i - 20)
+    const d = addDays(today, -i)
     const l = byDate.get(d)
     const c = cycleContext(cycles, d)
     const p = [1, 2].map((n) => byDate.get(addDays(d, -n))).filter((x): x is NonNullable<typeof x> => !!x)
@@ -109,6 +110,23 @@ export default function Home() {
       )}
 
       <div className="card tight">
+        <h3 style={{ margin: '0 0 .3rem' }}>Cómo se está rellenando el registro</h3>
+        <div className="strip">
+          {strip.map((s) => (
+            <Link key={'r' + s.d} to={`/diario/${s.d}`} style={{ flex: 1, display: 'contents' }}>
+              <span className={s.reg} title={`${fmtDate(s.d)}: ${s.pct} % del registro`} />
+            </Link>
+          ))}
+        </div>
+        <div className="muted small" style={{ marginTop: '.4rem' }}>
+          <span className="dot verde" />completo <span className="dot amarillo" />a medias <span className="dot rojo" />casi sin rellenar · gris: sin registro
+        </div>
+        <div className="muted small" style={{ marginTop: '.2rem' }}>
+          Últimos 21 días, hoy a la izquierda{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando, al ${streakPct} % de media`}
+        </div>
+      </div>
+
+      <div className="card tight">
         <div className="row between">
           <div>
             <strong>{patient?.name}</strong>
@@ -154,20 +172,7 @@ export default function Home() {
             <span className="dot verde" />sin alarmas <span className="dot amarillo" />vigilar <span className="dot rojo" />alarma · gris: sin registro
           </div>
 
-          <h3 style={{ margin: '.8rem 0 .3rem' }}>Cómo se está rellenando el registro</h3>
-          <div className="strip">
-            {strip.map((s) => (
-              <Link key={'r' + s.d} to={`/diario/${s.d}`} style={{ flex: 1, display: 'contents' }}>
-                <span className={s.reg} title={`${fmtDate(s.d)}: ${s.pct} % del registro`} />
-              </Link>
-            ))}
-          </div>
-          <div className="muted small" style={{ marginTop: '.4rem' }}>
-            <span className="dot verde" />completo <span className="dot amarillo" />a medias <span className="dot rojo" />casi sin rellenar · gris: sin registro
-          </div>
-          <div className="muted small" style={{ marginTop: '.2rem' }}>
-            Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando, al ${streakPct} % de media`}
-          </div>
+          <div className="muted small" style={{ marginTop: '.2rem' }}>Últimos 21 días (hoy a la izquierda)</div>
         </div>
       </div>
       {cortico && (
