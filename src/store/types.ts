@@ -296,6 +296,8 @@ export interface Todo extends BaseRow {
   title: string
   pillar?: string
   assignees: string[]
+  /** Día en el que toca hacerla (lo que sale en «Hoy»). */
+  do_date?: string | null
   due_date?: string | null
   priority: Priority
   origin: 'manual' | 'alerta' | 'calendario' | 'semaforo' | 'cuidadora'

@@ -123,7 +123,7 @@ function EventForm({ initial, onClose }: { initial: Partial<CalendarEvent>; onCl
           const saved = await save('calendar_events', { ...e, patient_id: currentPatientId() } as CalendarEvent)
           if (needsResult && e.expected_result_date && !backend.all('calendar_events').some((x) => x.parent_id === saved.id)) {
             await save('calendar_events', { patient_id: currentPatientId(), type: 'resultado', title: `Esperar resultado: ${e.title}`, start_at: e.expected_result_date + 'T09:00', all_day: true, status: 'previsto', parent_id: saved.id })
-            await save('todos', { patient_id: currentPatientId(), title: `Recoger / revisar resultado: ${e.title}`, assignees: [], priority: 'normal', origin: 'calendario', status: 'pendiente', due_date: e.expected_result_date })
+            await save('todos', { patient_id: currentPatientId(), title: `Recoger / revisar resultado: ${e.title}`, assignees: [], priority: 'normal', origin: 'calendario', status: 'pendiente', do_date: e.expected_result_date, due_date: e.expected_result_date })
           }
           if (e.type === 'cura_cateter' && e.status === 'realizado' && !e.id) {
             /* nada: la siguiente cura se programa a mano */

@@ -15,9 +15,10 @@ export default function Pendientes() {
   const me = backend.currentUserId()
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name ?? 'alguien'
 
+  const dateOf = (t: Todo) => t.do_date ?? t.due_date ?? null
   const pending = todos.filter((t) => t.status === 'pendiente').sort((a, b) => {
     const pr = { urgente: 0, importante: 1, normal: 2 }
-    return pr[a.priority] - pr[b.priority] || (a.due_date ?? '9').localeCompare(b.due_date ?? '9')
+    return (dateOf(a) ?? '9').localeCompare(dateOf(b) ?? '9') || pr[a.priority] - pr[b.priority]
   })
   const done = todos.filter((t) => t.status === 'hecho').sort((a, b) => (b.done_at ?? '').localeCompare(a.done_at ?? ''))
 
@@ -30,7 +31,7 @@ export default function Pendientes() {
     <div>
       <div className="row between">
         <h1>Pendientes y avisos</h1>
-        <button className="btn sm" onClick={() => setEditing({ assignees: [], priority: 'normal', origin: 'manual', status: 'pendiente' })}>+ Pendiente</button>
+        <button className="btn sm" onClick={() => setEditing({ assignees: [], priority: 'normal', origin: 'manual', status: 'pendiente', do_date: today })}>+ Pendiente</button>
       </div>
       {pending.length === 0 && <div className="empty">Nada pendiente. 🎉</div>}
       {pending.map((t) => (
@@ -44,8 +45,9 @@ export default function Pendientes() {
               {t.title}
               <div className="meta">
                 {t.assignees.length ? `Para: ${t.assignees.map(nameOf).join(', ')}` : 'Sin asignar'}
+                {t.do_date && ` · ${t.do_date === today ? 'para hoy' : `para el ${fmtDate(t.do_date)}`}`}
                 {t.due_date && ` · límite ${fmtDate(t.due_date)}`}
-                {t.due_date && t.due_date < today && <span className="tag rojo" style={{ marginLeft: '.3rem' }}>vencido</span>}
+                {dateOf(t) && dateOf(t)! < today && <span className="tag rojo" style={{ marginLeft: '.3rem' }}>atrasado</span>}
                 {t.pillar && ` · ${t.pillar}`}
               </div>
               {t.notes && <div className="small muted">{t.notes}</div>}
@@ -86,7 +88,14 @@ function TodoForm({ initial, onClose }: { initial: Partial<Todo>; onClose: () =>
           </div>
         </Field>
         <div className="grid2">
-          <Field label="Fecha límite"><input type="date" value={t.due_date ?? ''} onChange={(e) => set('due_date', e.target.value || null)} /></Field>
+          <Field label="Día en que se hace" hint="Es el día en el que aparece en «Hoy».">
+            <input type="date" value={t.do_date ?? ''} onChange={(e) => set('do_date', e.target.value || null)} />
+          </Field>
+          <Field label="Fecha límite" hint="Último día para hacerla (opcional).">
+            <input type="date" value={t.due_date ?? ''} onChange={(e) => set('due_date', e.target.value || null)} />
+          </Field>
+        </div>
+        <div className="grid2">
           <Field label="Pilar">
             <select value={t.pillar ?? ''} onChange={(e) => set('pillar', e.target.value || undefined)}>
               <option value="">—</option>

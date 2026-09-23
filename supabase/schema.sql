@@ -278,3 +278,6 @@ alter table products add column if not exists route text;
 alter table products add column if not exists weekdays jsonb;
 alter table products add column if not exists after_chemo_days int;
 alter table products add column if not exists condition text;
+
+-- v0.9: día en el que toca hacer cada pendiente (lo que sale en «Hoy»)
+alter table todos add column if not exists do_date date;

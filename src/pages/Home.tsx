@@ -3,6 +3,7 @@ import { backend, useRows, save, currentPatientId } from '../store'
 import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
 import { afterChemoGate, corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import { dayCompleteness } from '../domain/completeness'
+import { knownUsers } from '../domain/users'
 import { dayNutrition, weekMode } from '../domain/nutrition'
 import { MODE_LABELS } from '../domain/catalogs'
 import { DRUG_LABELS } from '../domain/catalogs'
@@ -17,6 +18,7 @@ export default function Home() {
   const todos = useRows('todos', (t) => t.status === 'pendiente')
   const events = useRows('calendar_events', (e) => e.status === 'previsto')
   const me = backend.currentUserId()
+  const nameOf = (id: string) => knownUsers().find((u) => u.id === id)?.name ?? 'alguien'
 
   const ctx = cycleContext(cycles, today)
   const defs = symptomsForToday(ctx, diagnoses)
@@ -43,7 +45,7 @@ export default function Home() {
       save('todos', {
         patient_id: currentPatientId(),
         title: 'Semáforo ROJO hoy: llamar a oncología / acudir a urgencias',
-        pillar: 'Registro diario', assignees: [], priority: 'urgente', origin: 'semaforo', status: 'pendiente',
+        pillar: 'Registro diario', assignees: [], priority: 'urgente', origin: 'semaforo', status: 'pendiente', do_date: today,
         notes: traffic.reasons.join('; '),
       })
     }
@@ -58,8 +60,13 @@ export default function Home() {
   })
   const hoyEventos = events.filter((e) => e.start_at.slice(0, 10) === today).sort((a, b) => a.start_at.localeCompare(b.start_at))
   const masAdelante = events.filter((e) => e.start_at.slice(0, 10) > today).length
-  const mine = todos.filter((t) => t.assignees.includes(me))
-  const unassigned = todos.filter((t) => t.assignees.length === 0)
+  // En «Hoy» solo lo que toca hacer hoy (o lo que se quedó atrás). El resto está en Pendientes.
+  const todoDate = (t: { do_date?: string | null; due_date?: string | null }) => t.do_date ?? t.due_date ?? null
+  const forMe = (t: { assignees: string[] }) => t.assignees.includes(me) || t.assignees.length === 0
+  const late = todos.filter((t) => { const d = todoDate(t); return !!d && d < today }).sort((a, b) => (todoDate(a) ?? '').localeCompare(todoDate(b) ?? ''))
+  const hoy = todos.filter((t) => todoDate(t) === today)
+  const todayList = [...late, ...hoy]
+  const resto = todos.length - todayList.length
   const phone = patient?.phone_oncology
   let streak = 0
   for (let i = byDate.has(today) ? 0 : 1; byDate.has(addDays(today, -i)); i++) streak++
@@ -151,14 +158,17 @@ export default function Home() {
 
       <h2>Hoy</h2>
       <div className="card tight">
-        {mine.length === 0 && unassigned.length === 0 && todos.length === 0 && <div className="muted">No hay pendientes.</div>}
-        {mine.map((t) => (
-          <TodoLine key={t.id} title={t.title} meta="asignado a ti" priority={t.priority} />
+        {todayList.length === 0 && <div className="muted">Nada que hacer hoy.</div>}
+        {todayList.map((t) => (
+          <TodoLine
+            key={t.id}
+            title={t.title}
+            meta={`${forMe(t) ? (t.assignees.length ? 'asignado a ti' : 'sin asignar') : `para ${t.assignees.map(nameOf).join(', ')}`}${todoDate(t)! < today ? ` · atrasado, era para el ${fmtDate(todoDate(t))}` : ''}${t.due_date && t.do_date && t.due_date !== t.do_date ? ` · límite ${fmtDate(t.due_date)}` : ''}`}
+            priority={t.priority}
+            late={todoDate(t)! < today}
+          />
         ))}
-        {unassigned.map((t) => (
-          <TodoLine key={t.id} title={t.title} meta="sin asignar" priority={t.priority} />
-        ))}
-        {todos.length > mine.length + unassigned.length && (
+        {resto > 0 && (
           <div className="muted small" style={{ paddingTop: '.4rem' }}>
             <Link to="/pendientes">Ver todos los pendientes ({todos.length})</Link>
           </div>
@@ -197,13 +207,14 @@ export default function Home() {
   )
 }
 
-function TodoLine({ title, meta, priority }: { title: string; meta: string; priority: string }) {
+function TodoLine({ title, meta, priority, late }: { title: string; meta: string; priority: string; late?: boolean }) {
   return (
     <div className="item">
       <div className="main">
         <div>
           {priority === 'urgente' && <span className="tag rojo">urgente</span>}
           {priority === 'importante' && <span className="tag ambar">importante</span>}
+          {late && <span className="tag rojo">atrasado</span>}
           {title}
         </div>
         <div className="meta">{meta}</div>

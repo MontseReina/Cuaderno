@@ -36,7 +36,7 @@ export default function Emocional() {
         await save('todos', {
           patient_id: currentPatientId(),
           title: 'Organizar relevo / revisar reparto de tareas: la cuidadora principal muestra señales de sobrecarga',
-          pillar: 'Emocional', assignees: users.filter((u) => u.id !== me).map((u) => u.id), priority: 'importante', origin: 'cuidadora', status: 'pendiente',
+          pillar: 'Emocional', assignees: users.filter((u) => u.id !== me).map((u) => u.id), priority: 'importante', origin: 'cuidadora', status: 'pendiente', do_date: todayStr(),
         })
       }
     }
