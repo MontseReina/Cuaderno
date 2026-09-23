@@ -1,7 +1,8 @@
 import type { DailyLog } from '../store/types'
 import type { SymptomDef } from './catalogs'
+import type { MedProgress } from './medication'
 
-export type CheckGroup = 'Diario' | 'Nutrición' | 'Hidratación' | 'Ejercicio'
+export type CheckGroup = 'Diario' | 'Medicación' | 'Nutrición' | 'Hidratación' | 'Ejercicio'
 
 export interface CheckItem {
   key: string
@@ -36,7 +37,7 @@ export interface Completeness {
 
 /** ¿Está el registro del día completo? Diario + comidas y líquidos + actividad del día.
  *  Protocolo: menos de la mitad → rojo · de la mitad en adelante → naranja · todo → verde. */
-export function dayCompleteness(log: DailyLog | undefined, date: string, symptomDefs: SymptomDef[]): Completeness {
+export function dayCompleteness(log: DailyLog | undefined, date: string, symptomDefs: SymptomDef[], med?: MedProgress): Completeness {
   const diario = `/diario/${date}`
   const has = (v: unknown) => v !== undefined && v !== null && v !== ''
   const symptomsMarked = log ? symptomDefs.some((d) => log.symptoms?.[d.key] != null) || Object.keys(log.symptoms ?? {}).length > 0 : false
@@ -50,6 +51,13 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, symptom
     { key: 'animo', label: 'Ánimo', done: has(log?.mood_child), to: diario, diario: true, group: 'Diario' },
     { key: 'sintomas', label: 'Síntomas', done: symptomsMarked || !!log?.extra?.symptoms_ok, to: diario, diario: true, group: 'Diario' },
     { key: 'preventivos', label: 'Cuidados preventivos', done: Object.values(log?.preventive ?? {}).some(Boolean), to: diario, diario: true, group: 'Diario' },
+    {
+      key: 'medicacion',
+      label: med && med.planned > 0 ? `Tomas de medicación (${med.taken}/${med.planned})` : 'Tomas de medicación',
+      done: !med || med.planned === 0 || med.taken >= med.planned,
+      to: '/medicacion',
+      group: 'Medicación',
+    },
     { key: 'comidas', label: 'Comidas', done: (log?.meals?.length ?? 0) >= 3, to: `/nutricion/${date}`, group: 'Nutrición' },
     {
       key: 'liquidos',

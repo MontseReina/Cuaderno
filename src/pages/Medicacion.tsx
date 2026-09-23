@@ -6,6 +6,7 @@ import {
   OUTCOME_LABELS, PRESCRIBERS, ROUTE_LABELS, TRAFFIC_LABELS, WEEKDAYS,
 } from '../domain/catalogs'
 import { afterChemoGate, cycleContext } from '../domain/cycle'
+import { trafficWindow } from '../domain/medication'
 import { fmtDate, todayStr } from '../domain/dates'
 import { Field, Section, Segmented } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
@@ -34,13 +35,7 @@ export default function Medicacion() {
   const [retiring, setRetiring] = useState<Product | null>(null)
   const ctx = cycleContext(cycles, today)
 
-  const windowKey: keyof Product['traffic'] | null = ctx.cycle
-    ? ctx.day === 0 || (ctx.inCycle && ctx.cycle.end_at && today <= ctx.cycle.end_at.slice(0, 10))
-      ? 'infusion'
-      : ctx.inCycle
-        ? ctx.cycle.drugs.includes('MTX') ? 'mtx' : 'cddp_adm'
-        : ctx.nadir ? 'nadir' : null
-    : null
+  const windowKey = trafficWindow(ctx, today)
   const windowLabel = { infusion: 'día de infusión', mtx: 'ciclo de metotrexato', cddp_adm: 'ciclo cisplatino + adriamicina', nadir: 'nadir plaquetario (D7-14)' }
   const trafficNow = (p: Product): Traffic | undefined => (windowKey ? p.traffic?.[windowKey] : undefined)
 

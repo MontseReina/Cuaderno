@@ -4,6 +4,7 @@ import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
 import { afterChemoGate, corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import { dayCompleteness } from '../domain/completeness'
 import { protocolPoint } from '../domain/protocol'
+import { medicationProgress } from '../domain/medication'
 import { knownUsers } from '../domain/users'
 import { dayNutrition, weekMode } from '../domain/nutrition'
 import { LOCATIONS, MODE_LABELS } from '../domain/catalogs'
@@ -18,6 +19,8 @@ export default function Home() {
   const logs = useRows('daily_logs')
   const todos = useRows('todos', (t) => t.status === 'pendiente')
   const events = useRows('calendar_events', (e) => e.status === 'previsto')
+  const allProducts = useRows('products')
+  const intakes = useRows('intakes')
   const me = backend.currentUserId()
   const nameOf = (id: string) => knownUsers().find((u) => u.id === id)?.name ?? 'alguien'
 
@@ -28,14 +31,15 @@ export default function Home() {
   const todayLog = byDate.get(today)
   const traffic = dailyTraffic(todayLog, prev, ctx, defs)
   // Barra de arriba: cómo va el registro de hoy (rojo sin empezar, ámbar a medias, verde completo).
-  const reg = dayCompleteness(todayLog, today, defs)
+  const regOf = (d: string, l = byDate.get(d)) => dayCompleteness(l, d, defs, medicationProgress(allProducts, intakes, cycles, d))
+  const reg = regOf(today, todayLog)
   const cortico = corticoidAlert(cycles, today)
   // Fase del tratamiento: semana y día del protocolo (Anexo 2, 34 semanas) y dónde está hoy.
   const pp = protocolPoint(patient?.protocol_start, today)
   const lugar = LOCATIONS.find((l) => l.value === todayLog?.location)
   const estado = ctx.nadir ? 'Nadir (D7-14)' : 'En ciclo'
   // Productos con la regla «N días tras la quimio» que se pueden empezar hoy o en los 2 días siguientes al desbloqueo.
-  const products = useRows('products', (p) => !!p.after_chemo_days && (!p.end_date || p.end_date > today))
+  const products = allProducts.filter((p) => !!p.after_chemo_days && (!p.end_date || p.end_date > today))
   const unlocked = products
     .map((p) => ({ p, g: afterChemoGate(p, cycles, today) }))
     .filter((x) => x.g && !x.g.waiting && today <= addDays(x.g.from, 2))
@@ -61,7 +65,8 @@ export default function Home() {
     const l = byDate.get(d)
     const c = cycleContext(cycles, d)
     const p = [1, 2].map((n) => byDate.get(addDays(d, -n))).filter((x): x is NonNullable<typeof x> => !!x)
-    return { d, level: l ? dailyTraffic(l, p, c, symptomsForToday(c, diagnoses)).level : '' }
+    const r = regOf(d, l)
+    return { d, level: l ? dailyTraffic(l, p, c, symptomsForToday(c, diagnoses)).level : '', reg: l ? r.level : '', pct: Math.round((r.done / r.total) * 100) }
   })
   const hoyEventos = events.filter((e) => e.start_at.slice(0, 10) === today).sort((a, b) => a.start_at.localeCompare(b.start_at))
   const masAdelante = events.filter((e) => e.start_at.slice(0, 10) > today).length
@@ -75,6 +80,11 @@ export default function Home() {
   const phone = patient?.phone_oncology
   let streak = 0
   for (let i = byDate.has(today) ? 0 : 1; byDate.has(addDays(today, -i)); i++) streak++
+  // Media de lo rellenado en los días de la racha (para saber si se registra bien, no solo si se abre la app).
+  const streakDays = Array.from({ length: streak }, (_, i) => addDays(today, -(byDate.has(today) ? i : i + 1)))
+  const streakPct = streakDays.length
+    ? Math.round(streakDays.reduce((acc, d) => acc + regOf(d).done / regOf(d).total, 0) / streakDays.length * 100)
+    : 0
   const dressingDue = patient?.catheter_last_dressing && patient.catheter_dressing_days
     ? addDays(patient.catheter_last_dressing, patient.catheter_dressing_days) : null
 
@@ -143,7 +153,21 @@ export default function Home() {
           <div className="muted small" style={{ marginTop: '.4rem' }}>
             <span className="dot verde" />sin alarmas <span className="dot amarillo" />vigilar <span className="dot rojo" />alarma · gris: sin registro
           </div>
-          <div className="muted small" style={{ marginTop: '.2rem' }}>Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando`}</div>
+
+          <h3 style={{ margin: '.8rem 0 .3rem' }}>Cómo se está rellenando el registro</h3>
+          <div className="strip">
+            {strip.map((s) => (
+              <Link key={'r' + s.d} to={`/diario/${s.d}`} style={{ flex: 1, display: 'contents' }}>
+                <span className={s.reg} title={`${fmtDate(s.d)}: ${s.pct} % del registro`} />
+              </Link>
+            ))}
+          </div>
+          <div className="muted small" style={{ marginTop: '.4rem' }}>
+            <span className="dot verde" />completo <span className="dot amarillo" />a medias <span className="dot rojo" />casi sin rellenar · gris: sin registro
+          </div>
+          <div className="muted small" style={{ marginTop: '.2rem' }}>
+            Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando, al ${streakPct} % de media`}
+          </div>
         </div>
       </div>
       {cortico && (
