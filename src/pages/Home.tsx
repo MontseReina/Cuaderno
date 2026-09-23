@@ -249,6 +249,9 @@ export default function Home() {
         <Link className="btn secondary" to="/analiticas">Analíticas</Link>
         <Link className="btn secondary" to="/emocional">Emocional</Link>
         <Link className="btn secondary" to="/equipo">Preguntas</Link>
+        <Link className="btn secondary" to="/calendario">Calendario</Link>
+        <Link className="btn secondary" to="/pendientes">Pendientes</Link>
+        <Link className="btn secondary" to="/mas">Más apartados</Link>
       </div>
     </div>
   )

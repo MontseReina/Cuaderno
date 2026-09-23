@@ -72,11 +72,11 @@ function Shell() {
       </header>
       <nav className="tabbar">
         <Tab to="/" ico="🏠" label="Inicio" />
-        <Tab to="/diario" ico="📝" label="Diario" />
+        <Tab to="/diario" ico="📝" label="Registro diario" />
         <Tab to="/medicacion" ico="💊" label="Medicación" />
-        <Tab to="/calendario" ico="📅" label="Calendario" />
-        <Tab to="/pendientes" ico="☑" label="Pendientes" />
-        <Tab to="/mas" ico="⋯" label="Más" />
+        <Tab to="/nutricion" ico="🥣" label="Nutrición" />
+        <Tab to="/hidratacion" ico="💧" label="Hidratación" />
+        <Tab to="/ejercicio" ico="🏃" label="Ejercicio" />
       </nav>
       <main className="content">
         <Routes>

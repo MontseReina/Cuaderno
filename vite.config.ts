@@ -23,8 +23,8 @@ export default defineConfig({
             lang: 'es',
             start_url: base,
             display: 'standalone',
-            background_color: '#f6f7f9',
-            theme_color: '#1f5f8b',
+            background_color: '#FFFAF2',
+            theme_color: '#242A1C',
             icons: [
               { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
             ],

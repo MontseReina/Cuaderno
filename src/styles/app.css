@@ -1,31 +1,36 @@
+/* Identidad de marca SADHAKA (CtrlDigital): colores del manual y tipografías Nunito (texto)
+   + Cormorant Garamond en titulares como equivalente libre de Aire Bold Pro. */
 :root {
-  --bg: #f4f6f8;
+  --bg: #FFFAF2;          /* blanco cálido del manual */
   --card: #ffffff;
-  --text: #1c2430;
-  --muted: #5b6875;
-  --line: #dde3ea;
-  --primary: #1f5f8b;
-  --primary-soft: #e3eef7;
-  --green: #2e8b57;
-  --amber: #d99a06;
-  --red: #c53030;
+  --text: #181818;        /* negro del manual */
+  --muted: #6d7266;
+  --line: #e7e1d6;
+  --primary: #3D4126;     /* verde oliva del manual */
+  --primary-soft: #CCDEDF;/* azul grisáceo del manual */
+  --ink-deep: #242A1C;    /* verde casi negro del manual */
+  --green: #4f7a46;
+  --amber: #c08a1e;
+  --red: #b23a2f;
   --radius: 12px;
+  --font-title: 'Cormorant Garamond', 'Aire Bold Pro', Georgia, serif;
+  --font-text: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 var(--font-text); }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--primary); }
-h1 { font-size: 1.35rem; margin: 0 0 .5rem; }
-h2 { font-size: 1.1rem; margin: 1.2rem 0 .5rem; }
+h1 { font-family: var(--font-title); font-size: 1.7rem; font-weight: 600; letter-spacing: .01em; margin: 0 0 .5rem; }
+h2 { font-family: var(--font-title); font-size: 1.35rem; font-weight: 600; margin: 1.2rem 0 .5rem; }
 h3 { font-size: 1rem; margin: .8rem 0 .3rem; color: var(--muted); font-weight: 600; }
 p { margin: .3rem 0; }
 .muted { color: var(--muted); font-size: .9rem; }
 .small { font-size: .85rem; }
 
 .app { min-height: 100dvh; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: 10; background: var(--primary); color: #fff; padding: .6rem .9rem; display: flex; align-items: center; gap: .6rem; padding-top: calc(.6rem + env(safe-area-inset-top)); }
-.topbar .title { font-weight: 700; flex: 1; font-size: 1.05rem; }
+.topbar { position: sticky; top: 0; z-index: 10; background: var(--ink-deep); color: #fff; padding: .6rem .9rem; display: flex; align-items: center; gap: .6rem; padding-top: calc(.6rem + env(safe-area-inset-top)); }
+.topbar .title { font-family: var(--font-title); font-weight: 600; flex: 1; font-size: 1.25rem; letter-spacing: .06em; }
 .topbar .badge { display: inline-flex; align-items: center; gap: .3rem; background: rgba(255,255,255,.18); border-radius: 999px; padding: .2rem .6rem; font-size: .85rem; text-decoration: none; color: #fff; }
 .topbar .badge.alert { background: var(--red); }
 .topbar .badge.warn { background: var(--amber); color: #1c2430; }
@@ -97,7 +102,7 @@ input[type=checkbox] { width: 1.25rem; height: 1.25rem; accent-color: var(--prim
 .item:last-child { border-bottom: none; }
 .item .main { flex: 1; }
 .item .meta { font-size: .8rem; color: var(--muted); }
-.tag { display: inline-block; font-size: .75rem; padding: .1rem .5rem; border-radius: 999px; background: var(--primary-soft); color: var(--primary); margin-right: .3rem; }
+.tag { display: inline-block; font-size: .75rem; padding: .1rem .5rem; border-radius: 999px; background: var(--primary-soft); color: var(--ink-deep); margin-right: .3rem; }
 .tag.rojo { background: #fbe4e4; color: var(--red); }
 .tag.ambar { background: #fdf5dd; color: #7a5600; }
 .tag.verde { background: #eef7ee; color: var(--green); }
@@ -151,7 +156,7 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .macros { display: grid; grid-template-columns: 1fr; gap: .35rem; margin-top: .4rem; }
 .macros .field { margin: 0; }
 .macros .field > span { font-size: .78rem; }
-.card.accent { background: var(--primary-soft); border-color: #a9c9e2; }
+.card.accent { background: var(--primary-soft); border-color: #b4cbcc; }
 .linkbtn { background: none; border: none; padding: 0; margin-top: .15rem; color: var(--muted); font-size: .75rem; text-decoration: underline; cursor: pointer; }
 .linkbtn:hover { color: var(--red); }
 
