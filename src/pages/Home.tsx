@@ -70,11 +70,11 @@ export default function Home() {
     <div>
       <div className={'traffic ' + reg.level}>
         <h2>
-          {reg.level === 'rojo' && 'Registro de hoy sin empezar'}
+          {reg.level === 'rojo' && (reg.done === 0 ? 'Registro de hoy sin empezar' : `Registro de hoy muy incompleto — ${reg.done} de ${reg.total} apartados`)}
           {reg.level === 'amarillo' && `Registro de hoy a medias — ${reg.done} de ${reg.total} apartados`}
           {reg.level === 'verde' && 'Registro de hoy completo'}
         </h2>
-        {reg.level === 'rojo' && <p className="small" style={{ margin: 0 }}>El diario de hoy está sin tocar.</p>}
+        {reg.level === 'rojo' && <p className="small" style={{ margin: 0 }}>Menos de la mitad del registro: hay que completarlo hoy.</p>}
         {reg.missing.length > 0 && (
           <p className="small" style={{ margin: 0 }}>
             Falta: {reg.missing.slice(0, 5).map((m, i) => (

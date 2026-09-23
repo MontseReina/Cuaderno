@@ -21,7 +21,7 @@ export interface Completeness {
 }
 
 /** ¿Está el registro del día completo? Diario + comidas y líquidos + actividad del día.
- *  Rojo si no hay nada, ámbar si está a medias, verde cuando está todo. */
+ *  Protocolo: menos de la mitad → rojo · de la mitad en adelante → naranja · todo → verde. */
 export function dayCompleteness(log: DailyLog | undefined, date: string, symptomDefs: SymptomDef[]): Completeness {
   const diario = `/diario/${date}`
   const has = (v: unknown) => v !== undefined && v !== null && v !== ''
@@ -51,13 +51,13 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, symptom
     },
   ]
   const done = items.filter((i) => i.done).length
-  // Rojo mientras no se haya empezado el Diario, aunque ya haya comidas o líquidos anotados.
-  const started = items.some((i) => i.diario && i.done) || !!log?.notes
+  const total = items.length
+  const half = Math.ceil(total / 2)
   return {
     items,
     done,
-    total: items.length,
-    level: !started ? 'rojo' : done === items.length ? 'verde' : 'amarillo',
+    total,
+    level: done === total ? 'verde' : done >= half ? 'amarillo' : 'rojo',
     missing: items.filter((i) => !i.done),
   }
 }
