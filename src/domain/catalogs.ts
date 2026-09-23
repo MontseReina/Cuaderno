@@ -19,6 +19,7 @@ export const SYMPTOMS: SymptomDef[] = [
   { key: 'oido', label: 'Oye peor o pitidos', when: 'siempre' },
   { key: 'disnea', label: 'Dificultad para respirar o dolor en el pecho', when: 'siempre', redAt3: true },
   { key: 'somnolencia', label: 'Somnolencia o confusión inusual', when: 'siempre', redAt3: true },
+  { key: 'mareo', label: 'Mareo o inestabilidad', when: 'siempre', help: 'Leve: se marea al levantarse · Moderado: necesita sentarse o apoyarse · Intenso: no se sostiene o se ha desmayado', redAt3: true },
   { key: 'nauseas', label: 'Náuseas', when: 'siempre', help: 'Leve: lo dice pero come · Moderado: come menos por las náuseas · Intenso: no puede comer' },
   { key: 'vomitos', label: 'Vómitos', when: 'ciclo', redAt3: true, help: 'Intenso: no retiene líquidos' },
   { key: 'distension', label: 'Plenitud o tripa hinchada', when: 'ciclo' },
