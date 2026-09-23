@@ -240,18 +240,14 @@ export default function Home() {
 
       <h2>Pilares</h2>
       <div className="grid3">
-        <Link className="btn secondary" to="/diagnosticos">Diagnósticos</Link>
-        <Link className="btn secondary" to="/ciclos">Tratamiento</Link>
-        <Link className="btn secondary" to="/nutricion">Nutrición</Link>
-        <Link className="btn secondary" to="/ejercicio">Ejercicio</Link>
-        <Link className="btn secondary" to="/microbiota">Microbiota</Link>
-        <Link className="btn secondary" to="/biohacking">Biohacking</Link>
-        <Link className="btn secondary" to="/analiticas">Analíticas</Link>
-        <Link className="btn secondary" to="/emocional">Emocional</Link>
-        <Link className="btn secondary" to="/equipo">Preguntas</Link>
-        <Link className="btn secondary" to="/calendario">Calendario</Link>
-        <Link className="btn secondary" to="/pendientes">Pendientes</Link>
-        <Link className="btn secondary" to="/mas">Más apartados</Link>
+        <Link className="btn secondary" to="/diagnosticos">🩺 Diagnósticos</Link>
+        <Link className="btn secondary" to="/ciclos">💉 Tratamiento</Link>
+        <Link className="btn secondary" to="/analiticas">🧪 Analíticas</Link>
+        <Link className="btn secondary" to="/microbiota">🦠 Microbiota</Link>
+        <Link className="btn secondary" to="/emocional">💛 Emocional</Link>
+        <Link className="btn secondary" to="/calendario">📅 Calendario</Link>
+        <Link className="btn secondary" to="/pendientes">☑️ Pendientes</Link>
+        <Link className="btn secondary" to="/equipo">💬 Preguntas</Link>
       </div>
     </div>
   )

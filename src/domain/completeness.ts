@@ -2,7 +2,7 @@ import type { DailyLog } from '../store/types'
 import type { SymptomDef } from './catalogs'
 import type { MedProgress } from './medication'
 
-export type CheckGroup = 'Diario' | 'Medicación' | 'Nutrición' | 'Hidratación' | 'Ejercicio'
+export type CheckGroup = 'Diario' | 'Medicación' | 'Nutrición' | 'Hidratación' | 'Ejercicio' | 'Biohacking'
 
 export interface CheckItem {
   key: string
@@ -65,6 +65,15 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, symptom
       done: (log?.fluids_total_ml ?? 0) > 0 || (log?.water_ml ?? 0) > 0 || (log?.broth_cups ?? 0) > 0 || (log?.seawater_ml ?? 0) > 0,
       to: `/hidratacion/${date}`,
       group: 'Hidratación',
+    },
+    {
+      key: 'biohacking',
+      label: 'Sueño y sincronizadores',
+      done: has(log?.sleep_start) || has(log?.sleep_end) || !!log?.wakeups
+        || [log?.ir_morning, log?.ir_night, log?.glasses, log?.daylight_morning, log?.daylight_afternoon, log?.sun_exposure].some(Boolean)
+        || Object.keys(log?.extra?.sync ?? {}).length > 0,
+      to: `/biohacking/${date}`,
+      group: 'Biohacking',
     },
     {
       key: 'ejercicio',
