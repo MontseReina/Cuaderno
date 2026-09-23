@@ -165,3 +165,7 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .traffic.inline { margin: .6rem 0 0; padding: .7rem .8rem; }
 .traffic.inline h2 { font-size: 1rem; margin: 0 0 .15rem; }
 .traffic.inline .small { opacity: .9; }
+
+/* Constantes del diario: temperatura y tensión por momento del día */
+.table.vitals th { font-weight: 600; font-size: .8rem; color: var(--muted); text-align: left; }
+.table.vitals td input { padding: .35rem .4rem; min-width: 3.4rem; }

@@ -152,6 +152,16 @@ export interface DailyExtra {
   sync?: Partial<Record<'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure', SyncEntry>>
   functional?: FunctionalDaily // capacidad funcional del día
   symptoms_ok?: boolean // revisado: hoy no hay síntomas que marcar
+  /** Constantes por momento del día: temperatura y tensión arterial. */
+  vitals?: Partial<Record<VitalSlot, VitalEntry>>
+}
+
+export type VitalSlot = 'manana' | 'tarde' | 'noche'
+export interface VitalEntry {
+  temp?: number | null
+  sys?: number | null // tensión sistólica (la alta)
+  dia?: number | null // tensión diastólica (la baja)
+  pulse?: number | null
 }
 
 export interface DailyLog extends BaseRow {

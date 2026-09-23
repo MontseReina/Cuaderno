@@ -9,6 +9,7 @@ import {
   BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
   PREVENTIVE, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
   LOCATIONS,
+  VITAL_SLOTS,
 } from '../domain/catalogs'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { DateNav } from '../components/DateNav'
@@ -58,8 +59,41 @@ export default function Diario() {
           value={draft.location}
           onChange={(v) => set('location', v ?? undefined)}
         />
-        <Field label="Temperatura máx. (°C)">
-          <input type="number" inputMode="decimal" step="0.1" min={34} max={43} value={draft.temp_max ?? ''} onChange={(e) => set('temp_max', e.target.value === '' ? null : Number(e.target.value))} />
+        <Field label="Temperatura y tensión" hint="Mañana, tarde y noche. Con rellenar lo que se mida es suficiente.">
+          <div className="table-wrap">
+            <table className="table vitals">
+              <thead>
+                <tr><th></th><th>Temp. (°C)</th><th>Tensión (alta / baja)</th><th>Pulso</th></tr>
+              </thead>
+              <tbody>
+                {VITAL_SLOTS.map((sl) => {
+                  const v = draft.extra?.vitals?.[sl.key] ?? {}
+                  const setV = (patch: Partial<typeof v>) => {
+                    const vitals = { ...(draft.extra?.vitals ?? {}), [sl.key]: { ...v, ...patch } }
+                    setExtra({ vitals })
+                    const temps = VITAL_SLOTS.map((x) => (x.key === sl.key ? { ...v, ...patch } : vitals[x.key])?.temp).filter((t): t is number => t != null)
+                    set('temp_max', temps.length ? Math.max(...temps) : null)
+                  }
+                  const num = (e: { target: { value: string } }) => (e.target.value === '' ? null : Number(e.target.value))
+                  return (
+                    <tr key={sl.key}>
+                      <th scope="row">{sl.label}</th>
+                      <td><input type="number" inputMode="decimal" step="0.1" min={34} max={43} value={v.temp ?? ''} onChange={(e) => setV({ temp: num(e) })} /></td>
+                      <td>
+                        <div className="row" style={{ gap: '.25rem', flexWrap: 'nowrap' }}>
+                          <input type="number" inputMode="numeric" min={50} max={200} placeholder="alta" value={v.sys ?? ''} onChange={(e) => setV({ sys: num(e) })} />
+                          <span className="muted">/</span>
+                          <input type="number" inputMode="numeric" min={30} max={140} placeholder="baja" value={v.dia ?? ''} onChange={(e) => setV({ dia: num(e) })} />
+                        </div>
+                      </td>
+                      <td><input type="number" inputMode="numeric" min={30} max={220} value={v.pulse ?? ''} onChange={(e) => setV({ pulse: num(e) })} /></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="muted small">Temperatura máxima del día: <strong>{draft.temp_max ?? '—'}</strong>{draft.temp_max != null && draft.temp_max >= 38 ? ' — 38 °C o más: llamar a oncología' : ''}</div>
         </Field>
         <Field label="Color de la orina">
           <div className="urine">

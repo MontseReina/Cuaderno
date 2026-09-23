@@ -175,6 +175,15 @@ export function buildAiReport(from: string, to: string): string {
     L.push(`### ${fmtDate(l.date)} (${l.date}) — ${ctx.cycle ? `ciclo ${ctx.cycle.number} D${ctx.day}, ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle' : 'fuera de ciclo'}` : 'sin ciclo'} · semáforo ${tr.level.toUpperCase()}${tr.reasons.length ? ` (${tr.reasons.join('; ')})` : ''} · ${l.location ?? ''}`)
     const c: string[] = []
     if (l.temp_max != null) c.push(`Tª máx ${l.temp_max} °C`)
+    const vit = l.extra?.vitals
+    if (vit) {
+      const det = (['manana', 'tarde', 'noche'] as const)
+        .map((k) => { const v = vit[k]; if (!v) return null
+          const parts = [v.temp != null ? `${v.temp} °C` : null, v.sys != null || v.dia != null ? `TA ${v.sys ?? '—'}/${v.dia ?? '—'}` : null, v.pulse != null ? `${v.pulse} lpm` : null].filter(Boolean)
+          return parts.length ? `${k === 'manana' ? 'mañana' : k} ${parts.join(' ')}` : null })
+        .filter(Boolean)
+      if (det.length) c.push(`constantes: ${det.join(' · ')}`)
+    }
     if (l.weight != null) c.push(`peso ${l.weight} kg`)
     for (const w of backend.all('weights').filter((w) => w.at.slice(0, 10) === l.date)) c.push(`peso ${w.kg} kg (${w.source}${w.height_cm ? `, ${w.height_cm} cm` : ''})`)
     if (l.urine_color) c.push(`orina color ${l.urine_color}/6${l.urine_amount ? ` ${l.urine_amount}` : ''}${l.urine_ph ? ` pH ${l.urine_ph}` : ''}${l.urine_ml ? ` ${l.urine_ml} ml` : ''}`)

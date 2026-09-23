@@ -209,6 +209,10 @@ export const PROTOCOL_34: { week: number; label: string }[] = [
 ]
 export const PROTOCOL_WEEKS = 34
 
+export const VITAL_SLOTS: { key: 'manana' | 'tarde' | 'noche'; label: string }[] = [
+  { key: 'manana', label: 'Mañana' }, { key: 'tarde', label: 'Tarde' }, { key: 'noche', label: 'Noche' },
+]
+
 export const DRUG_LABELS: Record<string, string> = {
   MTX: 'Metotrexato', CDDP: 'Cisplatino', ADM: 'Doxorrubicina (adriamicina)', HDIFO: 'Ifosfamida', MTP: 'Mifamurtida', OTRO: 'Otro',
 }
