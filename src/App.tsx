@@ -89,6 +89,7 @@ function Shell() {
           <Route path="/analiticas" element={<Analiticas />} />
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/pendientes" element={<Pendientes />} />
+          <Route path="/pendientes/:id" element={<Pendientes />} />
           <Route path="/equipo" element={<Equipo />} />
           <Route path="/emocional" element={<Emocional />} />
           <Route path="/ejercicio" element={<Ejercicio />} />

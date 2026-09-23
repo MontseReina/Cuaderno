@@ -162,7 +162,9 @@ export default function Home() {
         {todayList.map((t) => (
           <TodoLine
             key={t.id}
+            id={t.id}
             title={t.title}
+            onDone={() => save('todos', { ...t, status: 'hecho', done_at: new Date().toISOString(), done_by: me })}
             meta={`${forMe(t) ? (t.assignees.length ? 'asignado a ti' : 'sin asignar') : `para ${t.assignees.map(nameOf).join(', ')}`}${todoDate(t)! < today ? ` · atrasado, era para el ${fmtDate(todoDate(t))}` : ''}${t.due_date && t.do_date && t.due_date !== t.do_date ? ` · límite ${fmtDate(t.due_date)}` : ''}`}
             priority={t.priority}
             late={todoDate(t)! < today}
@@ -207,15 +209,22 @@ export default function Home() {
   )
 }
 
-function TodoLine({ title, meta, priority, late }: { title: string; meta: string; priority: string; late?: boolean }) {
+function TodoLine({ id, title, meta, priority, late, onDone }: { id: string; title: string; meta: string; priority: string; late?: boolean; onDone: () => void }) {
   return (
     <div className="item">
+      <input
+        type="checkbox"
+        checked={false}
+        title="Marcar como hecha"
+        onChange={onDone}
+        style={{ marginTop: '.15rem' }}
+      />
       <div className="main">
         <div>
           {priority === 'urgente' && <span className="tag rojo">urgente</span>}
           {priority === 'importante' && <span className="tag ambar">importante</span>}
           {late && <span className="tag rojo">atrasado</span>}
-          {title}
+          <Link to={`/pendientes/${id}`} style={{ color: 'inherit' }}>{title}</Link>
         </div>
         <div className="meta">{meta}</div>
       </div>

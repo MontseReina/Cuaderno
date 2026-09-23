@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { backend, currentPatientId, remove, save, useRows } from '../store'
 import type { Priority, Todo } from '../store/types'
 import { PILLARS } from '../domain/catalogs'
@@ -8,7 +9,15 @@ import { knownUsers } from '../domain/users'
 
 export default function Pendientes() {
   const todos = useRows('todos')
+  const { id } = useParams()
+  const navigate = useNavigate()
   const [editing, setEditing] = useState<Partial<Todo> | null>(null)
+  // Si se llega desde la portada con /pendientes/<id>, abrir ese pendiente.
+  useEffect(() => {
+    if (!id) return
+    const t = todos.find((x) => x.id === id)
+    if (t) setEditing(t)
+  }, [id, todos])
   const [showDone, setShowDone] = useState(false)
   const today = todayStr()
   const users = knownUsers()
@@ -22,7 +31,8 @@ export default function Pendientes() {
   })
   const done = todos.filter((t) => t.status === 'hecho').sort((a, b) => (b.done_at ?? '').localeCompare(a.done_at ?? ''))
 
-  if (editing) return <TodoForm initial={editing} onClose={() => setEditing(null)} />
+  const closeForm = () => { setEditing(null); if (id) navigate('/pendientes', { replace: true }) }
+  if (editing) return <TodoForm initial={editing} onClose={closeForm} />
 
   const complete = (t: Todo, v: boolean) =>
     save('todos', { ...t, status: v ? 'hecho' : 'pendiente', done_at: v ? new Date().toISOString() : null, done_by: v ? me : null })
