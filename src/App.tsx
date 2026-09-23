@@ -30,12 +30,31 @@ import { Mark } from './components/Logo'
 
 export default function App() {
   const [ready, setReady] = useState(false)
+  const [fallo, setFallo] = useState<string | null>(null)
   const [unlocked, setUnlocked] = useState(pinUnlocked())
-  useEffect(() => {
-    backend.init().then(() => setReady(true))
-  }, [])
+  const cargar = () => {
+    setReady(false)
+    setFallo(null)
+    backend.init().then((e) => { setFallo(e ?? null); setReady(true) })
+  }
+  useEffect(cargar, [])
   useStoreVersion()
   if (!ready) return <div className="empty">Cargando…</div>
+  // Nunca mostrar la app vacía cuando no se han podido leer los datos: parecería que se han borrado.
+  if (fallo) return (
+    <div className="content">
+      <div className="card">
+        <h1>No se han podido cargar los datos</h1>
+        <p><strong>Tus registros están guardados en el servidor.</strong> Lo que ha fallado es leerlos en este momento, normalmente por falta de cobertura o porque la sesión ha caducado.</p>
+        <p className="notice"><strong>No apuntes nada todavía</strong>: espera a que vuelvan a verse, para no duplicar el registro del día.</p>
+        <div className="row">
+          <button className="btn" onClick={cargar}>Reintentar</button>
+          <button className="btn ghost" onClick={async () => { await (backend as unknown as { signOut?: () => Promise<void> }).signOut?.(); location.reload() }}>Entrar otra vez</button>
+        </div>
+        <p className="muted small">Detalle técnico: {fallo}</p>
+      </div>
+    </div>
+  )
   if (isDemo && !unlocked) return <PinGate onOk={() => setUnlocked(true)} />
   if (!backend.currentUserId()) return <Login />
   const patient = backend.all('patients')[0]

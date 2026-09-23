@@ -14,14 +14,26 @@ export class SupabaseBackend implements Backend {
     this.client = createClient(url, anonKey)
   }
 
-  async init() {
+  async init(): Promise<string | null> {
     const { data } = await this.client.auth.getSession()
     const session = data.session
-    if (!session) return
+    if (!session) return null // sin sesión: se muestra la pantalla de entrar
     this.userId = session.user.id
     this.userName =
       (session.user.user_metadata?.name as string | undefined) ?? session.user.email ?? 'usuario'
-    await Promise.all(TABLE_NAMES.map((t) => this.load(t)))
+
+    // Cargar los datos. Si falla (sin cobertura, sesión caducada…) se reintenta;
+    // NUNCA se sigue con la caché vacía, porque parecería que los datos se han borrado.
+    let fallo: string | null = null
+    for (let intento = 0; intento < 3; intento++) {
+      const errores = (await Promise.all(TABLE_NAMES.map((t) => this.load(t)))).filter(Boolean) as string[]
+      if (!errores.length) { fallo = null; break }
+      fallo = errores[0]
+      if (intento === 0) await this.client.auth.refreshSession().catch(() => {})
+      await new Promise((r) => setTimeout(r, 1200 * (intento + 1)))
+    }
+    if (fallo) return fallo
+
     this.client
       .channel('cuaderno-cambios')
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
@@ -31,16 +43,23 @@ export class SupabaseBackend implements Backend {
         if (row && 'id' in row) this.cache.put(table, row)
       })
       .subscribe()
+    return null
   }
 
-  private async load<T extends TableName>(table: T) {
-    const q = this.client.from(table).select('*')
-    const { data, error } = table === 'profiles' ? await q : await q.is('deleted_at', null)
-    if (error) {
-      console.error('Error cargando', table, error.message)
-      return
+  private async load<T extends TableName>(table: T): Promise<string | null> {
+    try {
+      const q = this.client.from(table).select('*')
+      const { data, error } = table === 'profiles' ? await q : await q.is('deleted_at', null)
+      if (error) {
+        console.error('Error cargando', table, error.message)
+        return error.message
+      }
+      this.cache.set(table, (data ?? []) as Row<T>[])
+      return null
+    } catch (e) {
+      console.error('Error cargando', table, e)
+      return e instanceof Error ? e.message : 'sin conexión'
     }
-    this.cache.set(table, (data ?? []) as Row<T>[])
   }
 
   all<T extends TableName>(table: T): Row<T>[] {

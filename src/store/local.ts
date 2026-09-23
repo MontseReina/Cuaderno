@@ -19,6 +19,7 @@ export class LocalBackend implements Backend {
     } catch {
       /* sin datos previos */
     }
+    return null
   }
   private persist() {
     try {

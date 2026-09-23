@@ -7,7 +7,8 @@ export type Listener = () => void
 /** Contrato común para el almacenamiento local (demo) y Supabase. */
 export interface Backend {
   readonly mode: 'demo' | 'supabase'
-  init(): Promise<void>
+  /** Devuelve null si todo se ha cargado, o un mensaje si NO se han podido leer los datos. */
+  init(): Promise<string | null>
   all<T extends TableName>(table: T): Row<T>[]
   upsert<T extends TableName>(table: T, row: Row<T>): Promise<void>
   softDelete<T extends TableName>(table: T, id: string): Promise<void>
