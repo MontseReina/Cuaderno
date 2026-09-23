@@ -154,3 +154,8 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .card.accent { background: var(--primary-soft); border-color: #a9c9e2; }
 .linkbtn { background: none; border: none; padding: 0; margin-top: .15rem; color: var(--muted); font-size: .75rem; text-decoration: underline; cursor: pointer; }
 .linkbtn:hover { color: var(--red); }
+
+/* Semáforo de salud dentro de la tarjeta del paciente */
+.traffic.inline { margin: .6rem 0 0; padding: .7rem .8rem; }
+.traffic.inline h2 { font-size: 1rem; margin: 0 0 .15rem; }
+.traffic.inline .small { opacity: .9; }

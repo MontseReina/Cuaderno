@@ -16,7 +16,7 @@ import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper } f
 export default function Diario() {
   const params = useParams()
   const date = params.date ?? todayStr()
-  const { draft, set, logs, toastNode } = useDailyDraft(date)
+  const { draft, set, setExtra, logs, toastNode } = useDailyDraft(date)
   const cycles = useRows('cycles')
   const diagnoses = useRows('diagnoses')
   const patient = backend.all('patients')[0]
@@ -104,6 +104,7 @@ export default function Diario() {
           onChange={(v) => setListMode(v && v !== mode ? v : 'auto')}
         />
         <p className="muted small">Marca solo lo que hay. Lo que no se toca cuenta como "No". La lista cambia sola con el ciclo; se puede ver la otra.</p>
+        <Check checked={!!draft.extra?.symptoms_ok} onChange={(v) => setExtra({ symptoms_ok: v })}>Revisado: hoy no hay síntomas que marcar</Check>
         {shownDefs.map((d) => (
           <div key={d.key} style={{ margin: '.5rem 0' }}>
             <div className="small" style={{ marginBottom: '.2rem' }}>{d.label}</div>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { backend, useRows, save, currentPatientId } from '../store'
 import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
 import { afterChemoGate, corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
+import { dayCompleteness } from '../domain/completeness'
 import { dayNutrition, weekMode } from '../domain/nutrition'
 import { MODE_LABELS } from '../domain/catalogs'
 import { DRUG_LABELS } from '../domain/catalogs'
@@ -23,6 +24,8 @@ export default function Home() {
   const prev = [1, 2, 3].map((n) => byDate.get(addDays(today, -n))).filter((l): l is NonNullable<typeof l> => !!l)
   const todayLog = byDate.get(today)
   const traffic = dailyTraffic(todayLog, prev, ctx, defs)
+  // Barra de arriba: cómo va el registro de hoy (rojo sin empezar, ámbar a medias, verde completo).
+  const reg = dayCompleteness(todayLog, today, defs)
   const cortico = corticoidAlert(cycles, today)
   // Productos con la regla «N días tras la quimio» que se pueden empezar hoy o en los 2 días siguientes al desbloqueo.
   const products = useRows('products', (p) => !!p.after_chemo_days && (!p.end_date || p.end_date > today))
@@ -65,27 +68,22 @@ export default function Home() {
 
   return (
     <div>
-      <div className={'traffic ' + traffic.level}>
+      <div className={'traffic ' + reg.level}>
         <h2>
-          {traffic.level === 'rojo' && 'ROJO — llama a oncología o acude a urgencias'}
-          {traffic.level === 'amarillo' && 'AMARILLO — vigilar y consultar hoy'}
-          {traffic.level === 'verde' && (todayLog ? 'VERDE — sin señales de alarma' : 'Hoy aún sin registro')}
+          {reg.level === 'rojo' && 'Registro de hoy sin empezar'}
+          {reg.level === 'amarillo' && `Registro de hoy a medias — ${reg.done} de ${reg.total}`}
+          {reg.level === 'verde' && 'Registro de hoy completo'}
         </h2>
-        {traffic.reasons.length > 0 && (
-          <ul>
-            {traffic.reasons.map((r) => (
-              <li key={r}>{r}</li>
-            ))}
-          </ul>
-        )}
-        {traffic.level === 'rojo' && phone && (
-          <p>
-            <a href={`tel:${phone}`} style={{ color: '#fff', fontWeight: 700 }}>📞 {phone}</a> — no dar antitérmico antes de llamar
+        {reg.missing.length > 0 && (
+          <p className="small" style={{ margin: 0 }}>
+            Falta: {reg.missing.slice(0, 5).map((m, i) => (
+              <span key={m.key}>{i > 0 ? ', ' : ''}<Link to={m.to} style={{ color: 'inherit', textDecoration: 'underline' }}>{m.label.toLowerCase()}</Link></span>
+            ))}{reg.missing.length > 5 ? ` y ${reg.missing.length - 5} cosas más` : ''}
           </p>
         )}
         <p className="small" style={{ marginTop: '.5rem' }}>
           <Link to={`/diario/${today}`} style={{ color: 'inherit', fontWeight: 700 }}>
-            {todayLog ? 'Completar el registro de hoy →' : 'Hacer el registro de hoy →'}
+            {reg.level === 'verde' ? 'Ver el registro de hoy →' : todayLog ? 'Completar el registro de hoy →' : 'Hacer el registro de hoy →'}
           </Link>
         </p>
       </div>
@@ -105,6 +103,20 @@ export default function Home() {
           </div>
           <Link className="btn sm secondary" to="/ciclos">Ciclos</Link>
         </div>
+        <div className={'traffic inline ' + traffic.level}>
+          <h2>
+            {traffic.level === 'rojo' && 'ROJO — llama a oncología o acude a urgencias'}
+            {traffic.level === 'amarillo' && 'AMARILLO — vigilar y consultar hoy'}
+            {traffic.level === 'verde' && (todayLog ? 'VERDE — sin señales de alarma' : 'Sin señales de alarma registradas hoy')}
+          </h2>
+          <div className="small">Cómo está {patient?.name ?? 'el niño'} hoy, según el registro del día.</div>
+          {todayLog && traffic.reasons.length > 0 && <ul>{traffic.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
+          {traffic.level === 'rojo' && phone && (
+            <p style={{ margin: '.4rem 0 0' }}>
+              <a href={`tel:${phone}`} style={{ color: 'inherit', fontWeight: 700 }}>📞 {phone}</a> — no dar antitérmico antes de llamar
+            </p>
+          )}
+        </div>
         <div style={{ marginTop: '.6rem' }}>
           <div className="strip">
             {strip.map((s) => (
@@ -113,7 +125,7 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <div className="muted small">Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando`}</div>
+          <div className="muted small" style={{ marginTop: '.5rem' }}>Últimos 21 días{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando`}</div>
         </div>
       </div>
       {cortico && (

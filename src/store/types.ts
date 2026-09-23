@@ -149,6 +149,7 @@ export interface DailyExtra {
   infusion_cups?: number | null // infusiones manzanilla / jengibre (medias tazas)
   sync?: Partial<Record<'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure', SyncEntry>>
   functional?: FunctionalDaily // capacidad funcional del día
+  symptoms_ok?: boolean // revisado: hoy no hay síntomas que marcar
 }
 
 export interface DailyLog extends BaseRow {
