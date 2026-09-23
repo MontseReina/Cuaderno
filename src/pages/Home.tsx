@@ -71,7 +71,7 @@ export default function Home() {
       <div className={'traffic ' + reg.level}>
         <h2>
           {reg.level === 'rojo' && 'Registro de hoy sin empezar'}
-          {reg.level === 'amarillo' && `Registro de hoy a medias — ${reg.done} de ${reg.total}`}
+          {reg.level === 'amarillo' && `Registro de hoy a medias — ${reg.done} de ${reg.total} apartados`}
           {reg.level === 'verde' && 'Registro de hoy completo'}
         </h2>
         {reg.missing.length > 0 && (
