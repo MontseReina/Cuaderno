@@ -31,20 +31,32 @@ export function fmtDateTime(s?: string | null) {
   const d = new Date(s)
   return d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
+/** Horas de reloj: las que se escriben a mano en la app (perfusión, ingreso,
+ *  última comida, citas…). Se guardan y se muestran tal cual, sin cambios de
+ *  zona horaria: si se escribe 13:25, en todas partes pone 13:25. */
+export function wallClock(s?: string | null) {
+  if (!s) return ''
+  return s.replace(' ', 'T').slice(0, 16)
+}
+function wallDate(s: string) {
+  return new Date(wallClock(s) + ':00')
+}
 export function hoursBetween(a?: string | null, b?: string | null) {
   if (!a || !b) return null
-  return Math.round(((new Date(b).getTime() - new Date(a).getTime()) / 3600000) * 10) / 10
+  return Math.round(((wallDate(b).getTime() - wallDate(a).getTime()) / 3600000) * 10) / 10
 }
-/** Un `<input type="datetime-local">` solo muestra «2026-09-23T15:25».
- *  La base de datos devuelve «2026-09-23T13:25:00+00:00», y entonces la casilla
- *  sale vacía aunque el dato esté guardado. Esto lo convierte a hora local. */
+/** Igual que fmtDateTime, pero para las horas escritas a mano (sin zona horaria). */
+export function fmtWall(s?: string | null) {
+  if (!s) return '—'
+  const d = wallDate(s)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+/** Un `<input type="datetime-local">` solo admite «2026-09-23T13:25».
+ *  La base de datos lo devuelve como «2026-09-23T13:25:00+00:00» y la casilla
+ *  salía vacía aunque el dato estuviera guardado. Esto le quita lo que sobra. */
 export function toLocalInput(v?: string | null) {
-  if (!v) return ''
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return v
-  const d = new Date(v)
-  if (isNaN(d.getTime())) return ''
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+  return wallClock(v)
 }
 
 export function nowLocalInput() {

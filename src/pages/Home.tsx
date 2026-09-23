@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { backend, useRows, save, currentPatientId } from '../store'
-import { addDays, fmtDate, fmtDateTime, todayStr } from '../domain/dates'
+import { addDays, fmtDate, fmtWall, todayStr } from '../domain/dates'
 import { afterChemoGate, corticoidAlert, cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import { dayCompleteness } from '../domain/completeness'
 import { protocolPoint } from '../domain/protocol'
@@ -227,7 +227,7 @@ export default function Home() {
           <div className="item" key={e.id}>
             <div className="main">
               <div>{e.title}</div>
-              <div className="meta">{e.all_day ? 'todo el día' : fmtDateTime(e.start_at).replace(/^.*?, /, '')}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}</div>
+              <div className="meta">{e.all_day ? 'todo el día' : fmtWall(e.start_at).replace(/^.*?, /, '')}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}</div>
             </div>
           </div>
         ))}

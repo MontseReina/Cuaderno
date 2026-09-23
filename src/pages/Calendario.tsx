@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { backend, currentPatientId, remove, save, useRows } from '../store'
 import type { CalendarEvent, EventStatus, EventType } from '../store/types'
 import { EVENT_TYPES, PROFESSIONALS } from '../domain/catalogs'
-import { addDays, fmtDate, fmtDateTime, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
+import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { Check, Field, Segmented } from '../components/ui'
 
 export default function Calendario() {
@@ -67,7 +67,7 @@ export default function Calendario() {
             {e.status !== 'previsto' && <span className="tag">{e.status}</span>}
           </div>
           <div className="muted small">
-            {e.all_day ? fmtDate(e.start_at) : fmtDateTime(e.start_at)}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}{e.professional ? ` · ${e.professional}` : ''}
+            {e.all_day ? fmtDate(e.start_at) : fmtWall(e.start_at)}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}{e.professional ? ` · ${e.professional}` : ''}
           </div>
           {e.expected_result_date && <div className="small">Resultado esperado: {fmtDate(e.expected_result_date)}</div>}
         </div>

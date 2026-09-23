@@ -3,7 +3,7 @@ import { currentPatientId, remove, save, useRows } from '../store'
 import type { Cycle, Drug, MedRow } from '../store/types'
 import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, ROUTE_LABELS } from '../domain/catalogs'
 import { cumulativeDoses, DOSE_THRESHOLDS } from '../domain/cycle'
-import { fmtDate, fmtDateTime, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
+import { fmtDate, fmtWall, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
@@ -44,12 +44,12 @@ export default function Ciclos() {
           </div>
           <div className="muted small">
             Previsto {fmtDate(c.planned_date)}
-            {c.start_at && ` · Inicio ${fmtDateTime(c.start_at)}`}
-            {c.end_at && ` · Fin ${fmtDateTime(c.end_at)}`}
+            {c.start_at && ` · Inicio ${fmtWall(c.start_at)}`}
+            {c.end_at && ` · Fin ${fmtWall(c.end_at)}`}
             {c.delay_days ? ` · Retraso ${c.delay_days} d (${c.delay_reason || 'sin motivo'})` : c.delay_days === 0 ? ' · Sin retraso' : ''}
           </div>
           {c.actual_dose && <div className="small">Dosis real: {c.actual_dose}</div>}
-          {c.rescue?.substance && <div className="small">Rescate: {c.rescue.substance} {c.rescue.start ? `desde ${fmtDateTime(c.rescue.start)}` : ''} {c.rescue.end ? `hasta ${fmtDateTime(c.rescue.end)}` : '(en curso)'}</div>}
+          {c.rescue?.substance && <div className="small">Rescate: {c.rescue.substance} {c.rescue.start ? `desde ${fmtWall(c.rescue.start)}` : ''} {c.rescue.end ? `hasta ${fmtWall(c.rescue.end)}` : '(en curso)'}</div>}
         </div>
       ))}
     </div>

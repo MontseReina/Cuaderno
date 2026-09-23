@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
 import type { Meal, MealMacros, MealSlot, WeekMode, WeightEntry } from '../store/types'
-import { addDays, fmtDate, fmtDateTime, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
+import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, slotsForMode, totalFluids, weekMode, isFatSlot } from '../domain/nutrition'
 import { CARB_HELP, FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
@@ -166,7 +166,7 @@ function Weights({ open }: { open: boolean }) {
   const lastH = weights.find((x) => x.height_cm)?.height_cm
   return (
     <div>
-      {last && <p className="small">Última: <strong>{last.kg} kg</strong> · {fmtDateTime(last.at)} · {WEIGHT_SOURCES.find((s) => s.value === last.source)?.label}{lastH ? ` · altura ${lastH} cm` : ''}{last.muscle_kg ? ` · músculo ${last.muscle_kg} kg` : ''}{last.fat_pct ? ` · grasa ${last.fat_pct} %` : ''}</p>}
+      {last && <p className="small">Última: <strong>{last.kg} kg</strong> · {fmtWall(last.at)} · {WEIGHT_SOURCES.find((s) => s.value === last.source)?.label}{lastH ? ` · altura ${lastH} cm` : ''}{last.muscle_kg ? ` · músculo ${last.muscle_kg} kg` : ''}{last.fat_pct ? ` · grasa ${last.fat_pct} %` : ''}</p>}
       {(adding || open) && (
         <div className="card tight">
           <div className="grid2">
@@ -191,14 +191,14 @@ function Weights({ open }: { open: boolean }) {
       {!adding && !open && <button className="btn sm secondary" onClick={() => setAdding(true)}>+ Nueva pesada</button>}
       {weights.length > 1 && (
         <div style={{ marginTop: '.5rem' }}>
-          <div className="spark">{[...weights].reverse().slice(-12).map((x, _, arr) => { const min = Math.min(...arr.map((y) => y.kg)) - 1; const max = Math.max(...arr.map((y) => y.kg)); return <span key={x.id} style={{ height: `${Math.max(4, ((x.kg - min) / (max - min || 1)) * 40)}px` }} title={`${fmtDateTime(x.at)}: ${x.kg} kg`} /> })}</div>
+          <div className="spark">{[...weights].reverse().slice(-12).map((x, _, arr) => { const min = Math.min(...arr.map((y) => y.kg)) - 1; const max = Math.max(...arr.map((y) => y.kg)); return <span key={x.id} style={{ height: `${Math.max(4, ((x.kg - min) / (max - min || 1)) * 40)}px` }} title={`${fmtWall(x.at)}: ${x.kg} kg`} /> })}</div>
         </div>
       )}
       {weights.slice(0, 8).map((x) => (
         <div className="item" key={x.id}>
           <div className="main">
             <div>{x.kg} kg <span className="tag gray">{WEIGHT_SOURCES.find((s) => s.value === x.source)?.label}</span></div>
-            <div className="meta">{fmtDateTime(x.at)}{x.height_cm ? ` · ${x.height_cm} cm` : ''}{x.muscle_kg ? ` · músculo ${x.muscle_kg} kg` : ''}{x.fat_pct ? ` · grasa ${x.fat_pct} %` : ''}{x.notes ? ` · ${x.notes}` : ''}</div>
+            <div className="meta">{fmtWall(x.at)}{x.height_cm ? ` · ${x.height_cm} cm` : ''}{x.muscle_kg ? ` · músculo ${x.muscle_kg} kg` : ''}{x.fat_pct ? ` · grasa ${x.fat_pct} %` : ''}{x.notes ? ` · ${x.notes}` : ''}</div>
           </div>
           <button className="btn sm ghost" onClick={() => { if (confirm('¿Borrar esta pesada?')) remove('weights', x.id) }}>✕</button>
         </div>
