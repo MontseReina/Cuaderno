@@ -157,6 +157,7 @@ export default function Home() {
       )}
 
       <h2>Hoy</h2>
+      <h3>☑️ Tareas pendientes</h3>
       <div className="card tight">
         {todayList.length === 0 && <div className="muted">Nada que hacer hoy.</div>}
         {todayList.map((t) => (
@@ -176,6 +177,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      <h3>📅 Calendario</h3>
       <div className="card tight">
         {hoyEventos.length === 0 && <div className="muted">Nada en el calendario para hoy. <Link to="/calendario">Añadir</Link></div>}
         {hoyEventos.map((e) => (
