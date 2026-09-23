@@ -121,9 +121,11 @@ export default function Home() {
         <div className="muted small" style={{ marginTop: '.4rem' }}>
           <span className="dot verde" />100 % <span className="dot amarillo" />50 % <span className="dot rojo" />0 % · gris: sin registro
         </div>
-        <div className="muted small" style={{ marginTop: '.2rem' }}>
-          Últimos 21 días, hoy a la izquierda{streak > 0 && ` · racha: ${streak} día${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''} registrando, al ${streakPct} % de media`}
-        </div>
+        {streak > 0 && (
+          <div className="muted small" style={{ marginTop: '.2rem' }}>
+            Racha: {streak} día{streak > 1 ? 's' : ''} seguido{streak > 1 ? 's' : ''} registrando, al {streakPct} % de media
+          </div>
+        )}
       </div>
 
       <div className="card tight">
@@ -172,7 +174,6 @@ export default function Home() {
             <span className="dot verde" />sin alarmas <span className="dot amarillo" />vigilar <span className="dot rojo" />alarma · gris: sin registro
           </div>
 
-          <div className="muted small" style={{ marginTop: '.2rem' }}>Últimos 21 días (hoy a la izquierda)</div>
         </div>
       </div>
       {cortico && (
