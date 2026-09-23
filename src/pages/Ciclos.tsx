@@ -3,7 +3,7 @@ import { currentPatientId, remove, save, useRows } from '../store'
 import type { Cycle, Drug, MedRow } from '../store/types'
 import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, ROUTE_LABELS } from '../domain/catalogs'
 import { cumulativeDoses, DOSE_THRESHOLDS } from '../domain/cycle'
-import { fmtDate, fmtDateTime, hoursBetween, todayStr } from '../domain/dates'
+import { fmtDate, fmtDateTime, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
@@ -129,10 +129,10 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
           </div>
         </Field>
         <div className="grid2">
-          <Field label="Fecha prevista"><input type="date" value={c.planned_date ?? ''} onChange={(e) => set('planned_date', e.target.value)} /></Field>
+          <Field label="Fecha prevista"><input type="date" value={(c.planned_date ?? '').slice(0, 10)} onChange={(e) => set('planned_date', e.target.value)} /></Field>
           <Field label="Dosis prevista"><input type="text" value={c.planned_dose ?? ''} onChange={(e) => set('planned_dose', e.target.value)} placeholder="p. ej. 12 g/m²" /></Field>
-          <Field label="Inicio real de la perfusión"><input type="datetime-local" value={c.start_at ?? ''} onChange={(e) => set('start_at', e.target.value || null)} /></Field>
-          <Field label="Fin de la perfusión"><input type="datetime-local" value={c.end_at ?? ''} onChange={(e) => set('end_at', e.target.value || null)} /></Field>
+          <Field label="Inicio real de la perfusión"><input type="datetime-local" value={toLocalInput(c.start_at)} onChange={(e) => set('start_at', e.target.value || null)} /></Field>
+          <Field label="Fin de la perfusión"><input type="datetime-local" value={toLocalInput(c.end_at)} onChange={(e) => set('end_at', e.target.value || null)} /></Field>
         </div>
         <Field label="Dosis real (texto)"><input type="text" value={c.actual_dose ?? ''} onChange={(e) => set('actual_dose', e.target.value)} /></Field>
         {(c.drugs ?? []).filter((d) => d !== 'MTP' && d !== 'OTRO').length > 0 && (
@@ -161,11 +161,11 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
           </div>
         )}
         <div className="grid2">
-          <Field label="Ingreso"><input type="datetime-local" value={c.admission_at ?? ''} onChange={(e) => set('admission_at', e.target.value || null)} /></Field>
-          <Field label="Alta"><input type="datetime-local" value={c.discharge_at ?? ''} onChange={(e) => set('discharge_at', e.target.value || null)} /></Field>
+          <Field label="Ingreso"><input type="datetime-local" value={toLocalInput(c.admission_at)} onChange={(e) => set('admission_at', e.target.value || null)} /></Field>
+          <Field label="Alta"><input type="datetime-local" value={toLocalInput(c.discharge_at)} onChange={(e) => set('discharge_at', e.target.value || null)} /></Field>
         </div>
         <Field label="Última comida antes de la quimio" hint={fasting != null ? `Horas de ayuno: ${fasting} h` : 'Se calculan las horas de ayuno con el inicio de la perfusión'}>
-          <input type="datetime-local" value={c.fasting_last_meal_at ?? ''} onChange={(e) => set('fasting_last_meal_at', e.target.value || null)} />
+          <input type="datetime-local" value={toLocalInput(c.fasting_last_meal_at)} onChange={(e) => set('fasting_last_meal_at', e.target.value || null)} />
         </Field>
       </Section>
 
@@ -195,8 +195,8 @@ function CycleForm({ initial, onClose }: { initial: Partial<Cycle>; onClose: () 
           <Field label="Dosis"><input type="text" value={c.rescue?.dose ?? ''} onChange={(e) => set('rescue', { ...c.rescue, dose: e.target.value })} /></Field>
           <Field label="Posología"><input type="text" value={c.rescue?.posology ?? ''} onChange={(e) => set('rescue', { ...c.rescue, posology: e.target.value })} placeholder="cada 6 h…" /></Field>
           <Field label="Motivo"><input type="text" value={c.rescue?.reason ?? ''} onChange={(e) => set('rescue', { ...c.rescue, reason: e.target.value })} placeholder="rescate de metotrexato…" /></Field>
-          <Field label="Inicio"><input type="datetime-local" value={c.rescue?.start ?? ''} onChange={(e) => set('rescue', { ...c.rescue, start: e.target.value })} /></Field>
-          <Field label="Cese"><input type="datetime-local" value={c.rescue?.end ?? ''} onChange={(e) => set('rescue', { ...c.rescue, end: e.target.value })} /></Field>
+          <Field label="Inicio"><input type="datetime-local" value={toLocalInput(c.rescue?.start)} onChange={(e) => set('rescue', { ...c.rescue, start: e.target.value })} /></Field>
+          <Field label="Cese"><input type="datetime-local" value={toLocalInput(c.rescue?.end)} onChange={(e) => set('rescue', { ...c.rescue, end: e.target.value })} /></Field>
         </div>
         {c.drugs?.includes('MTX') && (
           <div className="grid3">

@@ -35,6 +35,18 @@ export function hoursBetween(a?: string | null, b?: string | null) {
   if (!a || !b) return null
   return Math.round(((new Date(b).getTime() - new Date(a).getTime()) / 3600000) * 10) / 10
 }
+/** Un `<input type="datetime-local">` solo muestra «2026-09-23T15:25».
+ *  La base de datos devuelve «2026-09-23T13:25:00+00:00», y entonces la casilla
+ *  sale vacía aunque el dato esté guardado. Esto lo convierte a hora local. */
+export function toLocalInput(v?: string | null) {
+  if (!v) return ''
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return v
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return ''
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 export function nowLocalInput() {
   const d = new Date()
   d.setSeconds(0, 0)

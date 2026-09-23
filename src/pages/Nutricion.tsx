@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
 import type { Meal, MealMacros, MealSlot, WeekMode, WeightEntry } from '../store/types'
-import { addDays, fmtDate, fmtDateTime, nowLocalInput, todayStr } from '../domain/dates'
+import { addDays, fmtDate, fmtDateTime, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, slotsForMode, totalFluids, weekMode, isFatSlot } from '../domain/nutrition'
 import { CARB_HELP, FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
@@ -170,7 +170,7 @@ function Weights({ open }: { open: boolean }) {
       {(adding || open) && (
         <div className="card tight">
           <div className="grid2">
-            <Field label="Fecha y hora"><input type="datetime-local" value={w.at ?? ''} onChange={(e) => setW({ ...w, at: e.target.value })} /></Field>
+            <Field label="Fecha y hora"><input type="datetime-local" value={toLocalInput(w.at)} onChange={(e) => setW({ ...w, at: e.target.value })} /></Field>
             <Field label="Peso (kg)"><input type="number" inputMode="decimal" step="0.1" min={5} max={150} value={w.kg ?? ''} onChange={(e) => setW({ ...w, kg: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
           </div>
           <Field label="Báscula">

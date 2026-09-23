@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { backend, currentPatientId, remove, save, useRows } from '../store'
 import type { CalendarEvent, EventStatus, EventType } from '../store/types'
 import { EVENT_TYPES, PROFESSIONALS } from '../domain/catalogs'
-import { addDays, fmtDate, fmtDateTime, nowLocalInput, todayStr } from '../domain/dates'
+import { addDays, fmtDate, fmtDateTime, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { Check, Field, Segmented } from '../components/ui'
 
 export default function Calendario() {
@@ -93,7 +93,7 @@ function EventForm({ initial, onClose }: { initial: Partial<CalendarEvent>; onCl
         <Check checked={!!e.all_day} onChange={(v) => set('all_day', v)}>Todo el día</Check>
         <div className="grid2">
           <Field label={e.all_day ? 'Fecha' : 'Fecha y hora'}>
-            {e.all_day ? <input type="date" value={(e.start_at ?? '').slice(0, 10)} onChange={(ev) => set('start_at', ev.target.value + 'T09:00')} /> : <input type="datetime-local" value={(e.start_at ?? '').slice(0, 16)} onChange={(ev) => set('start_at', ev.target.value)} />}
+            {e.all_day ? <input type="date" value={(e.start_at ?? '').slice(0, 10)} onChange={(ev) => set('start_at', ev.target.value + 'T09:00')} /> : <input type="datetime-local" value={toLocalInput(e.start_at)} onChange={(ev) => set('start_at', ev.target.value)} />}
           </Field>
           <Field label="Lugar"><input type="text" value={e.place ?? ''} onChange={(ev) => set('place', ev.target.value)} /></Field>
           <Field label="Quién acompaña"><input type="text" value={e.companion ?? ''} onChange={(ev) => set('companion', ev.target.value)} /></Field>
