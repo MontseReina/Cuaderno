@@ -4,6 +4,7 @@ import { LocalBackend } from '../store/local'
 import { SupabaseBackend } from '../store/supabase'
 import { uid } from '../store/store'
 import { Field } from '../components/ui'
+import { Lockup } from '../components/Logo'
 
 export default function Login() {
   const [name, setName] = useState('')
@@ -14,7 +15,7 @@ export default function Login() {
     const local = backend as LocalBackend
     return (
       <div className="login card">
-        <h1>Huma</h1>
+        <div style={{ margin: '.4rem 0 1rem' }}><Lockup size={92} /></div>
         <p className="muted">Modo demostración: los datos se guardan solo en este dispositivo. Escribe tu nombre para que los registros queden firmados.</p>
         <Field label="Tu nombre">
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="p. ej. Montse" />
@@ -28,7 +29,7 @@ export default function Login() {
   const sb = backend as SupabaseBackend
   return (
     <div className="login card">
-      <h1>Huma</h1>
+      <div style={{ margin: '.4rem 0 1rem' }}><Lockup size={92} /></div>
       <p className="muted">Acceso solo por invitación. Escribe tu correo y te llegará un enlace para entrar.</p>
       {sent ? (
         <p>Revisa tu correo y pulsa el enlace. Puedes cerrar esta pestaña.</p>

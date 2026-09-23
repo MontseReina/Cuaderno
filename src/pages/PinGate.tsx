@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { unlock } from '../domain/pin'
+import { Lockup } from '../components/Logo'
 
 export default function PinGate({ onOk }: { onOk: () => void }) {
   const [pin, setPin] = useState('')
@@ -12,7 +13,7 @@ export default function PinGate({ onOk }: { onOk: () => void }) {
   }
   return (
     <div className="login card" style={{ textAlign: 'center' }}>
-      <h1>Huma</h1>
+      <div style={{ margin: '.4rem 0 1rem' }}><Lockup size={92} /></div>
       <p className="muted">Introduce el PIN</p>
       <div style={{ fontSize: '1.8rem', letterSpacing: '.4rem', minHeight: '2.4rem' }}>{'•'.repeat(pin.length)}</div>
       {err && <p className="small" style={{ color: 'var(--red)' }}>PIN incorrecto</p>}
