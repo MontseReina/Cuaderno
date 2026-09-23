@@ -49,11 +49,13 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, symptom
     },
   ]
   const done = items.filter((i) => i.done).length
+  // Empezado = hay algo anotado, aunque ningún apartado esté terminado (p. ej. una sola comida).
+  const started = done > 0 || (log?.meals?.length ?? 0) > 0 || (log?.fluids_total_ml ?? 0) > 0 || !!log?.notes
   return {
     items,
     done,
     total: items.length,
-    level: done === 0 ? 'rojo' : done === items.length ? 'verde' : 'amarillo',
+    level: !started ? 'rojo' : done === items.length ? 'verde' : 'amarillo',
     missing: items.filter((i) => !i.done),
   }
 }
