@@ -38,6 +38,8 @@ export interface PreventiveDef {
   label: string
   group: string
   when?: 'siempre' | 'nadir' | 'cateter' | 'mtx'
+  /** Aclaración corta debajo de la casilla. */
+  help?: string
 }
 export const PREVENTIVE: PreventiveDef[] = [
   { key: 'cepillado', label: 'Cepillado suave (mañana y noche)', group: 'Boca' },
@@ -56,6 +58,7 @@ export const PREVENTIVE: PreventiveDef[] = [
   { key: 'temperatura', label: 'Temperatura tomada', group: 'Neutropenia (D7-14)', when: 'nadir' },
   { key: 'manos', label: 'Higiene de manos de todos en casa', group: 'Neutropenia (D7-14)', when: 'nadir' },
   { key: 'liquidos_mtx', label: 'Líquidos abundantes y pH urinario controlado', group: 'Día de metotrexato', when: 'mtx' },
+  { key: 'epsom_mtx', label: 'Baño de sales de Epsom', group: 'Día de metotrexato', when: 'mtx', help: 'Agua templada, 15-20 min. Con catéter central: sin sumergir el apósito (de cintura para abajo, o la zona bien tapada y seca). Aclarar al salir.' },
 ]
 
 export const CARB_HELP: Record<string, { label: string; help: string }> = {

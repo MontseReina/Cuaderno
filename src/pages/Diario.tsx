@@ -167,7 +167,7 @@ export default function Diario() {
           <div key={g}>
             <h3>{g}</h3>
             {preventive.filter((p) => p.group === g).map((p) => (
-              <Check key={p.key} checked={!!draft.preventive[p.key]} onChange={(v) => set('preventive', { ...draft.preventive, [p.key]: v })}>{p.label}</Check>
+              <Check key={p.key} checked={!!draft.preventive[p.key]} onChange={(v) => set('preventive', { ...draft.preventive, [p.key]: v })}>{p.label}{p.help && <div className="muted small">{p.help}</div>}</Check>
             ))}
           </div>
         ))}
