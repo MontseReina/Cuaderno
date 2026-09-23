@@ -1,6 +1,6 @@
 import type { Cycle, DailyLog, Diagnosis } from '../store/types'
 import { addDays, diffDays } from './dates'
-import { SYMPTOMS, type SymptomDef } from './catalogs'
+import { DRUG_LABELS, SYMPTOMS, type SymptomDef } from './catalogs'
 
 export interface CycleContext {
   cycle: Cycle | null
@@ -149,4 +149,26 @@ export function afterChemoGate(p: { after_chemo_days?: number | null }, cycles: 
   if (!chemo) return null
   const from = addDays(chemo, p.after_chemo_days)
   return { from, chemo, waiting: date < from }
+}
+
+/** Los ciclos se cuentan POR MEDICAMENTO, no por combinación: el 1º de
+ *  metotrexato, el 1º de cisplatino, el 1º de adriamicina, el 2º de
+ *  metotrexato… Una sesión con dos fármacos cuenta uno para cada uno. */
+export function drugOrdinal(cycles: Cycle[], drug: string, c: { id?: string; planned_date?: string }) {
+  const upTo = c.planned_date ?? '9999-99-99'
+  return cycles.filter((x) => x.id !== c.id && (x.drugs ?? []).includes(drug as Cycle['drugs'][number]) && x.planned_date <= upTo).length + 1
+}
+
+/** «Metotrexato 2º» · «Cisplatino 1º + Doxorrubicina (adriamicina) 1º» */
+export function cycleTitle(cycles: Cycle[], c: { id?: string; planned_date?: string; drugs?: Cycle['drugs'] }) {
+  const ds = c.drugs ?? []
+  if (!ds.length) return 'Ciclo nuevo'
+  return ds.map((d) => `${DRUG_LABELS[d] ?? d} ${drugOrdinal(cycles, d, c)}º`).join(' + ')
+}
+
+/** Versión corta para las cabeceras de día: «MTX 2º» · «CDDP 1º + ADM 1º» */
+export function cycleTitleShort(cycles: Cycle[], c: { id?: string; planned_date?: string; drugs?: Cycle['drugs'] }) {
+  const ds = c.drugs ?? []
+  if (!ds.length) return 'ciclo'
+  return ds.map((d) => `${d} ${drugOrdinal(cycles, d, c)}º`).join(' + ')
 }
