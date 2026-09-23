@@ -68,26 +68,23 @@ export default function Home() {
 
   return (
     <div>
-      <div className={'traffic ' + reg.level}>
-        <h2>
-          {reg.level === 'rojo' && (reg.done === 0 ? 'Registro de hoy sin empezar' : `Registro de hoy muy incompleto — ${reg.done} de ${reg.total} apartados`)}
-          {reg.level === 'amarillo' && `Registro de hoy a medias — ${reg.done} de ${reg.total} apartados`}
-          {reg.level === 'verde' && 'Registro de hoy completo'}
-        </h2>
-        {reg.level === 'rojo' && <p className="small" style={{ margin: 0 }}>Menos de la mitad del registro: hay que completarlo hoy.</p>}
-        {reg.missing.length > 0 && (
-          <p className="small" style={{ margin: 0 }}>
-            Falta: {reg.missing.slice(0, 5).map((m, i) => (
-              <span key={m.key}>{i > 0 ? ', ' : ''}<Link to={m.to} style={{ color: 'inherit', textDecoration: 'underline' }}>{m.label.toLowerCase()}</Link></span>
-            ))}{reg.missing.length > 5 ? ` y ${reg.missing.length - 5} cosas más` : ''}
-          </p>
-        )}
-        <p className="small" style={{ marginTop: '.5rem' }}>
-          <Link to={`/diario/${today}`} style={{ color: 'inherit', fontWeight: 700 }}>
-            {reg.level === 'verde' ? 'Ver el registro de hoy →' : todayLog ? 'Completar el registro de hoy →' : 'Hacer el registro de hoy →'}
-          </Link>
-        </p>
-      </div>
+      {reg.level !== 'verde' && (
+        <div className={'traffic ' + reg.level}>
+          <h2>
+            {reg.level === 'rojo'
+              ? reg.done === 0 ? 'Registro de hoy sin empezar' : `Registro de hoy muy incompleto — ${reg.done} de ${reg.total} apartados`
+              : `Registro de hoy a medias — ${reg.done} de ${reg.total} apartados`}
+          </h2>
+          <ul style={{ margin: '.3rem 0 0 1rem', padding: 0 }}>
+            {reg.missingGroups.map((g) => (
+              <li key={g.group} className="small">
+                <Link to={g.to} style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>{g.group}</Link>
+                {' — falta '}{g.labels.slice(0, 3).join(', ')}{g.labels.length > 3 ? ` y ${g.labels.length - 3} cosas más` : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="card tight">
         <div className="row between">
