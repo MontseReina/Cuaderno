@@ -31,7 +31,7 @@ export default function Home() {
   const todayLog = byDate.get(today)
   const traffic = dailyTraffic(todayLog, prev, ctx, defs)
   // Barra de arriba: cómo va el registro de hoy (rojo sin empezar, ámbar a medias, verde completo).
-  const regOf = (d: string, l = byDate.get(d)) => dayCompleteness(l, d, defs, medicationProgress(allProducts, intakes, cycles, d))
+  const regOf = (d: string, l = byDate.get(d)) => dayCompleteness(l, d, medicationProgress(allProducts, intakes, cycles, d))
   const reg = regOf(today, todayLog)
   const cortico = corticoidAlert(cycles, today)
   // Fase del tratamiento: semana y día del protocolo (Anexo 2, 34 semanas) y dónde está hoy.

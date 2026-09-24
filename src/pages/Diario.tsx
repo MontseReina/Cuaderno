@@ -143,7 +143,6 @@ export default function Diario() {
           onChange={(v) => setListMode(v && v !== mode ? v : 'auto')}
         />
         <p className="muted small">Marca solo lo que hay. Lo que no se toca cuenta como "No". La lista cambia sola con el ciclo; se puede ver la otra.</p>
-        <Check checked={!!draft.extra?.symptoms_ok} onChange={(v) => setExtra({ symptoms_ok: v })}>Revisado: hoy no hay síntomas que marcar</Check>
         {shownDefs.map((d) => (
           <div key={d.key} style={{ margin: '.5rem 0' }}>
             <div className="small" style={{ marginBottom: '.2rem' }}>{d.label}</div>
