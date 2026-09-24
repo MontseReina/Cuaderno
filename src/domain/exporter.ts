@@ -5,7 +5,7 @@ import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 
-export const APP_VERSION = '0.9.5'
+export const APP_VERSION = '0.9.6'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -192,7 +192,7 @@ export function buildAiReport(from: string, to: string): string {
     if (l.fatigue != null) c.push(`fatiga ${l.fatigue}/4`)
     if (l.mood_child) c.push(`ánimo ${l.mood_child}/5`)
     if (c.length) L.push(`- Constantes: ${c.join(' · ')}`)
-    const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}`)
+    const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}${k === 'flemas' && l.extra?.phlegm_color ? ` (${l.extra.phlegm_color})` : ''}`)
     if (s.length) L.push(`- Síntomas: ${s.join(' · ')}`)
     const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros)
     const mode = weekMode(l, ctx)

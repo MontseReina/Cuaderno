@@ -18,6 +18,7 @@ export const SYMPTOMS: SymptomDef[] = [
   { key: 'hormigueo', label: 'Hormigueos o calambres', when: 'siempre' },
   { key: 'oido', label: 'Oye peor o pitidos', when: 'siempre' },
   { key: 'disnea', label: 'Dificultad para respirar o dolor en el pecho', when: 'siempre', redAt3: true },
+  { key: 'flemas', label: 'Flemas', when: 'siempre', help: 'Leve: alguna vez al día · Moderado: le cuesta echarlas · Intenso: constantes o le dificultan respirar' },
   { key: 'somnolencia', label: 'Somnolencia o confusión inusual', when: 'siempre', redAt3: true },
   { key: 'mareo', label: 'Mareo o inestabilidad', when: 'siempre', help: 'Leve: se marea al levantarse · Moderado: necesita sentarse o apoyarse · Intenso: no se sostiene o se ha desmayado', redAt3: true },
   { key: 'nauseas', label: 'Náuseas', when: 'siempre', help: 'Leve: lo dice pero come · Moderado: come menos por las náuseas · Intenso: no puede comer' },
@@ -104,6 +105,14 @@ export const HYDRATION_TIPS: Record<'quimio' | 'nadir', string[]> = {
   nadir: ['Mantener agua + agua de mar aunque no tenga sed', 'Infusiones de manzanilla / jengibre templadas', 'Caldo de Santa Paciencia (medias tazas) cuenta como líquido', 'Si vomita o hay diarrea: reponer con caldo salado y avisar si no retiene'],
 }
 export const CUP_ML = 200 // media taza = 200 ml (decisión de la familia)
+
+/** Color de las flemas. Se pregunta solo si se ha marcado el síntoma. */
+export const PHLEGM_COLORS: { value: 'transparente' | 'amarillo' | 'verde' | 'rojo'; label: string; swatch: string; alerta?: boolean }[] = [
+  { value: 'transparente', label: 'Transparente', swatch: '#eef3f3' },
+  { value: 'amarillo', label: 'Amarillo', swatch: '#efd96b' },
+  { value: 'verde', label: 'Verde', swatch: '#8ba85f', alerta: true },
+  { value: 'rojo', label: 'Rojo (con sangre)', swatch: '#b1412f', alerta: true },
+]
 
 export const URINE_COLORS = ['#f7f6ee', '#f6efb8', '#f1df6e', '#e6c53a', '#c9962a', '#9c4a24']
 export const URINE_LABELS = ['Transparente', 'Muy claro', 'Amarillo', 'Amarillo oscuro', 'Ámbar', 'Marrón / rojizo']

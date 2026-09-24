@@ -152,9 +152,13 @@ export interface DailyExtra {
   sync?: Partial<Record<'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure', SyncEntry>>
   functional?: FunctionalDaily // capacidad funcional del día
   symptoms_ok?: boolean // revisado: hoy no hay síntomas que marcar
+  /** Color de las flemas del día (solo si se ha marcado el síntoma). */
+  phlegm_color?: PhlegmColor | null
   /** Constantes por momento del día: temperatura y tensión arterial. */
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
 }
+
+export type PhlegmColor = 'transparente' | 'amarillo' | 'verde' | 'rojo'
 
 export type VitalSlot = 'manana' | 'tarde' | 'noche'
 export interface VitalEntry {

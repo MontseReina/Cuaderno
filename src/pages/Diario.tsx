@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { DailyLog } from '../store/types'
+import type { DailyLog, PhlegmColor } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import {
   BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
-  PREVENTIVE, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
+  PREVENTIVE, PHLEGM_COLORS, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
   LOCATIONS,
   VITAL_SLOTS,
 } from '../domain/catalogs'
@@ -149,6 +149,19 @@ export default function Diario() {
             <div className="small" style={{ marginBottom: '.2rem' }}>{d.label}</div>
             <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />
             {d.help && (draft.symptoms[d.key] ?? 0) > 0 && <div className="muted small">{d.help}</div>}
+            {d.key === 'flemas' && (draft.symptoms.flemas ?? 0) > 0 && (
+              <div style={{ marginTop: '.35rem' }}>
+                <div className="muted small" style={{ marginBottom: '.2rem' }}>Color de las flemas</div>
+                <Segmented
+                  options={PHLEGM_COLORS.map((p) => ({ value: p.value, label: p.label }))}
+                  value={draft.extra?.phlegm_color ?? null}
+                  onChange={(v) => setExtra({ phlegm_color: (v as PhlegmColor) ?? null })}
+                />
+                {PHLEGM_COLORS.find((p) => p.value === draft.extra?.phlegm_color)?.alerta && (
+                  <div className="notice">Flemas verdes o con sangre: comentarlo con el equipo, sobre todo si hay fiebre o está en el valle (D7-14).</div>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {ctx.cycle && ctx.inCycle && ctx.cycle.drugs.some((dr) => DRUG_WATCH[dr]?.length) && (
