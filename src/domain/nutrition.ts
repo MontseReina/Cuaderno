@@ -12,12 +12,33 @@ function hoursDiff(a: string, b: string) {
   const [bh, bm] = b.split(':').map(Number)
   return Math.round(((bh * 60 + bm - (ah * 60 + am)) / 60) * 10) / 10
 }
-/** Ayuno nocturno: desde la última ingesta de ayer hasta la primera de hoy. */
+/** ¿En esta comida comió algo? Si está marcada "Nada" (o todo a cero) no cuenta
+ *  para el ayuno: si no cenó, la última ingesta es la merienda o la comida. */
+function comio(m: Meal) {
+  if (!m.time) return false
+  if (m.fraction === 0) return false
+  if (m.fraction != null && m.fraction > 0) return true
+  const mc = m.macros
+  if (mc && (mc.veg || mc.prot || mc.starch || mc.fat)) return true
+  if (m.carb || m.texture || m.note) return true
+  // Solo hay hora: se da por bueno.
+  return m.fraction == null && !mc
+}
+/** Comidas que cuentan para el ayuno, ordenadas por hora. */
+function ingestas(log: DailyLog | undefined) {
+  return (log?.meals ?? []).filter(comio).sort((x, y) => (x.time ?? '').localeCompare(y.time ?? ''))
+}
+/** Ayuno nocturno con el detalle de qué comidas se han usado. */
+export function overnightFastDetail(today: DailyLog | undefined, yesterday: DailyLog | undefined) {
+  const last = ingestas(yesterday).pop()
+  const first = ingestas(today)[0]
+  if (!last?.time || !first?.time) return null
+  const hours = Math.round((24 - hoursDiff('00:00', last.time) + hoursDiff('00:00', first.time)) * 10) / 10
+  return { hours, last, first }
+}
+/** Ayuno nocturno: desde la última ingesta real de ayer hasta la primera de hoy. */
 export function overnightFast(today: DailyLog | undefined, yesterday: DailyLog | undefined) {
-  const last = yesterday?.meals.map((m) => m.time).filter((t): t is string => !!t).sort().pop()
-  const first = today?.meals.map((m) => m.time).filter((t): t is string => !!t).sort()[0]
-  if (!last || !first) return null
-  return Math.round((24 - hoursDiff('00:00', last) + hoursDiff('00:00', first)) * 10) / 10
+  return overnightFastDetail(today, yesterday)?.hours ?? null
 }
 /** Horas de ayuno del día: las tecleadas a mano tienen prioridad; si no, se calculan. */
 export function fastingHours(today: DailyLog | undefined, yesterday: DailyLog | undefined) {

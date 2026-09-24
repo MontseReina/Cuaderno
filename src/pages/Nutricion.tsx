@@ -5,13 +5,15 @@ import { useDailyDraft } from '../store/useDailyDraft'
 import type { Meal, MealMacros, MealSlot, WeekMode, WeightEntry } from '../store/types'
 import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
-import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, slotsForMode, totalFluids, weekMode, isFatSlot } from '../domain/nutrition'
-import { CARB_HELP, FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
+import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, overnightFastDetail, slotsForMode, totalFluids, weekMode, isFatSlot } from '../domain/nutrition'
+import { CARB_HELP, FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEAL_SLOTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
 import { DateNav } from '../components/DateNav'
 import { Field, Section, Segmented } from '../components/ui'
 
 /** Pilar 6 · Nutrición: registro por comida según el modo de la semana (quimio / nadir), ayuno,
  *  estimación del plato (verdura · proteína · almidón · grasa) con semáforo, semáforo del día y peso. */
+const slotName = (k: string) => (MEAL_SLOTS.find((x) => x.key === k)?.label ?? k).toLowerCase()
+
 export default function Nutricion() {
   const params = useParams()
   const date = params.date ?? todayStr()
@@ -26,6 +28,7 @@ export default function Nutricion() {
   const slots = slotsForMode(mode)
   const day = dayNutrition(draft, mode, { cisplatin })
   const fast = fastingHours(draft, yesterday)
+  const fastDet = draft.extra?.fasting_h == null ? overnightFastDetail(draft, yesterday) : null
   const bk = breakfastTime(draft)
   const [showWeights, setShowWeights] = useState(false)
 
@@ -73,7 +76,7 @@ export default function Nutricion() {
             : 'Semana nadir: 6 comidas; la 5ª y la 6ª son snacks de pura grasa (batido con aceite de coco, macadamias, puré con ghee…). Plato: ½ verdura cocida · ⅓ proteína · ¼ almidón resistente + grasas "invisibles".'}
         </p>
         <div className="grid2">
-          <Field label="Horas de ayuno (noche)" hint={draft.extra?.fasting_h != null ? 'Tecleadas a mano' : fast != null ? 'Calculadas: última comida de ayer → primera de hoy' : 'Se calculan al poner horas a las comidas'}>
+          <Field label="Horas de ayuno (noche)" hint={draft.extra?.fasting_h != null ? 'Tecleadas a mano' : fastDet ? `Calculadas: ${slotName(fastDet.last.slot)} de ayer ${fastDet.last.time} → ${slotName(fastDet.first.slot)} de hoy ${fastDet.first.time}` : 'Se calculan al poner horas a las comidas'}>
             <input type="number" inputMode="decimal" step="0.5" min={0} max={48} value={draft.extra?.fasting_h ?? fast ?? ''} onChange={(e) => setExtra({ fasting_h: e.target.value === '' ? null : Number(e.target.value) })} />
           </Field>
           <Field label="Hora del desayuno" hint={lastBreakfasts.length ? `Últimos días: ${lastBreakfasts.join(', ')}` : 'Para ver la variabilidad de horarios'}>
