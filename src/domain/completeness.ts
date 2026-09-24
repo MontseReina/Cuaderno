@@ -1,7 +1,7 @@
 import type { DailyLog } from '../store/types'
 import type { MedProgress } from './medication'
 
-export type CheckGroup = 'Diario' | 'Medicación' | 'Nutrición' | 'Hidratación' | 'Ejercicio' | 'Biohacking'
+export type CheckGroup = 'Signos y síntomas' | 'Medicación' | 'Nutrición' | 'Hidratación' | 'Ejercicio' | 'Biohacking'
 
 export interface CheckItem {
   key: string
@@ -30,7 +30,7 @@ export interface Completeness {
   /** rojo: nada registrado · amarillo: a medias · verde: todo el registro del día. */
   level: 'rojo' | 'amarillo' | 'verde'
   missing: CheckItem[]
-  /** Lo que falta, agrupado por pantalla (Diario, Nutrición, Hidratación, Ejercicio). */
+  /** Lo que falta, agrupado por pantalla (Signos y síntomas, Nutrición, Hidratación, Ejercicio). */
   missingGroups: MissingGroup[]
 }
 
@@ -41,14 +41,14 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, med?: M
   const diario = `/diario/${date}`
   const has = (v: unknown) => v !== undefined && v !== null && v !== ''
   const items: CheckItem[] = [
-    { key: 'location', label: 'Dónde está', done: has(log?.location), to: diario, diario: true, group: 'Diario' },
-    { key: 'temp', label: 'Temperatura', done: has(log?.temp_max), to: diario, diario: true, group: 'Diario' },
-    { key: 'orina', label: 'Orina', done: has(log?.urine_color) || has(log?.urine_amount), to: diario, diario: true, group: 'Diario' },
-    { key: 'deposiciones', label: 'Deposiciones', done: has(log?.stools_n), to: diario, diario: true, group: 'Diario' },
-    { key: 'dolor', label: 'Dolor', done: has(log?.pain_max), to: diario, diario: true, group: 'Diario' },
-    { key: 'fatiga', label: 'Fatiga', done: has(log?.fatigue), to: diario, diario: true, group: 'Diario' },
-    { key: 'animo', label: 'Ánimo', done: has(log?.mood_child), to: diario, diario: true, group: 'Diario' },
-    { key: 'preventivos', label: 'Cuidados preventivos', done: Object.values(log?.preventive ?? {}).some(Boolean), to: diario, diario: true, group: 'Diario' },
+    { key: 'location', label: 'Dónde está', done: has(log?.location), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'temp', label: 'Temperatura', done: has(log?.temp_max), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'orina', label: 'Orina', done: has(log?.urine_color) || has(log?.urine_amount), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'deposiciones', label: 'Deposiciones', done: has(log?.stools_n), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'dolor', label: 'Dolor', done: has(log?.pain_max), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'fatiga', label: 'Fatiga', done: has(log?.fatigue), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'animo', label: 'Ánimo', done: has(log?.mood_child), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'preventivos', label: 'Cuidados preventivos', done: Object.values(log?.preventive ?? {}).some(Boolean), to: diario, diario: true, group: 'Signos y síntomas' },
     {
       key: 'medicacion',
       label: med && med.planned > 0 ? `Tomas de medicación (${med.taken}/${med.planned})` : 'Tomas de medicación',

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
 import type { Intake, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
 import {
@@ -8,6 +9,7 @@ import {
 import { afterChemoGate, cycleContext } from '../domain/cycle'
 import { trafficWindow } from '../domain/medication'
 import { fmtDate, todayStr } from '../domain/dates'
+import { DateNav } from '../components/DateNav'
 import { Field, Section, Segmented } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
 
@@ -23,7 +25,9 @@ const weekdaysText = (w?: number[] | null) => (w && w.length && w.length < 7 ? '
 const extraMeta = (p: Product) => [p.route ? ROUTE_LABELS[p.route] : '', weekdaysText(p.weekdays), p.condition ? `solo si ${p.condition}` : ''].filter(Boolean).join(' · ')
 
 export default function Medicacion() {
-  const today = todayStr()
+  const { date: dateParam } = useParams()
+  const today = dateParam ?? todayStr()
+  const esHoy = today === todayStr()
   const all = useRows('products')
   const products = all.filter((p) => isActive(p, today))
   const retired = all.filter((p) => !isActive(p, today)).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
@@ -77,7 +81,8 @@ export default function Medicacion() {
         <h1>Medicación y suplementos</h1>
         <button className="btn sm" onClick={() => setEditing({ block: 'sup_fuera', moments: [], traffic: {} })}>+ Producto</button>
       </div>
-      {windowKey && <div className="notice">Hoy estamos en <strong>{windowLabel[windowKey]}</strong>: los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.</div>}
+      <DateNav date={today} base="/medicacion" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day} · ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle D7-14' : 'fuera de ciclo'}` : 'sin ciclo'} />
+      {windowKey && <div className="notice">{esHoy ? 'Hoy estamos' : 'Ese día estábamos'} en <strong>{windowLabel[windowKey]}</strong>: los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.</div>}
       {antiplateletActive.length > 0 && (
         <div className="notice">
           <strong>Hay un anticoagulante en la pauta.</strong> Revisar con el equipo estos productos con efecto antiagregante: {antiplateletActive.map((p) => p.name).join(', ')}.
@@ -107,7 +112,7 @@ export default function Medicacion() {
       )}
 
       {products.length > 0 && (
-        <Section title="Tomas de hoy" open>
+        <Section title={esHoy ? 'Tomas de hoy' : `Tomas del ${fmtDate(today)}`} open>
           <div className="table-wrap">
             <table className="table">
               <thead>
@@ -155,7 +160,7 @@ export default function Medicacion() {
               </tbody>
             </table>
           </div>
-          {skippedToday.length > 0 && <p className="muted small">Hoy no toca: {skippedToday.map((p) => `${p.name} (${weekdaysText(p.weekdays)})`).join('; ')}.</p>}
+          {skippedToday.length > 0 && <p className="muted small">{esHoy ? 'Hoy no toca' : 'Ese día no tocaba'}: {skippedToday.map((p) => `${p.name} (${weekdaysText(p.weekdays)})`).join('; ')}.</p>}
           {onDemand.length > 0 && (
             <div style={{ marginTop: '.5rem' }}>
               <h3>A demanda</h3>

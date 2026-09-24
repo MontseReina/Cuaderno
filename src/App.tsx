@@ -95,7 +95,7 @@ function Shell() {
       </header>
       <nav className="tabbar">
         <Tab to="/" ico="🏠" label="Inicio" />
-        <Tab to="/diario" ico="📝" label="Registro" />
+        <Tab to="/diario" ico="📝" label="Signos y síntomas" />
         <Tab to="/medicacion" ico="💊" label="Medicación" />
         <Tab to="/nutricion" ico="🥣" label="Nutrición" />
         <Tab to="/hidratacion" ico="💧" label="Hidratación" />
@@ -111,6 +111,7 @@ function Shell() {
           <Route path="/ciclos" element={<Ciclos />} />
           <Route path="/diagnosticos" element={<Diagnosticos />} />
           <Route path="/medicacion" element={<Medicacion />} />
+          <Route path="/medicacion/:date" element={<Medicacion />} />
           <Route path="/analiticas" element={<Analiticas />} />
           <Route path="/calendario" element={<Calendario />} />
           <Route path="/pendientes" element={<Pendientes />} />
