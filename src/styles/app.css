@@ -34,11 +34,11 @@ p { margin: .3rem 0; }
 .topbar .badge { display: inline-flex; align-items: center; gap: .3rem; background: rgba(36,42,28,.10); border-radius: 999px; padding: .2rem .6rem; font-size: .85rem; text-decoration: none; color: var(--ink-deep); }
 .topbar .badge.alert { background: var(--red); color: #fff; }
 .topbar .badge.warn { background: var(--amber); color: #1c2430; }
-.content { flex: 1; padding: .9rem .9rem 7.5rem; max-width: 900px; width: 100%; margin: 0 auto; }
+.content { flex: 1; padding: .9rem .9rem 9.5rem; max-width: 900px; width: 100%; margin: 0 auto; }
 @media (min-width: 900px) { .content { padding-bottom: 2rem; } }
 
 .tabbar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-around; padding: .3rem 0 calc(.3rem + env(safe-area-inset-bottom)); z-index: 10; }
-.tabbar a { flex: 0 0 25%; min-width: 0; text-align: center; text-decoration: none; color: var(--muted); font-size: .68rem; line-height: 1.2; padding: .25rem .1rem; }
+.tabbar a { flex: 0 0 33.333%; min-width: 0; text-align: center; text-decoration: none; color: var(--muted); font-size: .68rem; line-height: 1.2; padding: .25rem .1rem; }
 .tabbar a .ico { display: block; font-size: 1.15rem; line-height: 1.25; }
 .tabbar a.active { color: var(--primary); font-weight: 600; }
 @media (min-width: 900px) {
@@ -173,3 +173,61 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 /* Pantalla de entrada con el logotipo */
 .login { text-align: center; }
 .login .field { text-align: left; }
+
+/* ---------- Reto de la semana (juego de puntos para el niño) ---------- */
+.reto .card { margin-bottom: .8rem; }
+.reto-eyebrow { font-size: .72rem; color: var(--muted); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.reto-premio { display: flex; align-items: center; gap: .9rem; }
+.reto-premio.ganado { border: 2px solid var(--green); }
+.reto-premio-ico { font-size: 2.6rem; line-height: 1; }
+.reto-premio-nombre { font-size: 1.2rem; font-weight: 800; line-height: 1.2; }
+.reto-total { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.reto-num { font-family: var(--font-title); font-weight: 700; font-size: 3.4rem; line-height: 1; color: var(--green); }
+.reto-bar { position: relative; height: 14px; border-radius: 999px; background: var(--line); overflow: hidden; margin: .6rem 0 .8rem; }
+.reto-bar .reto-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--green); transition: width .4s; }
+.reto-bar i { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; }
+.reto-ficha { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .25rem; margin-bottom: .6rem; }
+.reto-forma { display: flex; flex-direction: column; align-items: center; gap: .25rem; text-align: center; }
+.reto-forma-ico { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; }
+.reto-forma.hecha .reto-forma-ico { background: #e8f0f2; }
+.reto-forma.actual .reto-forma-ico { background: var(--green); color: #fff; }
+.reto-forma.falta .reto-forma-ico { border: 2px dashed #d3ccbf; color: #b9b3a6; }
+.reto-forma-nombre { font-size: .7rem; font-weight: 700; color: var(--muted); }
+.reto-forma.hecha .reto-forma-nombre { color: var(--green); }
+.reto-forma.actual .reto-forma-nombre { color: var(--text); font-weight: 800; }
+.reto-msg { background: #e8f0f2; color: #244a52; border-radius: 10px; padding: .6rem .8rem; font-weight: 700; line-height: 1.35; }
+.reto-hoy { color: var(--green); font-size: 1.1rem; }
+.reto-cat, .reto-regla { display: grid; grid-template-columns: 32px 1fr 56px; align-items: center; gap: .6rem; padding: .45rem 0; }
+.reto-regla { align-items: flex-start; border-bottom: 1px solid var(--line); }
+.reto-regla:last-child { border-bottom: none; }
+.reto-cat-ico { font-size: 1.4rem; text-align: center; }
+.reto-cat-pts { text-align: right; font-weight: 800; }
+.reto-mini { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: .2rem; }
+.reto-mini > div { height: 6px; background: var(--green); transition: width .3s; }
+.reto-semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; margin: .3rem 0; }
+.reto-dia { display: flex; flex-direction: column; align-items: center; gap: .15rem; padding: .35rem 0; border-radius: 8px; text-decoration: none; color: inherit; }
+.reto-dia.hoy { background: var(--primary-soft); }
+.reto-dia-pts { font-weight: 800; color: var(--green); }
+.reto-dia.hoy .reto-dia-pts { color: var(--ink-deep); }
+.reto-dia .dot.gris { background: var(--line); }
+.reto-escudo { font-size: .8rem; line-height: 8px; }
+/* Pantalla de evolución (a pantalla completa) */
+.reto-evo { position: fixed; inset: 0; z-index: 30; background: var(--ink-deep); color: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .9rem; padding: 2rem 1.5rem; text-align: center; overflow: hidden; animation: reto-in .35s ease-out; }
+.reto-evo-rayos { position: absolute; inset: -50%; background: repeating-conic-gradient(rgba(204,222,223,.14) 0 4deg, transparent 4deg 15deg); animation: reto-gira 40s linear infinite; pointer-events: none; }
+.reto-evo > * { position: relative; }
+.reto-evo-forma { width: 190px; height: 190px; border-radius: 48px; background: var(--primary-soft); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 14px rgba(204,222,223,.18), 0 0 0 28px rgba(204,222,223,.08); animation: reto-pop .5s cubic-bezier(.2,1.4,.4,1); }
+.reto-evo-forma.final { width: 96px; height: 96px; border-radius: 24px; background: var(--ink-deep); box-shadow: none; margin: 0 auto; animation: none; }
+.reto-evo-titulo { font-size: 2.2rem; color: var(--bg); margin: 0; }
+.reto-evo-nivel { font-size: 1.1rem; font-weight: 800; color: var(--primary-soft); }
+.reto-evo-cambio { display: flex; align-items: center; gap: .9rem; background: rgba(255,250,242,.08); border: 1px solid rgba(204,222,223,.35); border-radius: 14px; padding: .7rem 1.1rem; font-size: .75rem; color: var(--primary-soft); }
+.reto-evo-cambio > div { display: flex; flex-direction: column; align-items: center; gap: .2rem; }
+.reto-evo-cambio > span { font-size: 1.4rem; }
+.reto-evo-btn { background: var(--primary-soft); border-color: var(--primary-soft); color: var(--ink-deep); font-weight: 800; padding: .8rem 2.5rem; }
+@keyframes reto-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes reto-pop { from { transform: scale(.4) } to { transform: scale(1) } }
+@keyframes reto-gira { to { transform: rotate(360deg) } }
+/* Premio conseguido */
+.reto-ganado { display: flex; flex-direction: column; gap: .6rem; text-align: center; padding-top: .5rem; }
+.reto-ganado .card { text-align: left; margin: 0; }
+.reto-ganado-titulo { margin: 0; font-size: 2.1rem; }
+.reto-ganado .btn { align-self: center; }

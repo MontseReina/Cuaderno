@@ -284,3 +284,13 @@ alter table todos add column if not exists do_date date;
 
 -- v0.10: día 1 del tratamiento (semana 0 del protocolo)
 alter table patients add column if not exists protocol_start date;
+
+-- v0.11: reto de la semana (juego de puntos para el niño). Los puntos se calculan; aquí solo va el premio y la meta.
+select _mk('challenges', $c$
+  week_start date not null, prize text, prize_icon text,
+  goal int not null default 500, shield_min int not null default 60,
+  creature_name text, delivered_at timestamptz
+$c$);
+do $$ begin
+  execute 'alter publication supabase_realtime add table challenges';
+exception when duplicate_object then null; end $$;

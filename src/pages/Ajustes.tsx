@@ -5,6 +5,7 @@ import { LocalBackend } from '../store/local'
 import { SupabaseBackend } from '../store/supabase'
 import { Field } from '../components/ui'
 import { knownUsers } from '../domain/users'
+import { RetoAjustes } from '../components/RetoAjustes'
 
 export default function Ajustes() {
   const patient = useRows('patients')[0]
@@ -32,6 +33,7 @@ export default function Ajustes() {
         <Field label="Notas"><textarea value={p.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
         <button className="btn" onClick={() => save('patients', { ...patient, ...p } as never)}>Guardar</button>
       </div>
+      <RetoAjustes />
       <div className="card">
         <h3>Usuarios</h3>
         <p className="muted small">Todos tienen los mismos permisos. Cada registro queda firmado con quién lo hizo (registro de actividad no visible en la app).</p>

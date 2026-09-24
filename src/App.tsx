@@ -23,6 +23,7 @@ import Biblioteca from './pages/Biblioteca'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import Datos from './pages/Datos'
+import Reto from './pages/Reto'
 import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
@@ -101,6 +102,7 @@ function Shell() {
         <Tab to="/hidratacion" ico="💧" label="Hidratación" />
         <Tab to="/ejercicio" ico="🏃" label="Ejercicio" />
         <Tab to="/biohacking" ico="🌙" label="Biohacking" />
+        <Tab to="/reto" ico="🎮" label="Reto" />
         <Tab to="/mas" ico="🧭" label="Pilares" />
       </nav>
       <main className="content">
@@ -131,6 +133,8 @@ function Shell() {
           <Route path="/biohacking/:date" element={<Biohacking />} />
           <Route path="/biblioteca" element={<Biblioteca />} />
           <Route path="/datos" element={<Datos />} />
+          <Route path="/reto" element={<Reto />} />
+          <Route path="/reto/:section" element={<Reto />} />
         </Routes>
       </main>
     </div>

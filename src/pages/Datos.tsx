@@ -12,7 +12,7 @@ const TABLE_LABELS: Record<string, string> = {
   patients: 'Paciente', profiles: 'Usuarios', diagnoses: 'Diagnósticos', cycles: 'Ciclos', daily_logs: 'Registro diario', products: 'Medicación y suplementos',
   intakes: 'Tomas', lab_panels: 'Analíticas', lab_results: 'Resultados analíticos', organ_tests: 'Pruebas de órgano', microbiome_tests: 'Tests de microbiota',
   calendar_events: 'Calendario', todos: 'Pendientes', questions: 'Preguntas al equipo', weekly_child: 'Emocional niño', weekly_caregiver: 'Cuidador semanal',
-  caregiver_daily: 'Cuidador diario', exercise_sessions: 'Sesiones de ejercicio', functional_weekly: 'Capacidad funcional', exposures_weekly: 'Exposiciones', practices: 'Prácticas', practice_log: 'Prácticas hechas',
+  caregiver_daily: 'Cuidador diario', exercise_sessions: 'Sesiones de ejercicio', functional_weekly: 'Capacidad funcional', exposures_weekly: 'Exposiciones', practices: 'Prácticas', practice_log: 'Prácticas hechas', weights: 'Pesos', challenges: 'Reto de la semana',
 }
 
 export default function Datos() {
