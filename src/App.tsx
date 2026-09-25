@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Route, Routes, Link } from 'react-router-dom'
 import { backend, isDemo, useRows, useStoreVersion } from './store'
 import { todayStr } from './domain/dates'
@@ -28,6 +28,7 @@ import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
 import { Mark } from './components/Logo'
+import { Forma } from './components/Huma'
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -95,19 +96,20 @@ function Shell() {
         {isDemo && <Link to="/datos" className="badge" title={`v${APP_VERSION} · los datos se guardan solo en este dispositivo`}>💾</Link>}
       </header>
       <nav className="tabbar">
-        <Tab to="/" ico="🏠" label="Inicio" />
+        <Tab to="/" ico={<Forma k="fenix" size={20} width={2} />} label="Reto" />
+        <Tab to="/inicio" ico="🏠" label="Inicio" />
         <Tab to="/diario" ico="📝" label="Signos y síntomas" />
         <Tab to="/medicacion" ico="💊" label="Medicación" />
         <Tab to="/nutricion" ico="🥣" label="Nutrición" />
         <Tab to="/hidratacion" ico="💧" label="Hidratación" />
         <Tab to="/ejercicio" ico="🏃" label="Ejercicio" />
         <Tab to="/biohacking" ico="🌙" label="Biohacking" />
-        <Tab to="/reto" ico="🎮" label="Reto" />
         <Tab to="/mas" ico="🧭" label="Pilares" />
       </nav>
       <main className="content">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Reto />} />
+          <Route path="/inicio" element={<Home />} />
           <Route path="/diario" element={<Diario />} />
           <Route path="/diario/:date" element={<Diario />} />
           <Route path="/ciclos" element={<Ciclos />} />
@@ -141,7 +143,7 @@ function Shell() {
   )
 }
 
-function Tab({ to, ico, label }: { to: string; ico: string; label: string }) {
+function Tab({ to, ico, label }: { to: string; ico: ReactNode; label: string }) {
   return (
     <NavLink to={to} end={to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
       <span className="ico">{ico}</span>

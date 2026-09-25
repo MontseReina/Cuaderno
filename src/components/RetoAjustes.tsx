@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
-import { currentPatientId, save } from '../store'
 import type { Challenge } from '../store/types'
 import { addDays, fmtDate, todayStr, weekStart } from '../domain/dates'
 import { GOAL_DEFAULT, SHIELD_DEFAULT, weekPoints } from '../domain/reto'
-import { useReto } from '../pages/Reto'
+import { guardarReto, ICONOS_PREMIO, useReto } from '../pages/Reto'
+import { Forma } from './Huma'
 import { Field } from './ui'
-
-const ICONOS = ['🎮', '🏛️', '🍦', '🎬', '🧩', '⚽', '🎁', '🍕', '🎢', '📚']
 
 /** Ajustes del reto de la semana (solo la familia): premio, meta, nombre de la criatura e historial. */
 export function RetoAjustes() {
@@ -15,33 +13,27 @@ export function RetoAjustes() {
   const [f, setF] = useState<Partial<Challenge>>({})
   useEffect(() => { setF({ prize: ch.prize ?? '', prize_icon: ch.prize_icon ?? '🎁', goal: ch.goal, shield_min: ch.shield_min, creature_name: ch.creature_name ?? name }) }, [ch.id, ch.prize, ch.prize_icon, ch.goal, ch.shield_min, ch.creature_name, name])
   const set = <K extends keyof Challenge>(k: K, v: Challenge[K]) => setF((x) => ({ ...x, [k]: v }))
-  const guardar = async () => {
-    await save('challenges', {
-      ...(ch.id ? { id: ch.id } : {}),
-      patient_id: currentPatientId(),
-      week_start: start,
-      prize: f.prize?.trim() || null,
-      prize_icon: f.prize_icon || null,
-      goal: Number(f.goal) || GOAL_DEFAULT,
-      shield_min: Number(f.shield_min) || SHIELD_DEFAULT,
-      creature_name: f.creature_name?.trim() || null,
-      delivered_at: ch.delivered_at ?? null,
-    } as Challenge)
-  }
+  const guardar = () => guardarReto(ch, start, {
+    prize: f.prize?.trim() || null,
+    prize_icon: f.prize_icon || null,
+    goal: Number(f.goal) || GOAL_DEFAULT,
+    shield_min: Number(f.shield_min) || SHIELD_DEFAULT,
+    creature_name: f.creature_name?.trim() || null,
+  })
   // Semanas anteriores con reto guardado (o con puntos), de la más reciente a la más antigua.
   const previas = Array.from(new Set([...challenges.map((c) => c.week_start), ...[1, 2, 3, 4].map((i) => addDays(start, -7 * i))]))
     .filter((s) => s < start).sort((a, b) => b.localeCompare(a)).slice(0, 6)
 
   return (
     <div className="card">
-      <h3>🎮 Reto de la semana</h3>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}><Forma k="fenix" size={20} width={2} /> Reto de la semana</h3>
       <p className="muted small">Lo que ve el niño en la pestaña Reto. Aquí se pone el premio y la meta de cada semana; el reto nuevo empieza solo cada lunes.</p>
       <div className="reto-eyebrow" style={{ marginBottom: '.4rem' }}>Semana del {fmtDate(start)} al {fmtDate(addDays(start, 6))}</div>
       <Field label="Nombre de la criatura (lo elige él)"><input type="text" value={f.creature_name ?? ''} onChange={(e) => set('creature_name', e.target.value)} placeholder="Huma" /></Field>
       <Field label="Premio de esta semana"><input type="text" value={f.prize ?? ''} onChange={(e) => set('prize', e.target.value)} placeholder="p. ej. Juego nuevo de Nintendo" /></Field>
       <Field label="Icono del premio">
         <div className="chips">
-          {ICONOS.map((i) => <button key={i} type="button" className={'chip ' + (f.prize_icon === i ? 'on' : '')} style={{ fontSize: '1.2rem', padding: '.25rem .55rem' }} onClick={() => set('prize_icon', i)}>{i}</button>)}
+          {ICONOS_PREMIO.map((i) => <button key={i} type="button" className={'chip ' + (f.prize_icon === i ? 'on' : '')} style={{ fontSize: '1.2rem', padding: '.25rem .55rem' }} onClick={() => set('prize_icon', i)}>{i}</button>)}
         </div>
       </Field>
       <div className="grid2">

@@ -5,6 +5,25 @@ import type { Challenge } from '../store/types'
 import { addDays, todayStr } from '../domain/dates'
 import { CATS, challengeFor, creatureName, FORMS, formAt, weekPoints, type RetoInputs, type WeekPoints } from '../domain/reto'
 import { Forma } from '../components/Huma'
+import { Field } from '../components/ui'
+
+export const ICONOS_PREMIO = ['🎮', '🏛️', '🍦', '🎬', '🧩', '⚽', '🎁', '🍕', '🎢', '📚']
+
+/** Guarda (o crea) el reto de la semana con los cambios indicados. */
+export async function guardarReto(ch: ReturnType<typeof challengeFor>, start: string, patch: Partial<Challenge>) {
+  await save('challenges', {
+    ...(ch.id ? { id: ch.id } : {}),
+    patient_id: currentPatientId(),
+    week_start: start,
+    prize: ch.prize ?? null,
+    prize_icon: ch.prize_icon ?? null,
+    goal: ch.goal,
+    shield_min: ch.shield_min,
+    creature_name: ch.creature_name ?? null,
+    delivered_at: ch.delivered_at ?? null,
+    ...patch,
+  } as Challenge)
+}
 
 const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic']
@@ -34,6 +53,7 @@ export default function Reto() {
   const { section } = useParams()
   const { week, ch, name } = useReto()
   const [evo, setEvo] = useState<number | null>(null)
+  const [editando, setEditando] = useState(false)
 
   // ¿Ha subido de nivel desde la última vez que se abrió esta pantalla? → pantalla de evolución.
   useEffect(() => {
@@ -54,14 +74,19 @@ export default function Reto() {
 
   return (
     <div className="reto">
-      <div className="card reto-premio">
-        <div className="reto-premio-ico">{ch.prize_icon || '🎁'}</div>
-        <div>
-          <div className="reto-eyebrow">Premio de la semana</div>
-          <div className="reto-premio-nombre">{ch.prize || 'Todavía sin premio: que lo pongan mamá o la tía'}</div>
-          <div className="muted small">{DIA_LARGO[1]} {corto(week.start)} → domingo {corto(week.end)}</div>
-        </div>
-      </div>
+      {editando
+        ? <PremioEditor ch={ch} start={week.start} onClose={() => setEditando(false)} />
+        : (
+          <div className="card reto-premio" onClick={() => setEditando(true)} style={{ cursor: 'pointer' }}>
+            <div className="reto-premio-ico">{ch.prize_icon || '🎁'}</div>
+            <div style={{ flex: 1 }}>
+              <div className="reto-eyebrow">Premio de la semana</div>
+              <div className="reto-premio-nombre">{ch.prize || 'Todavía sin premio: toca aquí para ponerlo'}</div>
+              <div className="muted small">{DIA_LARGO[1]} {corto(week.start)} → domingo {corto(week.end)}</div>
+            </div>
+            <span className="muted" aria-label="Cambiar el premio">✎</span>
+          </div>
+        )}
 
       <div className="card">
         <div className="reto-total"><span className="reto-num">{week.total}</span><span className="muted">de {week.goal} puntos</span>{ch.delivered_at && <span className="tag verde">premio conseguido ✓</span>}</div>
@@ -71,7 +96,9 @@ export default function Reto() {
           ? <p className="reto-msg">{name} ha llegado a su forma final. ¡Premio conseguido!</p>
           : <>
             <p><strong>Nivel {week.level + 1} · {FORMS[week.level].name}.</strong> {name} vuelve a evolucionar a los {nextAt} puntos: te faltan <strong>{Math.max(0, nextAt - week.total)}</strong>.</p>
-            {week.daysLeft > 0
+            {week.daysLeft > 0 && perDay > 100
+              ? <p className="reto-msg">Esta semana la meta queda lejos, pero cada punto hace crecer a {name}. ¡A por la siguiente forma!</p>
+              : week.daysLeft > 0
               ? <p className="reto-msg">Te quedan {week.daysLeft === 1 ? 'hoy' : `${week.daysLeft} días`} y {week.remaining} puntos: con {perDay} al día, el premio es tuyo.</p>
               : <p className="reto-msg">La semana ha terminado con {week.total} puntos. El lunes empieza un reto nuevo.</p>}
           </>}
@@ -114,6 +141,29 @@ export default function Reto() {
       </div>
 
       <p style={{ textAlign: 'center' }}><Link to="/reto/puntos"><strong>¿Cómo gano puntos?</strong></Link></p>
+    </div>
+  )
+}
+
+/** Poner o cambiar el premio desde la propia pantalla del reto (lo hace la familia). */
+function PremioEditor({ ch, start, onClose }: { ch: ReturnType<typeof challengeFor>; start: string; onClose: () => void }) {
+  const [prize, setPrize] = useState(ch.prize ?? '')
+  const [icon, setIcon] = useState(ch.prize_icon ?? '🎁')
+  const guardar = async () => { await guardarReto(ch, start, { prize: prize.trim() || null, prize_icon: icon }); onClose() }
+  return (
+    <div className="card">
+      <div className="reto-eyebrow">Premio de la semana</div>
+      <Field label="¿Qué premio se gana esta semana?"><input type="text" value={prize} onChange={(e) => setPrize(e.target.value)} placeholder="p. ej. Juego nuevo de Nintendo" autoFocus /></Field>
+      <Field label="Icono">
+        <div className="chips">
+          {ICONOS_PREMIO.map((i) => <button key={i} type="button" className={'chip ' + (icon === i ? 'on' : '')} style={{ fontSize: '1.2rem', padding: '.25rem .55rem' }} onClick={() => setIcon(i)}>{i}</button>)}
+        </div>
+      </Field>
+      <div className="row">
+        <button className="btn" onClick={guardar}>Guardar</button>
+        <button className="btn ghost" onClick={onClose}>Cancelar</button>
+      </div>
+      <p className="muted small">La meta ({ch.goal} puntos) y el nombre de la criatura se cambian en Pilares → Ajustes.</p>
     </div>
   )
 }

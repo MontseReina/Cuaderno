@@ -231,3 +231,4 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .reto-ganado .card { text-align: left; margin: 0; }
 .reto-ganado-titulo { margin: 0; font-size: 2.1rem; }
 .reto-ganado .btn { align-self: center; }
+.tabbar a .ico svg { vertical-align: middle; }
