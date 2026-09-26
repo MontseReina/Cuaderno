@@ -64,6 +64,19 @@ export function Faces({ value, onChange, faces }: { value: number | null | undef
   )
 }
 
+export type TriState = 'si' | 'no' | 'np' | null
+/** Un toque: ✓ hecho · dos: ✗ no hecho · tres: NP no precisa · cuatro: vuelve a vacío. */
+export const nextTri = (v: TriState): TriState => (v === null || v === undefined ? 'si' : v === 'si' ? 'no' : v === 'no' ? 'np' : null)
+export function TriButton({ value, onChange, disabled, size = 'md', label }: { value: TriState; onChange: (v: TriState) => void; disabled?: boolean; size?: 'sm' | 'md'; label?: string }) {
+  const txt = value === 'si' ? '✓' : value === 'no' ? '✗' : value === 'np' ? 'NP' : '○'
+  const title = value === 'si' ? 'Hecho' : value === 'no' ? 'No hecho' : value === 'np' ? 'No precisa' : 'Sin marcar'
+  return (
+    <button type="button" className={'tri ' + (value ?? 'vacio') + (size === 'sm' ? ' sm' : '')} title={`${label ? label + ': ' : ''}${title} · toca para cambiar`} aria-label={`${label ?? ''} ${title}`} disabled={disabled} onClick={() => onChange(nextTri(value))}>
+      {txt}
+    </button>
+  )
+}
+
 export function Check({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
   return (
     <label className={'check ' + (checked ? 'done' : '')}>

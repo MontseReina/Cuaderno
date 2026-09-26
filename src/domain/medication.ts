@@ -34,8 +34,10 @@ export function medicationProgress(products: Product[], intakes: Intake[], cycle
     if (afterChemoGate(p, cycles, date)?.waiting) continue
     if (wk && p.traffic?.[wk] === 'rojo') continue
     for (const m of p.moments) {
+      const it = intakes.find((i) => i.product_id === p.id && i.date === date && i.moment === m)
+      if (it?.status === 'no_precisa') continue // no cuenta ni como prevista ni como pendiente
       planned++
-      if (intakes.some((i) => i.product_id === p.id && i.date === date && i.moment === m && i.taken)) taken++
+      if (it?.taken || it?.status === 'dada') taken++
     }
   }
   return { planned, taken }

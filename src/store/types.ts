@@ -158,10 +158,13 @@ export interface DailyExtra {
   vomits?: VomitEpisode[]
   /** No retiene ni líquidos (criterio de vómitos intensos). */
   vomit_no_liquids?: boolean
+  /** Medidas que hoy no se han podido obtener (no es que falten por no apuntarlas). */
+  not_measured?: Partial<Record<'temp' | 'urine' | 'urine_ml' | 'urine_ph', boolean>>
   /** Constantes por momento del día: temperatura y tensión arterial. */
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
 }
 
+export type PreventiveMark = boolean | 'x' | 'np'
 export type PhlegmColor = 'transparente' | 'amarillo' | 'verde' | 'rojo'
 export type VomitKind = 'alimentario' | 'acuoso' | 'bilioso' | 'sangre' | 'posos' | 'escopetazo' | 'fecaloideo' | 'espumoso'
 export interface VomitEpisode { time: string; kind?: VomitKind | null; note?: string }
@@ -194,7 +197,8 @@ export interface DailyLog extends BaseRow {
   fatigue?: number | null // 0-4
   symptoms: Record<string, number> // clave → 0..3
   mood_child?: number | null // 1-5
-  preventive: Record<string, boolean>
+  /** true = hecho · 'x' = no hecho · 'np' = no precisa · ausente = sin marcar. */
+  preventive: Record<string, PreventiveMark>
   meals: Meal[]
   fluids_total_ml?: number | null
   water_ml?: number | null
@@ -260,11 +264,17 @@ export interface Product extends BaseRow {
   condition?: string | null
 }
 
+/** Estado de una toma: dada · no dada (molestias, no quiso…) · no precisa. */
+export type IntakeStatus = 'dada' | 'no_dada' | 'no_precisa'
 export interface Intake extends BaseRow {
   product_id: string
   date: string
   moment: Moment
+  /** true solo si está dada (se mantiene por compatibilidad; manda `status`). */
   taken: boolean
+  status?: IntakeStatus | null
+  /** Motivo cuando no se ha dado. */
+  reason?: string | null
 }
 
 export interface LabPanel extends BaseRow {

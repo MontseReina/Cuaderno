@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
-import type { Intake, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
+import type { Intake, IntakeStatus, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
 import {
-  ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, MOMENTS,
+  ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, INTAKE_REASONS, MOMENTS,
   OUTCOME_LABELS, PRESCRIBERS, ROUTE_LABELS, TRAFFIC_LABELS, WEEKDAYS,
 } from '../domain/catalogs'
 import { afterChemoGate, cycleContext } from '../domain/cycle'
 import { trafficWindow } from '../domain/medication'
 import { fmtDate, todayStr } from '../domain/dates'
 import { DateNav } from '../components/DateNav'
-import { Field, Section, Segmented } from '../components/ui'
+import { Field, Section, Segmented, TriButton, type TriState } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
 
 const BLOCKS: ProductBlock[] = ['hospital', 'sup_ciclo', 'sup_fuera']
@@ -58,14 +58,18 @@ export default function Medicacion() {
 
   if (editing) return <ProductForm initial={editing} onClose={() => setEditing(null)} />
 
-  const toggle = async (p: Product, m: Moment) => {
+  // Estado de una toma: ✓ dada · ✗ no dada · NP no precisa · ○ sin marcar (un toque cambia al siguiente).
+  const statusOf = (ex?: Intake): TriState => ex?.status === 'dada' || (ex?.taken && !ex?.status) ? 'si' : ex?.status === 'no_dada' ? 'no' : ex?.status === 'no_precisa' ? 'np' : null
+  const setStatus = async (p: Product, m: Moment, v: TriState) => {
     const ex = intakes.find((i) => i.product_id === p.id && i.moment === m)
-    await save('intakes', { ...(ex ?? {}), patient_id: currentPatientId(), product_id: p.id, date: today, moment: m, taken: !(ex?.taken ?? false) } as Intake)
+    const status: IntakeStatus | null = v === 'si' ? 'dada' : v === 'no' ? 'no_dada' : v === 'np' ? 'no_precisa' : null
+    await save('intakes', { ...(ex ?? {}), patient_id: currentPatientId(), product_id: p.id, date: today, moment: m, taken: v === 'si', status, reason: v === 'no' ? (ex?.reason ?? null) : null } as Intake)
   }
+  const setReason = async (ex: Intake, reason: string) => save('intakes', { ...ex, reason: reason || null })
   const markAll = async (m: Moment) => {
     for (const p of products.filter((x) => x.moments.includes(m) && trafficNow(x) !== 'rojo' && !waiting(x) && !notToday(x) && !x.condition)) {
       const ex = intakes.find((i) => i.product_id === p.id && i.moment === m)
-      if (!ex?.taken) await save('intakes', { ...(ex ?? {}), patient_id: currentPatientId(), product_id: p.id, date: today, moment: m, taken: true } as Intake)
+      if (!statusOf(ex)) await setStatus(p, m, 'si')
     }
   }
   // Solo las columnas de momentos que usa algún producto (para que la tabla quepa en el móvil).
@@ -139,18 +143,23 @@ export default function Medicacion() {
                           {p.condition && !wait && <span className="tag amarillo">si {p.condition}</span>}
                           <div className="meta">{p.dose}{p.lab ? ` · ${p.lab}` : ''}{p.route ? ` · ${ROUTE_LABELS[p.route]}` : ''}</div>
                         </div>
+                        {intakes.filter((i) => i.product_id === p.id && i.status === 'no_dada').map((ex) => (
+                          <div key={ex.moment} className="small" style={{ display: 'flex', gap: '.4rem', alignItems: 'center', marginTop: '.2rem' }}>
+                            <span style={{ color: 'var(--red)' }}>✗ {MOMENTS.find((x) => x.key === ex.moment)?.label}:</span>
+                            <select value={ex.reason ?? ''} onChange={(e) => setReason(ex, e.target.value)} style={{ width: 'auto', padding: '.2rem .4rem', fontSize: '.85rem' }}>
+                              <option value="">motivo…</option>
+                              {INTAKE_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                            </select>
+                          </div>
+                        ))}
                         <button className="linkbtn" onClick={() => setRetiring(p)}>Retirar</button>
                       </td>
                       {usedMoments.map((m) => {
                         const planned = p.moments.includes(m.key as Moment)
-                        const taken = intakes.find((i) => i.product_id === p.id && i.moment === m.key)?.taken
+                        const ex = intakes.find((i) => i.product_id === p.id && i.moment === m.key)
                         return (
                           <td key={m.key} style={{ textAlign: 'center' }}>
-                            {planned && (
-                              <button type="button" className={'chip ' + (taken ? 'on' : '')} style={{ padding: '.3rem .6rem' }} onClick={() => toggle(p, m.key as Moment)} disabled={blocked}>
-                                {taken ? '✓' : '○'}
-                              </button>
-                            )}
+                            {planned && <TriButton value={statusOf(ex)} onChange={(v) => setStatus(p, m.key as Moment, v)} disabled={blocked} label={`${p.name} · ${m.label}`} />}
                           </td>
                         )
                       })}
@@ -160,6 +169,7 @@ export default function Medicacion() {
               </tbody>
             </table>
           </div>
+          <p className="muted small">Toca una vez <strong>✓ dada</strong>, dos veces <strong>✗ no dada</strong> (y elige el motivo), tres veces <strong>NP no precisa</strong>; la cuarta lo deja en blanco.</p>
           {skippedToday.length > 0 && <p className="muted small">{esHoy ? 'Hoy no toca' : 'Ese día no tocaba'}: {skippedToday.map((p) => `${p.name} (${weekdaysText(p.weekdays)})`).join('; ')}.</p>}
           {onDemand.length > 0 && (
             <div style={{ marginTop: '.5rem' }}>

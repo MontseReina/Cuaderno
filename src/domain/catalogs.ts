@@ -38,7 +38,7 @@ export interface PreventiveDef {
   key: string
   label: string
   group: string
-  when?: 'siempre' | 'nadir' | 'cateter' | 'mtx'
+  when?: 'siempre' | 'nadir' | 'cateter' | 'mtx' | 'infusion'
   /** Aclaración corta debajo de la casilla. */
   help?: string
 }
@@ -59,7 +59,7 @@ export const PREVENTIVE: PreventiveDef[] = [
   { key: 'temperatura', label: 'Temperatura tomada', group: 'Neutropenia (D7-14)', when: 'nadir' },
   { key: 'manos', label: 'Higiene de manos de todos en casa', group: 'Neutropenia (D7-14)', when: 'nadir' },
   { key: 'liquidos_mtx', label: 'Líquidos abundantes y pH urinario controlado', group: 'Día de metotrexato', when: 'mtx' },
-  { key: 'epsom_mtx', label: 'Baño de sales de Epsom', group: 'Día de metotrexato', when: 'mtx', help: 'Agua templada, 15-20 min. Con catéter central: sin sumergir el apósito (de cintura para abajo, o la zona bien tapada y seca). Aclarar al salir.' },
+  { key: 'epsom_mtx', label: 'Baño de sales de Epsom', group: 'Día de perfusión (metotrexato, cisplatino, adriamicina)', when: 'infusion', help: 'Agua templada, 15-20 min. Con catéter central: sin sumergir el apósito (de cintura para abajo, o la zona bien tapada y seca). Aclarar al salir.' },
 ]
 
 export const CARB_HELP: Record<string, { label: string; help: string }> = {
@@ -105,6 +105,9 @@ export const HYDRATION_TIPS: Record<'quimio' | 'nadir', string[]> = {
   nadir: ['Mantener agua + agua de mar aunque no tenga sed', 'Infusiones de manzanilla / jengibre templadas', 'Caldo de Santa Paciencia (medias tazas) cuenta como líquido', 'Si vomita o hay diarrea: reponer con caldo salado y avisar si no retiene'],
 }
 export const CUP_ML = 200 // media taza = 200 ml (decisión de la familia)
+
+/** Motivos por los que no se ha dado una toma. */
+export const INTAKE_REASONS = ['Molestias gástricas', 'No quiso tomarla', 'Vómito', 'Dormido', 'Se olvidó', 'Otro'] as const
 
 /** Tipos de vómito por lo que se ve. Los marcados con alerta son señal roja por sí solos. */
 export const VOMIT_KINDS: { value: 'alimentario' | 'acuoso' | 'bilioso' | 'sangre' | 'posos' | 'escopetazo' | 'fecaloideo' | 'espumoso'; label: string; help: string; alerta?: boolean }[] = [

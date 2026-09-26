@@ -294,3 +294,7 @@ $c$);
 do $$ begin
   execute 'alter publication supabase_realtime add table challenges';
 exception when duplicate_object then null; end $$;
+
+-- v0.12: tomas con estado (dada / no dada / no precisa) y motivo
+alter table intakes add column if not exists status text;
+alter table intakes add column if not exists reason text;

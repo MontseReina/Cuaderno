@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { DailyLog, PhlegmColor, VomitEpisode, VomitKind } from '../store/types'
+import type { DailyLog, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, symptomsForToday, vomitSeverity } from '../domain/cycle'
+import { trafficWindow } from '../domain/medication'
 import {
   BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
   PREVENTIVE, PHLEGM_COLORS, VOMIT_KINDS, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
@@ -13,7 +14,7 @@ import {
 } from '../domain/catalogs'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { DateNav } from '../components/DateNav'
-import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper } from '../components/ui'
+import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper, TriButton, type TriState } from '../components/ui'
 
 export default function Diario() {
   const params = useParams()
@@ -41,10 +42,10 @@ export default function Diario() {
   const prev = [1, 2, 3].map((n) => byDate.get(addDays(date, -n))).filter((l): l is DailyLog => !!l)
   const traffic = dailyTraffic(draft, prev, ctx, defs)
   const hasCatheter = !!patient?.catheter_type
-  const preventive = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && ctx.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && ctx.mtxDay))
+  const preventive = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && ctx.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && ctx.mtxDay) || (p.when === 'infusion' && trafficWindow(ctx, date) === 'infusion'))
   const groups = useMemo(() => Array.from(new Set(preventive.map((p) => p.group))), [preventive])
   const symptomsMarked = Object.values(draft.symptoms).filter((v) => v > 0).length
-  const prevDone = preventive.filter((p) => draft.preventive[p.key]).length
+  const prevDone = preventive.filter((p) => draft.preventive[p.key] === true).length
 
   return (
     <div>
@@ -100,7 +101,10 @@ export default function Diario() {
               </tbody>
             </table>
           </div>
-          <div className="muted small">Temperatura máxima del día: <strong>{draft.temp_max ?? '—'}</strong>{draft.temp_max != null && draft.temp_max >= 38 ? ' — 38 °C o más: llamar a oncología' : ''}</div>
+          <div className="row between" style={{ marginTop: '.3rem' }}>
+            <div className="muted small">Temperatura máxima del día: <strong>{draft.temp_max ?? '—'}</strong>{draft.temp_max != null && draft.temp_max >= 38 ? ' — 38 °C o más: llamar a oncología' : ''}</div>
+            {draft.temp_max == null && <NoMedido k="temp" extra={draft.extra} onChange={(nm) => setExtra({ not_measured: nm })} />}
+          </div>
           {VITAL_SLOTS.some((sl) => { const o = draft.extra?.vitals?.[sl.key]?.spo2; return o != null && o < 94 }) && (
             <div className="notice">Saturación por debajo de 94 %: repetir la medición con la mano caliente y quieta y, si se confirma, comentarlo con oncología.</div>
           )}
@@ -112,6 +116,7 @@ export default function Diario() {
             ))}
           </div>
           {draft.urine_color && <div className="muted small">{URINE_LABELS[draft.urine_color - 1]}</div>}
+          {!draft.urine_color && !draft.urine_amount && <div style={{ marginTop: '.3rem' }}><NoMedido k="urine" extra={draft.extra} onChange={(nm) => setExtra({ not_measured: nm })} /> <span className="muted small">(no se ha visto la orina)</span></div>}
         </Field>
         <Field label="Cantidad de orina">
           <Segmented options={[{ value: 'menos', label: 'Menos de lo habitual' }, { value: 'normal', label: 'Normal' }, { value: 'mas', label: 'Más' }]} value={draft.urine_amount} onChange={(v) => set('urine_amount', v)} />
@@ -121,6 +126,12 @@ export default function Diario() {
             <Field label="Micciones (nº)"><Stepper value={draft.urine_count} onChange={(v) => set('urine_count', v)} /></Field>
             <Field label="Orina (ml)"><input type="number" inputMode="numeric" value={draft.urine_ml ?? ''} onChange={(e) => set('urine_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
             <Field label="pH orina"><input type="number" inputMode="decimal" step="0.5" value={draft.urine_ph ?? ''} onChange={(e) => set('urine_ph', e.target.value === '' ? null : Number(e.target.value))} /></Field>
+          </div>
+        )}
+        {(ctx.mtxDay || draft.location === 'ingreso') && (draft.urine_ml == null || draft.urine_ph == null) && (
+          <div className="row" style={{ gap: '.5rem', marginBottom: '.5rem' }}>
+            {draft.urine_ml == null && <span className="small">ml: <NoMedido k="urine_ml" extra={draft.extra} onChange={(nm) => setExtra({ not_measured: nm })} /></span>}
+            {draft.urine_ph == null && <span className="small">pH: <NoMedido k="urine_ph" extra={draft.extra} onChange={(nm) => setExtra({ not_measured: nm })} /></span>}
           </div>
         )}
         <Field label="Deposiciones (nº)"><Stepper value={draft.stools_n} onChange={(v) => set('stools_n', v)} /></Field>
@@ -183,11 +194,15 @@ export default function Diario() {
 
       <Section title={`Cuidados preventivos (${prevDone}/${preventive.length})`}>
         {patient?.catheter_last_dressing && <p className="muted small">Última cura del catéter: {fmtDate(patient.catheter_last_dressing)}{patient.catheter_dressing_days ? ` · siguiente ${fmtDate(addDays(patient.catheter_last_dressing, patient.catheter_dressing_days))}` : ''}</p>}
+        <p className="muted small">Toca una vez <strong>✓ hecho</strong>, dos veces <strong>✗ no hecho</strong>, tres veces <strong>NP no precisa</strong>; la cuarta lo deja en blanco.</p>
         {groups.map((g) => (
           <div key={g}>
             <h3>{g}</h3>
             {preventive.filter((p) => p.group === g).map((p) => (
-              <Check key={p.key} checked={!!draft.preventive[p.key]} onChange={(v) => set('preventive', { ...draft.preventive, [p.key]: v })}>{p.label}{p.help && <div className="muted small">{p.help}</div>}</Check>
+              <div key={p.key} className={'tri-row ' + (prevTri(draft.preventive[p.key]) ?? '')}>
+                <TriButton value={prevTri(draft.preventive[p.key])} onChange={(v) => set('preventive', { ...draft.preventive, [p.key]: v === 'si' ? true : v === 'no' ? 'x' : v === 'np' ? 'np' : false })} label={p.label} />
+                <div><span className="lbl">{p.label}</span>{p.help && <div className="muted small">{p.help}</div>}</div>
+              </div>
             ))}
           </div>
         ))}
@@ -247,3 +262,15 @@ function Vomitos({ episodios, noLiquidos, onChange }: { episodios: VomitEpisode[
     </div>
   )
 }
+
+/** Chip para decir que hoy esa medida no se ha podido obtener (no es un olvido). */
+function NoMedido({ k, extra, onChange }: { k: 'temp' | 'urine' | 'urine_ml' | 'urine_ph'; extra: DailyLog['extra']; onChange: (nm: NonNullable<DailyLog['extra']>['not_measured']) => void }) {
+  const on = !!extra?.not_measured?.[k]
+  return (
+    <button type="button" className={'chip ' + (on ? 'on' : '')} style={{ fontSize: '.8rem', padding: '.25rem .55rem' }} onClick={() => onChange({ ...(extra?.not_measured ?? {}), [k]: !on })}>
+      {on ? '✓ ' : ''}No se ha podido medir
+    </button>
+  )
+}
+
+const prevTri = (v: PreventiveMark | undefined): TriState => (v === true ? 'si' : v === 'x' ? 'no' : v === 'np' ? 'np' : null)

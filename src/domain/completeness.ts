@@ -42,8 +42,8 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, med?: M
   const has = (v: unknown) => v !== undefined && v !== null && v !== ''
   const items: CheckItem[] = [
     { key: 'location', label: 'Dónde está', done: has(log?.location), to: diario, diario: true, group: 'Signos y síntomas' },
-    { key: 'temp', label: 'Temperatura', done: has(log?.temp_max), to: diario, diario: true, group: 'Signos y síntomas' },
-    { key: 'orina', label: 'Orina', done: has(log?.urine_color) || has(log?.urine_amount), to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'temp', label: 'Temperatura', done: has(log?.temp_max) || !!log?.extra?.not_measured?.temp, to: diario, diario: true, group: 'Signos y síntomas' },
+    { key: 'orina', label: 'Orina', done: has(log?.urine_color) || has(log?.urine_amount) || !!log?.extra?.not_measured?.urine, to: diario, diario: true, group: 'Signos y síntomas' },
     { key: 'deposiciones', label: 'Deposiciones', done: has(log?.stools_n), to: diario, diario: true, group: 'Signos y síntomas' },
     { key: 'dolor', label: 'Dolor', done: has(log?.pain_max), to: diario, diario: true, group: 'Signos y síntomas' },
     { key: 'fatiga', label: 'Fatiga', done: has(log?.fatigue), to: diario, diario: true, group: 'Signos y síntomas' },

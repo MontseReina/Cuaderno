@@ -5,7 +5,7 @@ import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 
-export const APP_VERSION = '0.10.2'
+export const APP_VERSION = '0.11.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -111,7 +111,7 @@ export function buildAiReport(from: string, to: string): string {
   const cycles = backend.all('cycles')
   const diagnoses = backend.all('diagnoses')
   const products = backend.all('products')
-  const intakes = backend.all('intakes').filter((i) => inRange(i.date) && i.taken)
+  const intakes = backend.all('intakes').filter((i) => inRange(i.date) && (i.taken || i.status === 'no_dada' || i.status === 'no_precisa'))
   const events = backend.all('calendar_events').filter((e) => inRange(e.start_at.slice(0, 10)))
   const todos = backend.all('todos').filter((t) => t.done_at && inRange(t.done_at.slice(0, 10)))
   const panels = backend.all('lab_panels').filter((p) => inRange(p.date)).sort((a, b) => a.date.localeCompare(b.date))
@@ -191,6 +191,9 @@ export function buildAiReport(from: string, to: string): string {
     if (l.pain_max != null) c.push(`dolor ${l.pain_max}/10${l.pain_location ? ` (${l.pain_location})` : ''}`)
     if (l.fatigue != null) c.push(`fatiga ${l.fatigue}/4`)
     if (l.mood_child) c.push(`ánimo ${l.mood_child}/5`)
+    const nm = l.extra?.not_measured ?? {}
+    const nmTxt = [nm.temp && 'temperatura', nm.urine && 'orina (no vista)', nm.urine_ml && 'ml de orina', nm.urine_ph && 'pH de orina'].filter(Boolean)
+    if (nmTxt.length) c.push(`no se pudo medir: ${nmTxt.join(', ')}`)
     if (c.length) L.push(`- Constantes: ${c.join(' · ')}`)
     const vom = (l.extra?.vomits ?? []).map((e) => `${e.time}${e.kind ? ' ' + (VOMIT_KINDS.find((k) => k.value === e.kind)?.label.toLowerCase() ?? e.kind) : ''}`).join(', ')
     const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}${k === 'flemas' && l.extra?.phlegm_color ? ` (${l.extra.phlegm_color})` : ''}${k === 'vomitos' && vom ? ` (${vom}${l.extra?.vomit_no_liquids ? '; no retiene líquidos' : ''})` : ''}`)
@@ -207,10 +210,20 @@ export function buildAiReport(from: string, to: string): string {
     if (l.broth_cups) fl.push(`caldo ${l.broth_cups} medias tazas`)
     if (l.extra?.infusion_cups) fl.push(`infusiones ${l.extra.infusion_cups} medias tazas`)
     if (fl.length) L.push(`- Líquidos: ${fl.join(' · ')}`)
-    const prevDone = Object.entries(l.preventive).filter(([, v]) => v).map(([k]) => PREVENTIVE.find((p) => p.key === k)?.label ?? k)
+    const plabel = (k: string) => PREVENTIVE.find((p) => p.key === k)?.label ?? k
+    const prevDone = Object.entries(l.preventive).filter(([, v]) => v === true).map(([k]) => plabel(k))
+    const prevNo = Object.entries(l.preventive).filter(([, v]) => v === 'x').map(([k]) => plabel(k))
+    const prevNp = Object.entries(l.preventive).filter(([, v]) => v === 'np').map(([k]) => plabel(k))
     if (prevDone.length) L.push(`- Preventivos hechos: ${prevDone.join('; ')}`)
-    const taken = intakes.filter((i) => i.date === l.date)
-    if (taken.length) L.push(`- Tomas: ${taken.map((i) => `${pname(i.product_id)} (${i.moment})`).join(', ')}`)
+    if (prevNo.length) L.push(`- Preventivos NO hechos: ${prevNo.join('; ')}`)
+    if (prevNp.length) L.push(`- Preventivos que no precisaba: ${prevNp.join('; ')}`)
+    const dayIntakes = intakes.filter((i) => i.date === l.date)
+    const given = dayIntakes.filter((i) => i.taken || i.status === 'dada')
+    const notGiven = dayIntakes.filter((i) => i.status === 'no_dada')
+    const np = dayIntakes.filter((i) => i.status === 'no_precisa')
+    if (given.length) L.push(`- Tomas dadas: ${given.map((i) => `${pname(i.product_id)} (${i.moment})`).join(', ')}`)
+    if (notGiven.length) L.push(`- Tomas NO dadas: ${notGiven.map((i) => `${pname(i.product_id)} (${i.moment}${i.reason ? `: ${i.reason}` : ''})`).join(', ')}`)
+    if (np.length) L.push(`- Tomas que no precisaba: ${np.map((i) => `${pname(i.product_id)} (${i.moment})`).join(', ')}`)
     const sl: string[] = []
     if (l.sleep_start && l.sleep_end) sl.push(`${l.sleep_start}–${l.sleep_end}`)
     if (l.wakeups != null) sl.push(`${l.wakeups} despertares${l.wakeup_cause ? ` (${l.wakeup_cause})` : ''}`)
