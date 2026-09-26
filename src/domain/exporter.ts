@@ -5,7 +5,7 @@ import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 
-export const APP_VERSION = '0.11.0'
+export const APP_VERSION = '0.11.1'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
