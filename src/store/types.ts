@@ -154,11 +154,17 @@ export interface DailyExtra {
   symptoms_ok?: boolean // revisado: hoy no hay síntomas que marcar
   /** Color de las flemas del día (solo si se ha marcado el síntoma). */
   phlegm_color?: PhlegmColor | null
+  /** Vómitos del día, uno por episodio, con hora y tipo. */
+  vomits?: VomitEpisode[]
+  /** No retiene ni líquidos (criterio de vómitos intensos). */
+  vomit_no_liquids?: boolean
   /** Constantes por momento del día: temperatura y tensión arterial. */
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
 }
 
 export type PhlegmColor = 'transparente' | 'amarillo' | 'verde' | 'rojo'
+export type VomitKind = 'alimentario' | 'acuoso' | 'bilioso' | 'sangre' | 'posos' | 'escopetazo' | 'fecaloideo' | 'espumoso'
+export interface VomitEpisode { time: string; kind?: VomitKind | null; note?: string }
 
 export type VitalSlot = 'manana' | 'tarde' | 'noche'
 export interface VitalEntry {

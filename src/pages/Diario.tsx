@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { DailyLog, PhlegmColor } from '../store/types'
+import type { DailyLog, PhlegmColor, VomitEpisode, VomitKind } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
-import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
+import { cycleContext, dailyTraffic, symptomsForToday, vomitSeverity } from '../domain/cycle'
 import {
   BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
-  PREVENTIVE, PHLEGM_COLORS, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
+  PREVENTIVE, PHLEGM_COLORS, VOMIT_KINDS, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
   LOCATIONS,
   VITAL_SLOTS,
 } from '../domain/catalogs'
@@ -19,6 +19,12 @@ export default function Diario() {
   const params = useParams()
   const date = params.date ?? todayStr()
   const { draft, set, setExtra, logs, toastNode } = useDailyDraft(date)
+  // Los vómitos se apuntan por episodios (hora y tipo); la gravedad del síntoma se calcula sola.
+  const setVomitos = (vomits: VomitEpisode[], noLiquidos: boolean) => {
+    const extra = { ...(draft.extra ?? {}), vomits, vomit_no_liquids: noLiquidos }
+    setExtra({ vomits, vomit_no_liquids: noLiquidos })
+    set('symptoms', { ...draft.symptoms, vomitos: vomitSeverity(extra) })
+  }
   const cycles = useRows('cycles')
   const diagnoses = useRows('diagnoses')
   const patient = backend.all('patients')[0]
@@ -146,8 +152,10 @@ export default function Diario() {
         {shownDefs.map((d) => (
           <div key={d.key} style={{ margin: '.5rem 0' }}>
             <div className="small" style={{ marginBottom: '.2rem' }}>{d.label}</div>
-            <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />
-            {d.help && (draft.symptoms[d.key] ?? 0) > 0 && <div className="muted small">{d.help}</div>}
+            {d.key === 'vomitos'
+              ? <Vomitos episodios={draft.extra?.vomits ?? []} noLiquidos={!!draft.extra?.vomit_no_liquids} onChange={setVomitos} />
+              : <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />}
+            {d.key !== 'vomitos' && d.help && (draft.symptoms[d.key] ?? 0) > 0 && <div className="muted small">{d.help}</div>}
             {d.key === 'flemas' && (draft.symptoms.flemas ?? 0) > 0 && (
               <div style={{ marginTop: '.35rem' }}>
                 <div className="muted small" style={{ marginBottom: '.2rem' }}>Color de las flemas</div>
@@ -196,6 +204,46 @@ export default function Diario() {
       <Section title="Notas del día" open={!!draft.notes}>
         <textarea value={draft.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="Cualquier cosa que no esté en las listas…" />
       </Section>
+    </div>
+  )
+}
+
+const horaAhora = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+
+/** Vómitos del día: un episodio por fila, con hora y tipo. */
+function Vomitos({ episodios, noLiquidos, onChange }: { episodios: VomitEpisode[]; noLiquidos: boolean; onChange: (eps: VomitEpisode[], noLiquidos: boolean) => void }) {
+  const upd = (i: number, patch: Partial<VomitEpisode>) => onChange(episodios.map((e, j) => (j === i ? { ...e, ...patch } : e)), noLiquidos)
+  const sev = vomitSeverity({ vomits: episodios, vomit_no_liquids: noLiquidos })
+  const alertas = episodios.filter((e) => VOMIT_KINDS.find((k) => k.value === e.kind)?.alerta)
+  return (
+    <div>
+      {episodios.length === 0 && <div className="muted small" style={{ marginBottom: '.3rem' }}>Sin vómitos hoy.</div>}
+      {episodios.map((e, i) => {
+        const k = VOMIT_KINDS.find((x) => x.value === e.kind)
+        return (
+          <div key={i} style={{ marginBottom: '.4rem' }}>
+            <div className="row" style={{ gap: '.4rem', flexWrap: 'nowrap' }}>
+              <input type="time" value={e.time} onChange={(ev) => upd(i, { time: ev.target.value })} style={{ width: '7.2rem' }} />
+              <select value={e.kind ?? ''} onChange={(ev) => upd(i, { kind: (ev.target.value || null) as VomitKind | null })} style={{ flex: 1 }}>
+                <option value="">Tipo de vómito…</option>
+                {VOMIT_KINDS.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+              </select>
+              <button type="button" className="btn sm ghost" aria-label="Quitar este vómito" onClick={() => onChange(episodios.filter((_, j) => j !== i), noLiquidos)}>✕</button>
+            </div>
+            {k && <div className={'small ' + (k.alerta ? '' : 'muted')} style={k.alerta ? { color: 'var(--red)' } : undefined}>{k.help}</div>}
+          </div>
+        )
+      })}
+      <div className="row" style={{ gap: '.6rem' }}>
+        <button type="button" className="btn sm secondary" onClick={() => onChange([...episodios, { time: horaAhora(), kind: null }], noLiquidos)}>+ Vómito</button>
+        {episodios.length > 0 && <span className="small">{episodios.length} {episodios.length === 1 ? 'episodio' : 'episodios'} · <strong>{SEVERITY_LABELS[sev]}</strong></span>}
+      </div>
+      {episodios.length > 0 && (
+        <Check checked={noLiquidos} onChange={(v) => onChange(episodios, v)}>No retiene ni líquidos <span className="muted small">(cuenta como intenso)</span></Check>
+      )}
+      {(alertas.length > 0 || (noLiquidos && episodios.length > 0)) && (
+        <div className="notice">{alertas.length ? 'Vómito con sangre, en posos, en escopetazo o fecaloideo' : 'No retiene líquidos'}: es criterio para llamar al equipo hoy.</div>
+      )}
     </div>
   )
 }

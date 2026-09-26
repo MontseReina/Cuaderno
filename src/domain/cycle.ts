@@ -172,3 +172,13 @@ export function cycleTitleShort(cycles: Cycle[], c: { id?: string; planned_date?
   if (!ds.length) return 'ciclo'
   return ds.map((d) => `${d} ${drugOrdinal(cycles, d, c)}º`).join(' + ')
 }
+
+/** Gravedad de los vómitos del día a partir de los episodios (para el semáforo):
+ *  0 ninguno · 1 uno · 2 dos · 3 tres o más, o alguno con sangre / posos / escopetazo / fecaloideo, o no retiene líquidos. */
+export function vomitSeverity(extra?: DailyLog['extra'] | null): 0 | 1 | 2 | 3 {
+  const eps = extra?.vomits ?? []
+  if (!eps.length) return extra?.vomit_no_liquids ? 3 : 0
+  const alerta = eps.some((e) => e.kind === 'sangre' || e.kind === 'posos' || e.kind === 'escopetazo' || e.kind === 'fecaloideo')
+  if (alerta || extra?.vomit_no_liquids || eps.length >= 3) return 3
+  return eps.length >= 2 ? 2 : 1
+}

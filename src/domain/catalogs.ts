@@ -22,7 +22,7 @@ export const SYMPTOMS: SymptomDef[] = [
   { key: 'somnolencia', label: 'Somnolencia o confusión inusual', when: 'siempre', redAt3: true },
   { key: 'mareo', label: 'Mareo o inestabilidad', when: 'siempre', help: 'Leve: se marea al levantarse · Moderado: necesita sentarse o apoyarse · Intenso: no se sostiene o se ha desmayado', redAt3: true },
   { key: 'nauseas', label: 'Náuseas', when: 'siempre', help: 'Leve: lo dice pero come · Moderado: come menos por las náuseas · Intenso: no puede comer' },
-  { key: 'vomitos', label: 'Vómitos', when: 'ciclo', redAt3: true, help: 'Intenso: no retiene líquidos' },
+  { key: 'vomitos', label: 'Vómitos', when: 'siempre', redAt3: true, help: 'Intenso: no retiene líquidos' },
   { key: 'distension', label: 'Plenitud o tripa hinchada', when: 'ciclo' },
   { key: 'estrenimiento', label: 'Estreñimiento', when: 'ciclo' },
   { key: 'reaccion_infusion', label: 'Reacción en el brazo / picor durante la perfusión', when: 'ciclo' },
@@ -105,6 +105,18 @@ export const HYDRATION_TIPS: Record<'quimio' | 'nadir', string[]> = {
   nadir: ['Mantener agua + agua de mar aunque no tenga sed', 'Infusiones de manzanilla / jengibre templadas', 'Caldo de Santa Paciencia (medias tazas) cuenta como líquido', 'Si vomita o hay diarrea: reponer con caldo salado y avisar si no retiene'],
 }
 export const CUP_ML = 200 // media taza = 200 ml (decisión de la familia)
+
+/** Tipos de vómito por lo que se ve. Los marcados con alerta son señal roja por sí solos. */
+export const VOMIT_KINDS: { value: 'alimentario' | 'acuoso' | 'bilioso' | 'sangre' | 'posos' | 'escopetazo' | 'fecaloideo' | 'espumoso'; label: string; help: string; alerta?: boolean }[] = [
+  { value: 'alimentario', label: 'Alimentario', help: 'Comida sin digerir, poco después de comer' },
+  { value: 'acuoso', label: 'Acuoso o mucoso', help: 'Líquido claro, saliva o moco; con el estómago vacío' },
+  { value: 'bilioso', label: 'Bilioso', help: 'Amarillo-verdoso y amargo (bilis); típico tras varios vómitos seguidos' },
+  { value: 'espumoso', label: 'Espumoso', help: 'Con espuma; suele ser saliva y aire' },
+  { value: 'sangre', label: 'Con sangre roja', help: 'Sangre roja fresca: avisar al equipo', alerta: true },
+  { value: 'posos', label: 'En posos de café', help: 'Marrón oscuro, como posos: sangre digerida. Avisar al equipo', alerta: true },
+  { value: 'escopetazo', label: 'En escopetazo', help: 'A chorro y sin náusea previa; si se repite, sobre todo con dolor de cabeza, avisar al equipo', alerta: true },
+  { value: 'fecaloideo', label: 'Fecaloideo', help: 'Olor a heces: señal de obstrucción. Avisar al equipo', alerta: true },
+]
 
 /** Color de las flemas. Se pregunta solo si se ha marcado el síntoma. */
 export const PHLEGM_COLORS: { value: 'transparente' | 'amarillo' | 'verde' | 'rojo'; label: string; swatch: string; alerta?: boolean }[] = [
