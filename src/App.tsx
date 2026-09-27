@@ -28,7 +28,7 @@ import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
 import { Mark } from './components/Logo'
-import { Forma } from './components/Huma'
+import { HumaArt } from './components/Huma'
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -96,7 +96,7 @@ function Shell() {
         {isDemo && <Link to="/datos" className="badge" title={`v${APP_VERSION} · los datos se guardan solo en este dispositivo`}>💾</Link>}
       </header>
       <nav className="tabbar">
-        <Tab to="/" ico={<Forma k="fenix" size={20} width={2} />} label="Reto" />
+        <Tab to="/" ico={<HumaArt k="fenix" size={24} className="tab-huma" />} label="Reto" />
         <Tab to="/inicio" ico="🏠" label="Inicio" />
         <Tab to="/diario" ico="📝" label="Signos y síntomas" />
         <Tab to="/medicacion" ico="💊" label="Medicación" />

@@ -1,3 +1,10 @@
+import huevo from '../assets/reto/huma-huevo.webp'
+import cria from '../assets/reto/huma-cria.webp'
+import plumon from '../assets/reto/huma-plumon.webp'
+import alado from '../assets/reto/huma-alado.webp'
+import llama from '../assets/reto/huma-llama.webp'
+import fenix from '../assets/reto/huma-fenix.webp'
+import escenaFinal from '../assets/reto/escena-final.webp'
 /** Las seis formas de Huma, dibujadas a partir de la estela (símbolo de la app).
  *  Son dibujos propios: nada de personajes de otros. */
 
@@ -25,4 +32,21 @@ export function Forma({ k, size = 32, color = 'currentColor', width = 1.8 }: { k
       {paths.map((d, i) => <path key={i} d={d} />)}
     </svg>
   )
+}
+
+/** Las seis fases de Huma (imágenes hechas por la familia con ChatGPT, recortadas de la hoja de fases). */
+const IMG: Record<string, string> = { huevo, cria, plumon, alado, llama, fenix }
+
+/** Huma en una de sus seis fases. `silueta`: en negro, para las que faltan por descubrir. */
+export function HumaArt({ k, size, silueta, className = '' }: { k: string; size?: number | string; silueta?: boolean; className?: string }) {
+  return (
+    <span className={'huma-art ' + (silueta ? 'silueta ' : '') + className} style={size != null ? { width: size, height: size } : undefined} aria-hidden="true">
+      <img src={IMG[k] ?? IMG.huevo} alt="" draggable={false} />
+    </span>
+  )
+}
+
+/** Escena final (premio de 500 puntos): el entrenador en la colina y el Fénix Supremo en el cielo. */
+export function EscenaFinal({ className = '' }: { className?: string }) {
+  return <img className={'escena-final ' + className} src={escenaFinal} alt="El entrenador, en lo alto de una colina con el puño en alto, y el Fénix Supremo gigante en el cielo" />
 }

@@ -244,3 +244,184 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
 .tri-row:last-child { border-bottom: none; }
 .tri-row.si > div { color: var(--muted); }
 .tri-row.si > div > strong, .tri-row.si > div > span.lbl { text-decoration: line-through; }
+
+/* ───────── Reto v2: el entrenador de Huma ───────── */
+.huma-art { display: block; width: 100%; height: 100%; }
+.huma-art img { display: block; width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; user-select: none; }
+.huma-art.silueta img { filter: brightness(0); opacity: .78; }
+.reto2 { --game: 'Fredoka', 'Nunito', system-ui, sans-serif; --fuego: #EE4B2B; --oro: #FFC83D; --noche: #2a1a3a; position: relative; }
+.reto2 > * { position: relative; z-index: 1; }
+.reto2 .card { background: rgba(255,255,255,.84); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); border-radius: 18px; margin-bottom: .85rem; }
+.r2-marca { position: fixed !important; z-index: 0 !important; left: 50%; top: 52%; width: min(120vw, 720px); aspect-ratio: 1; transform: translate(-50%, -50%) rotate(-8deg); opacity: .15; pointer-events: none; filter: saturate(1.2); }
+.r2-eyebrow { font-size: .72rem; color: var(--muted); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.r2-titulo, .r2-h1 { font-family: var(--game); font-weight: 600; font-size: 1.25rem; color: var(--noche); }
+.r2-link { background: none; border: 0; padding: .3rem 0; color: var(--green); font-weight: 800; text-decoration: none; cursor: pointer; display: inline-block; }
+.r2-bocadillo { background: #FFF4D6; color: #5a3a10; border-radius: 14px; padding: .6rem .8rem; font-weight: 700; line-height: 1.35; border: 2px solid #FFE3A0; }
+
+/* ¿Cómo gano poderes? */
+.r2-como { border: 3px solid var(--oro); }
+.r2-como-head { width: 100%; display: flex; justify-content: space-between; align-items: center; background: none; border: 0; padding: 0; cursor: pointer; font-family: var(--game); font-weight: 700; font-size: 1.35rem; color: var(--noche); text-align: left; }
+.r2-como-flecha { font-size: .9rem; color: var(--muted); }
+.r2-como-intro { margin: .5rem 0 .7rem; font-size: 1.02rem; line-height: 1.4; }
+.r2-poderes-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; }
+.r2-poder-tile { border-radius: 14px; padding: .5rem .3rem; text-align: center; background: color-mix(in srgb, var(--c) 12%, white); border: 2px solid color-mix(in srgb, var(--c) 45%, white); }
+.r2-poder-ico { font-size: 1.7rem; line-height: 1.1; }
+.r2-poder-nom { font-family: var(--game); font-weight: 700; font-size: 1.05rem; color: color-mix(in srgb, var(--c) 75%, black); }
+.r2-poder-acc { font-size: .78rem; font-weight: 700; }
+.r2-poder-max { font-size: .7rem; color: var(--muted); }
+.r2-como-lista { list-style: none; padding: 0; margin: .7rem 0 .2rem; display: grid; gap: .25rem; font-size: .92rem; }
+
+/* Ficha del fénix */
+.r2-hero { text-align: center; overflow: hidden; background: radial-gradient(120% 80% at 50% 30%, #FFF6DA 0%, rgba(255,255,255,.9) 60%) !important; border: 3px solid #FFE3A0; }
+.r2-hero-art { width: 250px; height: 250px; margin: .2rem auto 0; animation: r2-flota 3.2s ease-in-out infinite; filter: drop-shadow(0 8px 10px rgba(238,75,43,.18)); }
+.r2-hero-nombre { font-family: var(--game); font-weight: 700; font-size: 2rem; line-height: 1.1; color: var(--noche); }
+.r2-nv { display: inline-block; vertical-align: middle; font-size: .85rem; background: var(--noche); color: #FFD23F; border-radius: 999px; padding: .1rem .55rem; margin-left: .2rem; }
+.r2-hero-forma { font-weight: 800; color: #b5541c; font-size: .9rem; margin-bottom: .5rem; }
+.r2-xp { position: relative; height: 18px; border-radius: 999px; background: #F1E6D2; overflow: hidden; border: 2px solid #3b2218; }
+.r2-xp-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #FFC83D, #FF9A2E 55%, #EE4B2B); transition: width .6s; }
+.r2-xp-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: r2-brillo 2.4s linear infinite; }
+.r2-xp i { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(59,34,24,.45); }
+.r2-xp-txt { margin: .35rem 0 .5rem; font-size: 1rem; }
+.r2-xp-txt strong { font-family: var(--game); font-size: 1.5rem; color: var(--fuego); }
+.r2-chispas { margin-top: .5rem; font-weight: 800; color: #b5541c; }
+
+/* Relato */
+.r2-relato { border: 3px solid #CBB8F0; background: linear-gradient(160deg, rgba(246,240,255,.95), rgba(255,255,255,.88)) !important; }
+.r2-relato-top { display: flex; gap: .7rem; align-items: center; }
+.r2-relato-disco { width: 56px; height: 56px; flex: 0 0 56px; border-radius: 50%; background: #2a1a3a; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+.r2-relato-disco[data-on] { animation: r2-late 1.2s ease-in-out infinite; box-shadow: 0 0 0 6px rgba(106,90,205,.25); }
+.r2-relato-titulo { font-family: var(--game); font-weight: 700; font-size: 1.2rem; line-height: 1.15; color: var(--noche); }
+.r2-relato-bar { height: 6px; border-radius: 999px; background: #E6DDF7; margin: .7rem 0 .5rem; overflow: hidden; }
+.r2-relato-bar > div { height: 100%; background: #6A5ACD; transition: width .4s; }
+.r2-relato-ctrl { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.r2-play { width: 64px; height: 64px; border-radius: 50%; border: 0; background: #6A5ACD; color: #fff; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 0 #4a3aa0; }
+.r2-play:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a3aa0; }
+.r2-btn-sec { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #CBB8F0; background: #fff; cursor: pointer; font-size: 1rem; }
+.r2-chip { border: 2px solid #CBB8F0; background: #fff; border-radius: 999px; padding: .3rem .7rem; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.r2-chip.on { background: #6A5ACD; color: #fff; border-color: #6A5ACD; }
+.r2-relato-texto { margin-top: .4rem; max-height: 60vh; overflow-y: auto; padding-right: .3rem; }
+.r2-relato-texto p { font-size: 1.05rem; line-height: 1.55; margin: .5rem 0; border-radius: 8px; padding: .1rem .3rem; cursor: pointer; }
+.r2-relato-texto p.sonando { background: #FFF1B8; }
+.r2-p-titulo { font-family: var(--game); font-weight: 700; font-size: 1.2rem !important; color: var(--noche); }
+.r2-p-forma, .r2-p-torre { color: #b5541c; font-weight: 700; }
+.r2-p-mision { color: #4a3aa0; font-weight: 700; }
+.r2-p-cierre { font-style: italic; }
+
+/* Misión */
+.r2-mision { display: flex; gap: .8rem; align-items: flex-start; border: 3px solid var(--c); }
+.r2-mision-ico { width: 60px; height: 60px; flex: 0 0 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; background: color-mix(in srgb, var(--c) 16%, white); animation: r2-late 2s ease-in-out infinite; }
+.r2-mision-tit { font-family: var(--game); font-weight: 700; font-size: 1.2rem; line-height: 1.2; color: color-mix(in srgb, var(--c) 70%, black); }
+.r2-mision-txt { margin: .25rem 0; }
+.r2-mision-link { font-size: .85rem; font-weight: 800; color: var(--green); }
+.r2-medias { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
+.r2-media { font-size: .75rem; font-weight: 700; background: #F5F0E6; border-radius: 999px; padding: .1rem .45rem; }
+.r2-media.flojo { background: color-mix(in srgb, var(--c) 20%, white); outline: 2px solid var(--c); }
+
+/* Poderes de hoy */
+.r2-hoy-total { font-family: var(--game); font-weight: 700; font-size: 1.6rem; color: var(--fuego); }
+.r2-hoy-total span { font-size: .9rem; color: var(--muted); }
+.r2-escudo { background: #E8F0F2; color: #244a52; border-radius: 10px; padding: .4rem .6rem; font-weight: 700; font-size: .9rem; }
+.r2-stat, .r2-regla { display: grid; grid-template-columns: 44px 1fr auto; gap: .6rem; align-items: center; padding: .5rem 0; color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.r2-stat:last-child, .r2-regla:last-child { border-bottom: 0; }
+.r2-regla { align-items: flex-start; }
+.r2-stat-ico { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; background: color-mix(in srgb, var(--c, #999) 15%, white); border: 2px solid color-mix(in srgb, var(--c, #999) 50%, white); }
+.r2-stat-top { display: flex; justify-content: space-between; gap: .4rem; flex-wrap: wrap; align-items: baseline; }
+.r2-stat-top strong { font-family: var(--game); font-size: 1.05rem; color: color-mix(in srgb, var(--c) 70%, black); }
+.r2-stat-bar { height: 10px; border-radius: 999px; background: #EFE8DC; overflow: hidden; margin-top: .25rem; }
+.r2-stat-bar > div { height: 100%; border-radius: 999px; background: var(--c); transition: width .5s; }
+.r2-stat-pide { font-size: .78rem; font-weight: 800; color: #b5541c; margin-top: .2rem; }
+.r2-stat-pts { font-family: var(--game); font-weight: 700; font-size: 1.2rem; text-align: right; min-width: 44px; color: color-mix(in srgb, var(--c, #333) 70%, black); }
+.r2-stat-pts span { font-size: .75rem; color: var(--muted); }
+
+/* Línea de evolución */
+.r2-linea { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .15rem; padding: .3rem 0 .2rem; position: relative; }
+.r2-linea::before { content: ''; position: absolute; left: 8%; right: 8%; top: 38%; border-top: 3px dotted #e2cfa8; }
+.r2-linea-paso { position: relative; min-width: 0; }
+.r2-linea-flecha { display: none;  font-size: 1.3rem; color: #d3b98e; font-weight: 900; padding: 0 .05rem; }
+.r2-evo { text-align: center; border-radius: 12px; padding: .3rem .1rem; }
+.r2-evo-art { width: 100%; max-width: 62px; aspect-ratio: 1; margin: 0 auto; }
+.r2-evo.actual { background: #FFF1C9; outline: 3px solid var(--oro); }
+.r2-evo.actual .r2-evo-art { animation: r2-flota 2.6s ease-in-out infinite; }
+.r2-evo-nom { font-family: var(--game); font-weight: 600; font-size: .78rem; line-height: 1.1; }
+.r2-evo.falta .r2-evo-nom { color: var(--muted); }
+.r2-evo-pts { font-size: .68rem; color: var(--muted); font-weight: 700; }
+
+/* Semana */
+.r2-semana { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; margin-top: .3rem; }
+.r2-dia { display: flex; flex-direction: column; align-items: center; gap: .05rem; padding: .35rem 0; border-radius: 12px; text-decoration: none; color: inherit; background: #FBF5EA; }
+.r2-dia.hoy { background: #FFE9A8; outline: 2px solid var(--oro); }
+.r2-dia.futuro { opacity: .5; }
+.r2-dia-l { font-size: .75rem; font-weight: 800; color: var(--muted); }
+.r2-dia-ico { font-size: 1.1rem; line-height: 1.2; }
+.r2-dia-pts { font-family: var(--game); font-weight: 700; color: var(--fuego); min-height: 1.2em; }
+.r2-dia-extra { font-size: .6rem; color: #E8B400; line-height: 1; }
+
+/* Premio */
+.r2-premio { display: flex; align-items: center; gap: .9rem; border: 3px dashed #FFC83D; }
+.r2-premio.ganado { border-style: solid; }
+.r2-premio-ico { font-size: 2.6rem; line-height: 1; }
+.r2-premio-nombre { font-family: var(--game); font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
+
+/* Pantalla de evolución */
+.r2-evo-pantalla { position: fixed; inset: 0; z-index: 30; background: radial-gradient(circle at 50% 42%, #5a2a6a 0%, #2a1a3a 55%, #140c1e 100%); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; padding: 2rem 1.4rem; text-align: center; overflow: hidden; animation: reto-in .35s ease-out; }
+.r2-evo-pantalla > * { position: relative; }
+.r2-evo-rayos { position: absolute !important; width: 170vmax; height: 170vmax; left: 50%; top: 42%; margin: -85vmax 0 0 -85vmax; fill: rgba(255,210,63,.10); animation: reto-gira 30s linear infinite; pointer-events: none; }
+.r2-evo-escena { width: 230px; height: 230px; position: relative; }
+.r2-evo-escena > div { position: absolute; inset: 0; }
+.r2-evo-escena.cambio .r2-evo-vieja { animation: r2-parpadeo-a 2.6s ease-in forwards; }
+.r2-evo-escena.cambio .r2-evo-nueva { animation: r2-parpadeo-b 2.6s ease-in forwards; }
+.r2-evo-escena.cambio .huma-art img { filter: brightness(0) invert(1) drop-shadow(0 0 18px #fff); }
+.r2-evo-escena.listo .r2-evo-vieja { display: none; }
+.r2-evo-escena.listo .r2-evo-nueva { animation: r2-aparece .7s cubic-bezier(.2,1.4,.4,1); filter: drop-shadow(0 0 24px rgba(255,200,61,.6)); }
+.r2-evo-titulo { font-family: var(--game, 'Fredoka'), sans-serif; font-weight: 700; font-size: 2rem; line-height: 1.15; color: #fff; margin: 0; }
+.r2-evo-nivel { font-weight: 800; color: #FFD23F; font-size: 1.1rem; }
+.r2-evo-sig { color: #E6DDF7; }
+.r2-evo-btn { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.3rem; border: 0; border-radius: 999px; padding: .8rem 2.6rem; background: #FFC83D; color: #3b2218; box-shadow: 0 5px 0 #c98e12; cursor: pointer; }
+
+/* Premio conseguido */
+.r2-ganado { display: flex; flex-direction: column; gap: .6rem; text-align: center; padding-top: .5rem; }
+.r2-ganado .card { text-align: left; margin: 0; }
+.r2-ganado-art { width: 200px; height: 200px; margin: 0 auto; animation: r2-flota 3s ease-in-out infinite; }
+.r2-ganado-titulo { font-family: 'Fredoka', sans-serif; font-weight: 700; margin: 0; font-size: 2.2rem; color: #2a1a3a; }
+.r2-ganado .btn { align-self: center; }
+
+@keyframes r2-flota { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+@keyframes r2-brillo { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+@keyframes r2-late { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.07) } }
+@keyframes r2-aparece { from { transform: scale(.3); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+@keyframes r2-parpadeo-a { 0%, 12% { opacity: 1 } 16%, 28% { opacity: 0 } 32%, 42% { opacity: 1 } 46%, 56% { opacity: 0 } 60%, 66% { opacity: 1 } 70%, 76% { opacity: 0 } 79%, 83% { opacity: 1 } 86%, 100% { opacity: 0 } }
+@keyframes r2-parpadeo-b { 0%, 12% { opacity: 0 } 16%, 28% { opacity: 1 } 32%, 42% { opacity: 0 } 46%, 56% { opacity: 1 } 60%, 66% { opacity: 0 } 70%, 76% { opacity: 1 } 79%, 83% { opacity: 0 } 86%, 100% { opacity: 1; transform: scale(1.08) } }
+@media (prefers-reduced-motion: reduce) { .r2-hero-art, .r2-evo.actual .r2-evo-art, .r2-mision-ico, .r2-xp-fill::after, .r2-evo-rayos, .r2-ganado-art { animation: none !important; } }
+.tabbar a .ico .tab-huma { display: inline-block; vertical-align: middle; }
+
+/* Entrenador + criatura */
+.entrenador-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.r2-duo { display: flex; align-items: flex-end; justify-content: center; gap: 0; margin-top: .2rem; }
+.r2-duo-ent { width: 118px; height: 153px; flex: 0 0 118px; margin-right: -14px; position: relative; z-index: 1; }
+.r2-duo .r2-hero-art { width: 200px; height: 200px; margin: 0; }
+.r2-ganado-escena { width: 100%; max-width: 360px; aspect-ratio: 2 / 3; margin: 0 auto; border-radius: 20px; overflow: hidden; border: 3px solid #FFC83D; box-shadow: 0 10px 30px rgba(42,26,58,.3); }
+@media (max-width: 360px) { .r2-duo .r2-hero-art { width: 170px; height: 170px; } .r2-duo-ent { width: 100px; height: 130px; flex-basis: 100px; } }
+
+/* Relato: solo audio (aspecto aprobado el 27/09) */
+.r2-player { background: #2a1a3a; color: #FFF8EE; border-radius: 20px; padding: 14px; margin-bottom: .85rem; display: grid; gap: 10px; position: relative; z-index: 1; }
+.r2-player-fila { display: flex; align-items: center; gap: 12px; }
+.r2-player-txt { flex: 1; min-width: 0; }
+.r2-player-txt small { display: block; font-size: .68rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; opacity: .78; }
+.r2-player-txt strong { display: block; font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 600; font-size: 1.2rem; line-height: 1.15; }
+.r2-player-txt em { font-style: normal; font-size: .8rem; opacity: .8; }
+.r2-player .r2-play { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 50%; border: 0; background: #FFC21A; color: #2a1a3a; font-size: 1.4rem; box-shadow: 0 4px 0 #C98E12; cursor: pointer; }
+.r2-player .r2-play:active { transform: translateY(3px); box-shadow: 0 1px 0 #C98E12; }
+.r2-player .r2-play:disabled { opacity: .5; }
+.r2-player-bar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; }
+.r2-player-bar i { display: block; height: 100%; background: #FFC21A; transition: width .3s; }
+.r2-player-ctrl { display: flex; gap: 8px; flex-wrap: wrap; }
+.r2-player-ctrl button { background: transparent; color: inherit; border: 1.5px solid rgba(255,248,238,.6); border-radius: 999px; padding: 5px 12px; font-weight: 800; font-size: .82rem; cursor: pointer; }
+.r2-player-ctrl button[aria-pressed="true"] { background: #FFC21A; color: #2a1a3a; border-color: #FFC21A; }
+.r2-eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; margin-left: 6px; vertical-align: middle; }
+.r2-eq b { width: 3px; height: 4px; background: #FFC21A; border-radius: 2px; }
+.r2-player.sonando .r2-eq b { animation: r2-eq .9s ease-in-out infinite; }
+.r2-player.sonando .r2-eq b:nth-child(2) { animation-delay: .2s; }
+.r2-player.sonando .r2-eq b:nth-child(3) { animation-delay: .4s; }
+@keyframes r2-eq { 0%, 100% { height: 4px } 50% { height: 12px } }
+.escena-final { display: block; width: 100%; height: 100%; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .r2-player.sonando .r2-eq b { animation: none; } }

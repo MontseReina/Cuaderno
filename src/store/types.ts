@@ -450,6 +450,7 @@ export interface Challenge extends BaseRow {
   goal: number // puntos para ganar el premio (por defecto 500 de 700)
   shield_min: number // mínimo garantizado en días de hospital (por defecto 60)
   creature_name?: string | null // nombre que le pone el niño a Huma
+  trainer_name?: string | null // nombre del entrenador (el niño), para el relato
   delivered_at?: string | null // cuándo se entregó el premio
 }
 

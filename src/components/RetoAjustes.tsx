@@ -8,10 +8,10 @@ import { Field } from './ui'
 
 /** Ajustes del reto de la semana (solo la familia): premio, meta, nombre de la criatura e historial. */
 export function RetoAjustes() {
-  const { week, ch, challenges, name, inp } = useReto()
+  const { week, ch, challenges, name, trainer, inp } = useReto()
   const start = weekStart(todayStr())
   const [f, setF] = useState<Partial<Challenge>>({})
-  useEffect(() => { setF({ prize: ch.prize ?? '', prize_icon: ch.prize_icon ?? '🎁', goal: ch.goal, shield_min: ch.shield_min, creature_name: ch.creature_name ?? name }) }, [ch.id, ch.prize, ch.prize_icon, ch.goal, ch.shield_min, ch.creature_name, name])
+  useEffect(() => { setF({ prize: ch.prize ?? '', prize_icon: ch.prize_icon ?? '🎁', goal: ch.goal, shield_min: ch.shield_min, creature_name: ch.creature_name ?? name, trainer_name: ch.trainer_name ?? trainer }) }, [ch.id, ch.prize, ch.prize_icon, ch.goal, ch.shield_min, ch.creature_name, name, ch.trainer_name, trainer])
   const set = <K extends keyof Challenge>(k: K, v: Challenge[K]) => setF((x) => ({ ...x, [k]: v }))
   const guardar = () => guardarReto(ch, start, {
     prize: f.prize?.trim() || null,
@@ -19,6 +19,7 @@ export function RetoAjustes() {
     goal: Number(f.goal) || GOAL_DEFAULT,
     shield_min: Number(f.shield_min) || SHIELD_DEFAULT,
     creature_name: f.creature_name?.trim() || null,
+    trainer_name: f.trainer_name?.trim() || null,
   })
   // Semanas anteriores con reto guardado (o con puntos), de la más reciente a la más antigua.
   const previas = Array.from(new Set([...challenges.map((c) => c.week_start), ...[1, 2, 3, 4].map((i) => addDays(start, -7 * i))]))
@@ -29,6 +30,7 @@ export function RetoAjustes() {
       <h3 style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}><Forma k="fenix" size={20} width={2} /> Reto de la semana</h3>
       <p className="muted small">Lo que ve el niño en la pestaña Reto. Aquí se pone el premio y la meta de cada semana; el reto nuevo empieza solo cada lunes.</p>
       <div className="reto-eyebrow" style={{ marginBottom: '.4rem' }}>Semana del {fmtDate(start)} al {fmtDate(addDays(start, 6))}</div>
+      <Field label="Nombre del entrenador" hint="Cómo le llama el relato de cada día. Solo se guarda en vuestra base de datos, no en el código"><input type="text" value={f.trainer_name ?? ''} onChange={(e) => set('trainer_name', e.target.value)} placeholder="p. ej. su nombre o su mote" /></Field>
       <Field label="Nombre de la criatura (lo elige él)"><input type="text" value={f.creature_name ?? ''} onChange={(e) => set('creature_name', e.target.value)} placeholder="Huma" /></Field>
       <Field label="Premio de esta semana"><input type="text" value={f.prize ?? ''} onChange={(e) => set('prize', e.target.value)} placeholder="p. ej. Juego nuevo de Nintendo" /></Field>
       <Field label="Icono del premio">

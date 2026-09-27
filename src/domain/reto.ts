@@ -26,12 +26,12 @@ export const CATS: { key: CatKey; emoji: string; label: string; max: number; rul
 
 /** Las seis formas de Huma. Se desbloquean a partes iguales de la meta (con 500: cada 100 puntos). */
 export const FORMS: { key: string; name: string }[] = [
-  { key: 'huevo', name: 'Huevo' },
-  { key: 'cria', name: 'Cría' },
-  { key: 'plumon', name: 'Plumón' },
-  { key: 'alado', name: 'Alado' },
-  { key: 'llama', name: 'Llama' },
-  { key: 'fenix', name: 'Fénix' },
+  { key: 'huevo', name: 'Núcleo' },
+  { key: 'cria', name: 'Ascua' },
+  { key: 'plumon', name: 'Brasa' },
+  { key: 'alado', name: 'Llamarada' },
+  { key: 'llama', name: 'Inferno' },
+  { key: 'fenix', name: 'Fénix Supremo' },
 ]
 export const formAt = (i: number, goal: number) => Math.round((goal * i) / (FORMS.length - 1))
 /** Nivel actual (0..5) según los puntos de la semana. */
@@ -151,4 +151,10 @@ export function challengeFor(challenges: Challenge[], start: string): Partial<Ch
 export function creatureName(challenges: Challenge[]) {
   const named = challenges.filter((c) => c.creature_name?.trim()).sort((a, b) => b.week_start.localeCompare(a.week_start))[0]
   return named?.creature_name?.trim() || 'Huma'
+}
+
+/** Nombre del entrenador (el último que se haya escrito); vacío si no hay. */
+export function trainerName(challenges: Challenge[]) {
+  const named = challenges.filter((c) => c.trainer_name?.trim()).sort((a, b) => b.week_start.localeCompare(a.week_start))[0]
+  return named?.trainer_name?.trim() || ''
 }
