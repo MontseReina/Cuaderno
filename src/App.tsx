@@ -97,7 +97,7 @@ function Shell() {
         {isDemo && <Link to="/datos" className="badge" title={`v${APP_VERSION} · los datos se guardan solo en este dispositivo`}>💾</Link>}
       </header>
       <nav className="tabbar noprint">
-        <Tab to="/" ico={<HumaArt k="fenix" size={24} className="tab-huma" />} label="Reto" />
+        <Tab to="/" ico={<HumaArt k="fenix" size={24} className="tab-huma" silueta />} label="Reto" />
         <Tab to="/inicio" ico="🏠" label="Inicio" />
         <Tab to="/diario" ico="📝" label="Signos y síntomas" />
         <Tab to="/medicacion" ico="💊" label="Medicación" />

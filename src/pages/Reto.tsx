@@ -5,6 +5,7 @@ import type { Challenge } from '../store/types'
 import { addDays, todayStr } from '../domain/dates'
 import { CATS, challengeFor, creatureName, FORMS, formAt, trainerName, weekPoints, type CatKey, type RetoInputs, type WeekPoints } from '../domain/reto'
 import { evaluar, PODERES, relatoDelDia } from '../domain/relato'
+import { SAGA_INICIO } from '../domain/saga'
 import { EscenaFinal, HumaArt } from '../components/Huma'
 import { RelatoPlayer } from '../components/RelatoPlayer'
 import { Field } from '../components/ui'
@@ -64,13 +65,16 @@ export default function Reto() {
   const [evo, setEvo] = useState<number | null>(null)
   const [editando, setEditando] = useState(false)
   const hoyStr = todayStr()
+  /** Semana de prueba (antes del estreno del lunes 28/09/2026): sin relato y con Huma en silueta,
+   *  para que el niño no descubra todavía las fases. */
+  const prueba = hoyStr < SAGA_INICIO
 
   // ¿Ha subido de nivel desde la última vez que se abrió esta pantalla? → pantalla de evolución.
   useEffect(() => {
     const seen = getSeen(week.start)
-    if (seen == null) { setSeen(week.start, week.level); return }
+    if (seen == null || prueba) { setSeen(week.start, week.level); return }
     if (week.level > seen) setEvo(week.level)
-  }, [week.start, week.level])
+  }, [week.start, week.level, prueba])
 
   const hoy = week.days[week.days.length - 1]
   const relato = useMemo(() => relatoDelDia({
@@ -88,9 +92,9 @@ export default function Reto() {
     return n
   }, [challenges, inp, week.start])
 
-  if (section === 'puntos') return <ComoGano goal={week.goal} shieldMin={ch.shield_min} name={name} />
+  if (section === 'puntos') return <ComoGano goal={week.goal} shieldMin={ch.shield_min} name={name} nivel={prueba ? -1 : week.level} />
   if (evo != null) return <Evolucion nivel={evo} name={name} goal={week.goal} onOk={() => { setSeen(week.start, evo); setEvo(null) }} />
-  if (week.won && !ch.delivered_at) return <Premio week={week} ch={ch} name={name} />
+  if (!prueba && week.won && !ch.delivered_at) return <Premio week={week} ch={ch} name={name} />
 
   const forma = FORMS[week.level]
   const nextLvl = Math.min(FORMS.length - 1, week.level + 1)
@@ -100,16 +104,16 @@ export default function Reto() {
 
   return (
     <div className="reto2">
-      <div className="r2-marca" aria-hidden="true"><HumaArt k={forma.key} /></div>
+      <div className="r2-marca" aria-hidden="true"><HumaArt k={forma.key} silueta={prueba} /></div>
 
       <ComoGanoArriba name={name} goal={week.goal} shieldMin={ch.shield_min} />
 
       {/* Ficha del fénix */}
       <section className={'card r2-hero nivel-' + week.level}>
         <div className="r2-eyebrow">{trainer ? `Entrenador ${trainer}` : 'Tu fénix'}</div>
-        <div className="r2-hero-art"><HumaArt k={forma.key} /></div>
+        <div className="r2-hero-art"><HumaArt k={forma.key} silueta={prueba} /></div>
         <div className="r2-hero-nombre">{name} <span className="r2-nv">Nv. {week.level + 1}</span></div>
-        <div className="r2-hero-forma">Fase {forma.name} · tipo Fuego y Valentía</div>
+        <div className="r2-hero-forma">{prueba ? 'Fase ??? · se descubre el lunes' : `Fase ${forma.name} · tipo Fuego y Valentía`}</div>
         <div className="r2-xp" role="img" aria-label={`${week.total} de ${week.goal} puntos`}>
           <div className="r2-xp-fill" style={{ width: `${pct}%` }} />
           {[1, 2, 3, 4].map((i) => <i key={i} style={{ left: `${i * 20}%` }} />)}
@@ -125,7 +129,7 @@ export default function Reto() {
         {conseguidas > 0 && <div className="r2-chispas">{'✨'.repeat(Math.min(conseguidas, 10))} {conseguidas === 1 ? '1 semana conseguida' : `${conseguidas} semanas conseguidas`}</div>}
       </section>
 
-      <RelatoPlayer relato={relato} date={hoyStr} />
+      {!prueba && <RelatoPlayer relato={relato} date={hoyStr} />}
 
       <Mision date={hoyStr} name={name} inp={inp} shieldMin={ch.shield_min} />
 
@@ -133,7 +137,7 @@ export default function Reto() {
 
       <section className="card">
         <div className="r2-titulo">Evoluciones de {name}</div>
-        <LineaEvolucion nivel={week.level} goal={week.goal} />
+        <LineaEvolucion nivel={prueba ? -1 : week.level} goal={week.goal} />
       </section>
 
       <section className="card">
@@ -369,7 +373,7 @@ function Premio({ week, ch, name }: { week: WeekPoints; ch: ReturnType<typeof ch
   )
 }
 
-function ComoGano({ goal, shieldMin, name }: { goal: number; shieldMin: number; name: string }) {
+function ComoGano({ goal, shieldMin, name, nivel }: { goal: number; shieldMin: number; name: string; nivel: number }) {
   return (
     <div className="reto2">
       <div className="row" style={{ gap: '.6rem' }}><Link to="/reto" className="btn sm ghost" aria-label="Volver al reto">‹</Link><h1 className="r2-h1" style={{ margin: 0 }}>¿Cómo gano poderes?</h1></div>
@@ -393,7 +397,7 @@ function ComoGano({ goal, shieldMin, name }: { goal: number; shieldMin: number; 
       <div className="card">
         <strong>La semana y el premio</strong>
         <p className="muted small">De lunes a domingo puedes juntar hasta 700 puntos. <strong>Con {goal} ganas el premio.</strong> Cada {formAt(1, goal)} puntos {name} evoluciona y cambia de forma. Cada lunes vuelve a su huevo para renacer más fuerte, como hacen los fénix.</p>
-        <LineaEvolucion nivel={FORMS.length - 1} goal={goal} />
+        <LineaEvolucion nivel={nivel} goal={goal} />
       </div>
       <div className="card">
         <strong>📻 El relato de cada día</strong>
