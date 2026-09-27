@@ -248,6 +248,7 @@ export default function Home() {
         <Link className="btn secondary" to="/calendario">📅 Calendario</Link>
         <Link className="btn secondary" to="/pendientes">☑️ Pendientes</Link>
         <Link className="btn secondary" to="/equipo">💬 Preguntas</Link>
+        <Link className="btn secondary" to="/informes">📊 Informes</Link>
       </div>
     </div>
   )

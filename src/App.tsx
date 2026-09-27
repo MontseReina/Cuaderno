@@ -24,6 +24,7 @@ import Login from './pages/Login'
 import Setup from './pages/Setup'
 import Datos from './pages/Datos'
 import Reto from './pages/Reto'
+import Informes from './pages/Informes'
 import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
@@ -82,7 +83,7 @@ function Shell() {
   }).length
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar noprint">
         <Link to="/" className="title" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
           <Mark size={26} />
           Huma
@@ -95,7 +96,7 @@ function Shell() {
         </Link>
         {isDemo && <Link to="/datos" className="badge" title={`v${APP_VERSION} · los datos se guardan solo en este dispositivo`}>💾</Link>}
       </header>
-      <nav className="tabbar">
+      <nav className="tabbar noprint">
         <Tab to="/" ico={<HumaArt k="fenix" size={24} className="tab-huma" />} label="Reto" />
         <Tab to="/inicio" ico="🏠" label="Inicio" />
         <Tab to="/diario" ico="📝" label="Signos y síntomas" />
@@ -135,6 +136,9 @@ function Shell() {
           <Route path="/biohacking/:date" element={<Biohacking />} />
           <Route path="/biblioteca" element={<Biblioteca />} />
           <Route path="/datos" element={<Datos />} />
+          <Route path="/informes" element={<Informes />} />
+          <Route path="/informes/:kind" element={<Informes />} />
+          <Route path="/informes/:kind/:date" element={<Informes />} />
           <Route path="/reto" element={<Reto />} />
           <Route path="/reto/:section" element={<Reto />} />
         </Routes>
