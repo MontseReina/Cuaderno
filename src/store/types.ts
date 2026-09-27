@@ -117,6 +117,7 @@ export interface Cycle extends BaseRow {
   notes?: string
 }
 
+export type FeverCause = 'cateter' | 'respiratorio' | 'orina' | 'tripa' | 'perfusion' | 'sin_foco' | 'otro'
 export type Fraction = 0 | 0.25 | 0.5 | 0.75 | 1
 export type Carb = 'sin' | 'baja' | 'media' | 'alta'
 export type Texture = 'normal' | 'blando' | 'triturado' | 'liquido'
@@ -160,6 +161,10 @@ export interface DailyExtra {
   symptoms_ok?: boolean // revisado: hoy no hay síntomas que marcar
   /** Color de las flemas del día (solo si se ha marcado el síntoma). */
   phlegm_color?: PhlegmColor | null
+  /** Motivo de la fiebre (solo si se ha marcado el síntoma «Fiebre o escalofríos»). */
+  fever_cause?: FeverCause | null
+  /** Texto libre cuando el motivo es «otro». */
+  fever_cause_other?: string | null
   /** Vómitos del día, uno por episodio, con hora y tipo. */
   vomits?: VomitEpisode[]
   /** No retiene ni líquidos (criterio de vómitos intensos). */

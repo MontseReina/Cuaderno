@@ -38,6 +38,10 @@ export default function Hidratacion() {
         {ctx.mtxDay && <div className="small" style={{ marginTop: '.3rem' }}>Día de metotrexato: además del objetivo, pH de orina &gt; 7 y micciones frecuentes (se anotan en el Diario).</div>}
       </div>
 
+      <Section title={`Consejos · ${MODE_LABELS[mode].toLowerCase()}`} open>
+        {HYDRATION_TIPS[mode].map((t) => <div key={t} className="small" style={{ margin: '.25rem 0' }}>• {t}</div>)}
+      </Section>
+
       <Section title="Modo de la semana" open={false}>
         <Segmented
           options={(['quimio', 'nadir'] as WeekMode[]).map((m) => ({ value: m, label: `${MODE_LABELS[m]} · ${FLUID_TARGET[m]} ml` }))}
@@ -48,6 +52,7 @@ export default function Hidratacion() {
       </Section>
 
       <Section title="Qué ha bebido hoy" open>
+        <div className="notice small"><strong>0 también es un dato:</strong> en agua, agua de mar, caldo y manzanilla, pon 0 si no ha tomado nada. Dejarlo en blanco significa «no apuntado».</div>
         <p className="muted small">Media taza = {CUP_ML} ml. Si no se teclea el total, se suma solo.</p>
         <div className="grid2">
           <Field label="Agua (ml)"><input type="number" inputMode="numeric" step={100} min={0} value={draft.water_ml ?? ''} onChange={(e) => set('water_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
@@ -58,19 +63,8 @@ export default function Hidratacion() {
         <Field label="Total del día (ml)" hint={draft.fluids_total_ml == null ? `Suma automática: ${sum} ml` : 'Tecleado a mano (borra para volver a la suma automática)'}>
           <input type="number" inputMode="numeric" step={CUP_ML} min={0} value={draft.fluids_total_ml ?? ''} placeholder={String(sum)} onChange={(e) => set('fluids_total_ml', e.target.value === '' ? null : Number(e.target.value))} />
         </Field>
-        <Field label="Color de la orina (el mismo que en el Diario)">
-          <div className="urine">
-            {URINE_COLORS.map((c, i) => (
-              <button key={i} type="button" title={URINE_LABELS[i]} style={{ background: c }} className={draft.urine_color === i + 1 ? 'on' : ''} onClick={() => set('urine_color', draft.urine_color === i + 1 ? null : i + 1)} />
-            ))}
-          </div>
-          {draft.urine_color && <div className="muted small">{URINE_LABELS[draft.urine_color - 1]}{draft.urine_color >= 4 ? ' → beber más y vigilar' : ''}</div>}
-        </Field>
       </Section>
 
-      <Section title={`Consejos · ${MODE_LABELS[mode].toLowerCase()}`} open>
-        {HYDRATION_TIPS[mode].map((t) => <div key={t} className="small" style={{ margin: '.25rem 0' }}>• {t}</div>)}
-      </Section>
 
       <Section title="Última semana">
         <div className="table-wrap">

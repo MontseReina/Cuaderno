@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { DailyLog, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
+import type { DailyLog, FeverCause, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
-import { cycleContext, dailyTraffic, symptomsForToday, vomitSeverity } from '../domain/cycle'
-import { trafficWindow } from '../domain/medication'
+import { cycleContext, dailyTraffic, isMtxPerfusionDay, symptomsForToday, vomitSeverity } from '../domain/cycle'
+import { medicationProgress, trafficWindow } from '../domain/medication'
 import {
-  BRISTOL_HELP, FATIGUE_LABELS, MOOD_FACES, MODE_LABELS,
+  BRISTOL_HELP, FATIGUE_LABELS, FEVER_CAUSES, MOOD_FACES, MODE_LABELS,
   PREVENTIVE, PHLEGM_COLORS, VOMIT_KINDS, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
   LOCATIONS,
   VITAL_SLOTS,
@@ -27,6 +27,8 @@ export default function Diario() {
     set('symptoms', { ...draft.symptoms, vomitos: vomitSeverity(extra) })
   }
   const cycles = useRows('cycles')
+  const products = useRows('products')
+  const intakes = useRows('intakes')
   const diagnoses = useRows('diagnoses')
   const patientVoids = useRows('patients')[0]?.usual_voids ?? null
   const patient = backend.all('patients')[0]
@@ -39,11 +41,12 @@ export default function Diario() {
   // Lista de síntomas por semana: quimio = siempre + ciclo · nadir = siempre + fuera (+ signos de diagnósticos activos)
   const shownDefs = shownMode === mode ? defs : [...SYMPTOMS.filter((s) => s.when === 'siempre' || (shownMode === 'quimio' ? s.when === 'ciclo' : s.when === 'fuera')), ...defs.filter((d) => d.key.startsWith('dx_'))]
   const nut = dayNutrition(draft, mode)
+  const med = medicationProgress(products, intakes, cycles, date)
   const byDate = new Map(logs.map((l) => [l.date, l]))
   const prev = [1, 2, 3].map((n) => byDate.get(addDays(date, -n))).filter((l): l is DailyLog => !!l)
   const traffic = dailyTraffic(draft, prev, ctx, defs)
   const hasCatheter = !!patient?.catheter_type
-  const preventive = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && ctx.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && ctx.mtxDay) || (p.when === 'infusion' && trafficWindow(ctx, date) === 'infusion'))
+  const preventive = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && ctx.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && isMtxPerfusionDay(cycles, date)) || (p.when === 'infusion' && trafficWindow(ctx, date) === 'infusion'))
   const groups = useMemo(() => Array.from(new Set(preventive.map((p) => p.group))), [preventive])
   const symptomsMarked = Object.values(draft.symptoms).filter((v) => v > 0).length
   const prevDone = preventive.filter((p) => draft.preventive[p.key] === true).length
@@ -171,6 +174,19 @@ export default function Diario() {
               ? <Vomitos episodios={draft.extra?.vomits ?? []} noLiquidos={!!draft.extra?.vomit_no_liquids} onChange={setVomitos} />
               : <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />}
             {d.key !== 'vomitos' && d.help && (draft.symptoms[d.key] ?? 0) > 0 && <div className="muted small">{d.help}</div>}
+            {d.key === 'fiebre' && (draft.symptoms.fiebre ?? 0) > 0 && (
+              <div style={{ marginTop: '.35rem' }}>
+                <div className="muted small" style={{ marginBottom: '.2rem' }}>Motivo de la fiebre</div>
+                <Segmented
+                  options={FEVER_CAUSES.map((f) => ({ value: f.value, label: f.label }))}
+                  value={draft.extra?.fever_cause ?? null}
+                  onChange={(v) => setExtra({ fever_cause: (v as FeverCause) ?? null })}
+                />
+                {draft.extra?.fever_cause === 'otro' && (
+                  <input type="text" style={{ marginTop: '.35rem' }} placeholder="¿Cuál?" value={draft.extra?.fever_cause_other ?? ''} onChange={(e) => setExtra({ fever_cause_other: e.target.value })} />
+                )}
+              </div>
+            )}
             {d.key === 'flemas' && (draft.symptoms.flemas ?? 0) > 0 && (
               <div style={{ marginTop: '.35rem' }}>
                 <div className="muted small" style={{ marginBottom: '.2rem' }}>Color de las flemas</div>
@@ -196,7 +212,7 @@ export default function Diario() {
         )}
       </Section>
 
-      <Section title={`Cuidados preventivos (${prevDone}/${preventive.length})`}>
+      <Section title={`Cuidados preventivos (${prevDone}/${preventive.length})`} open>
         {patient?.catheter_last_dressing && <p className="muted small">Última cura del catéter: {fmtDate(patient.catheter_last_dressing)}{patient.catheter_dressing_days ? ` · siguiente ${fmtDate(addDays(patient.catheter_last_dressing, patient.catheter_dressing_days))}` : ''}</p>}
         <p className="muted small">Toca una vez <strong>✓ hecho</strong>, dos veces <strong>✗ no hecho</strong>, tres veces <strong>NP no precisa</strong>; la cuarta lo deja en blanco.</p>
         {groups.map((g) => (
@@ -214,10 +230,11 @@ export default function Diario() {
 
       <div className="card tight">
         <strong>Otros registros del día</strong>
-        <div className="item"><div className="main"><Link to={`/nutricion/${date}`}>🥣 Comidas y peso</Link><div className="meta"><span className={'dot ' + nut.level} />{nut.meals}/{nut.target} comidas · {MODE_LABELS[mode].toLowerCase()}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/medicacion/${date}`}>💊 Medicación</Link><div className="meta">{med.planned ? `${med.taken}/${med.planned} tomas` : 'hoy no hay tomas previstas'}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/nutricion/${date}`}>🥣 Nutrición</Link><div className="meta"><span className={'dot ' + nut.level} />{nut.meals}/{nut.target} comidas · {MODE_LABELS[mode].toLowerCase()}</div></div></div>
         <div className="item"><div className="main"><Link to={`/hidratacion/${date}`}>💧 Hidratación</Link><div className="meta">{totalFluids(draft) != null ? `${totalFluids(draft)} ml` : 'sin registrar'}</div></div></div>
-        <div className="item"><div className="main"><Link to={`/biohacking/${date}`}>🌙 Sueño y luz</Link><div className="meta">{draft.sleep_start && draft.sleep_end ? `${draft.sleep_start}–${draft.sleep_end}` : 'sin registrar'}{draft.wakeups ? ` · ${draft.wakeups} despertares` : ''}</div></div></div>
-        <div className="item"><div className="main"><Link to={`/ejercicio/${date}`}>🏃 Actividad y pasos</Link><div className="meta">{draft.steps ? `${draft.steps} pasos` : ''}{draft.activity_min ? ` · ${draft.activity_min} min` : ''}{!draft.steps && !draft.activity_min ? 'sin registrar' : ''}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/ejercicio/${date}`}>🏃 Ejercicio</Link><div className="meta">{draft.steps ? `${draft.steps} pasos` : ''}{draft.activity_min ? ` · ${draft.activity_min} min` : ''}{!draft.steps && !draft.activity_min ? 'sin registrar' : ''}</div></div></div>
+        <div className="item"><div className="main"><Link to={`/biohacking/${date}`}>🌙 Biohacking</Link><div className="meta">{draft.sleep_start && draft.sleep_end ? `${draft.sleep_start}–${draft.sleep_end}` : 'sin registrar'}{draft.wakeups ? ` · ${draft.wakeups} despertares` : ''}</div></div></div>
       </div>
 
       <Section title="Notas del día" open={!!draft.notes}>

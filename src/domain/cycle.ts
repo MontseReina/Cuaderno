@@ -117,6 +117,16 @@ export const DOSE_THRESHOLDS: Record<string, { warn: number; label: string }> = 
 }
 
 /** Día de cisplatino: en ciclo con CDDP (perfusión de 48 h) → menos hidrato y grasa en los platos. */
+/** Día con perfusión de metotrexato registrada en Tratamiento: del inicio al fin de la perfusión
+ *  (si no consta el fin, solo el día de inicio; si no consta el inicio, la fecha prevista). Decisión 27/09/2026. */
+export function isMtxPerfusionDay(cycles: Cycle[], date: string) {
+  return cycles.some((c) => {
+    if (!(c.drugs ?? []).includes('MTX')) return false
+    const s = (c.start_at ?? c.planned_date).slice(0, 10)
+    const e = (c.end_at ?? c.start_at ?? c.planned_date).slice(0, 10)
+    return s <= date && date <= e
+  })
+}
 export function isCisplatinDay(ctx: CycleContext) {
   return !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP')
 }
@@ -142,13 +152,50 @@ export function lastChemoDate(cycles: Cycle[], date: string): string | null {
   return started.length ? started[started.length - 1] : null
 }
 
-/** Regla «empezar N días después de la última quimio»: devuelve desde cuándo se puede dar y si hoy aún no toca. */
-export function afterChemoGate(p: { after_chemo_days?: number | null }, cycles: Cycle[], date: string): { from: string; chemo: string; waiting: boolean } | null {
+/** Productos que cuentan los días desde el final del ciclo (el cisplatino + adriamicina) y no desde
+ *  la última quimio. Decisión de Montserrate (27/09/2026): solo el ginseng. */
+export function countsFromCycleEnd(p: { name?: string }): boolean {
+  return /ginseng/i.test(p.name ?? '')
+}
+
+export interface AfterChemoGate {
+  /** Desde cuándo se puede dar (null = aún no se sabe: falta la fecha del cisplatino + adriamicina). */
+  from: string | null
+  /** Fecha de la quimio desde la que se cuenta. */
+  chemo: string | null
+  waiting: boolean
+  /** 'ultima' = desde la última quimio · 'fin_ciclo' = desde el cisplatino + adriamicina que cierra el ciclo. */
+  basis: 'ultima' | 'fin_ciclo'
+  /** La fecha del cisplatino + adriamicina es la prevista, todavía no la real. */
+  planned?: boolean
+}
+
+/** Regla «empezar N días después de la quimio»: devuelve desde cuándo se puede dar y si hoy aún no toca.
+ *  El ginseng cuenta desde el final del ciclo: si la última sesión fue solo metotrexato, espera
+ *  al cisplatino + adriamicina de ese ciclo. */
+export function afterChemoGate(p: { name?: string; after_chemo_days?: number | null }, cycles: Cycle[], date: string): AfterChemoGate | null {
   if (!p.after_chemo_days) return null
-  const chemo = lastChemoDate(cycles, date)
-  if (!chemo) return null
-  const from = addDays(chemo, p.after_chemo_days)
-  return { from, chemo, waiting: date < from }
+  const n = p.after_chemo_days
+  if (!countsFromCycleEnd(p)) {
+    const chemo = lastChemoDate(cycles, date)
+    if (!chemo) return null
+    const from = addDays(chemo, n)
+    return { from, chemo, waiting: date < from, basis: 'ultima' }
+  }
+  const startOf = (c: Cycle) => (c.start_at ?? c.planned_date).slice(0, 10)
+  const closes = (c: Cycle) => (c.drugs ?? []).includes('CDDP') || (c.drugs ?? []).includes('ADM')
+  const started = cycles.filter((c) => startOf(c) <= date).sort((a, b) => startOf(a).localeCompare(startOf(b)))
+  const last = started.at(-1)
+  if (!last) return null
+  if (closes(last)) {
+    const chemo = (last.end_at ?? last.start_at ?? last.planned_date).slice(0, 10)
+    const from = addDays(chemo, n)
+    return { from, chemo, waiting: date < from, basis: 'fin_ciclo' }
+  }
+  // La última sesión fue solo metotrexato: hay que esperar al cisplatino + adriamicina de este ciclo.
+  const next = cycles.filter((c) => closes(c) && startOf(c) > date).sort((a, b) => startOf(a).localeCompare(startOf(b)))[0]
+  if (next) return { from: addDays(startOf(next), n), chemo: startOf(next), waiting: true, basis: 'fin_ciclo', planned: true }
+  return { from: null, chemo: null, waiting: true, basis: 'fin_ciclo' }
 }
 
 /** Los ciclos se cuentan POR MEDICAMENTO, no por combinación: el 1º de

@@ -8,12 +8,16 @@ import { cycleContext } from '../domain/cycle'
 import { ACTIVITIES } from '../domain/catalogs'
 import { Check, Field, Section, Segmented } from '../components/ui'
 
-const TRAMO: Record<string, string> = {
-  en_ciclo: 'D0-4: movilización, levantarse, paseos cortos. Nada de encamamiento total.',
-  valle: 'D5-14 (valle): actividad ligera, sin exigencia. Sin contacto ni frotar fuerte si hay trombopenia.',
-  recuperacion: 'D15-21: ventana de mayor capacidad. Buen momento para fuerza y aeróbico.',
-  previo: 'Antes del ciclo: mantener rutina.',
-  sin_ciclos: '',
+/** Aviso del tramo del día según el día real tras la última sesión de quimio (antes el texto de «D15-21»
+ *  salía también en D3-6; corregido en la 0.15.0). */
+function tramo(phase: string, day: number | null): string {
+  const d = day != null ? `D${day}: ` : ''
+  if (phase === 'en_ciclo') return `${d}en ciclo. Movilización, levantarse, paseos cortos. Nada de encamamiento total.`
+  if (phase === 'valle') return `${d}valle (D7-14). Actividad ligera, sin exigencia. Sin contacto ni frotar fuerte si hay trombopenia.`
+  if (phase === 'recuperacion' && day != null && day >= 15) return `${d}ventana de mayor capacidad (D15-21). Buen momento para fuerza y aeróbico.`
+  if (phase === 'recuperacion') return `${d}recuperándose de la quimio. Actividad suave y progresiva según cómo esté.`
+  if (phase === 'previo') return 'Antes del ciclo: mantener rutina.'
+  return ''
 }
 
 /** Pilar 7 · Ejercicio. Una ficha por día: actividad y pasos, capacidad funcional y
@@ -49,7 +53,7 @@ export default function Ejercicio() {
         <h1>Ejercicio y composición corporal</h1>
         <button className="btn sm" onClick={() => setEditing(sessions.find((s) => s.date === todayStr()) ?? nueva(todayStr()))}>+ Sesión</button>
       </div>
-      {TRAMO[ctx.phase] && <div className="notice">{ctx.cycle ? `D${ctx.day}. ` : ''}{TRAMO[ctx.phase]}</div>}
+      {tramo(ctx.phase, ctx.day) && <div className="notice">{tramo(ctx.phase, ctx.day)}</div>}
       {patient?.load_limits && <div className="notice"><strong>Límites de traumatología:</strong> {patient.load_limits}</div>}
       <p className="muted small">Cada sesión es la ficha del día: actividad y pasos, capacidad funcional y los ejercicios con detalle (series, repeticiones, carga), que puede rellenar el entrenador.</p>
 
@@ -65,6 +69,7 @@ export default function Ejercicio() {
           </div>
           <div className="small">{s.kind === 'fuerza' ? s.exercises.map((e) => `${e.name} ${e.sets ?? '?'}×${e.reps ?? '?'}${e.load ? ` @ ${e.load}` : ''}`).join(' · ') : `${s.exercises.map((e) => e.name).join(', ')}${s.intensity ? ` · intensidad ${s.intensity}` : ''}`}</div>
           {resumenDia(byDate.get(s.date)) && <div className="meta">{resumenDia(byDate.get(s.date))}</div>}
+          <div className="small" style={{ textAlign: 'right', marginTop: '.2rem' }}><span className="linkbtn">Ver sesión ›</span></div>
         </div>
       ))}
 

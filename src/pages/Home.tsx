@@ -42,7 +42,7 @@ export default function Home() {
   const products = allProducts.filter((p) => !!p.after_chemo_days && (!p.end_date || p.end_date > today))
   const unlocked = products
     .map((p) => ({ p, g: afterChemoGate(p, cycles, today) }))
-    .filter((x) => x.g && !x.g.waiting && today <= addDays(x.g.from, 2))
+    .filter((x) => x.g && !x.g.waiting && !!x.g.from && today <= addDays(x.g.from, 2))
   const mode = weekMode(todayLog, ctx)
   const nut = dayNutrition(todayLog, mode, { cisplatin: !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP') })
 
@@ -183,7 +183,7 @@ export default function Home() {
       )}
       {unlocked.map(({ p, g }) => (
         <div className="notice" key={p.id}>
-          <strong>{p.name}</strong>: desde el {fmtDate(g!.from)} ({p.after_chemo_days} días tras la última quimio) se puede dar{p.condition ? <> <strong>si {p.condition}</strong></> : ''}. Pauta en <Link to="/medicacion">Medicación</Link>.
+          <strong>{p.name}</strong>: desde el {fmtDate(g!.from!)} ({p.after_chemo_days} días tras {g!.basis === 'fin_ciclo' ? 'el cisplatino + adriamicina, al terminar el ciclo' : 'la última quimio'}) se puede dar{p.condition ? <> <strong>si {p.condition}</strong></> : ''}. Pauta en <Link to="/medicacion">Medicación</Link>.
         </div>
       ))}
       {todayLog && (

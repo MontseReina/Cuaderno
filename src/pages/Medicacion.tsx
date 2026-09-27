@@ -6,7 +6,7 @@ import {
   ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, INTAKE_REASONS, MOMENTS,
   OUTCOME_LABELS, PRESCRIBERS, ROUTE_LABELS, TRAFFIC_LABELS, WEEKDAYS,
 } from '../domain/catalogs'
-import { afterChemoGate, cycleContext } from '../domain/cycle'
+import { afterChemoGate, countsFromCycleEnd, cycleContext } from '../domain/cycle'
 import { trafficWindow } from '../domain/medication'
 import { fmtDate, todayStr } from '../domain/dates'
 import { DateNav } from '../components/DateNav'
@@ -102,9 +102,14 @@ export default function Medicacion() {
         return (
           <div className="notice" key={'g' + p.id}>
             <strong>{p.name}:</strong>{' '}
-            {g.waiting
-              ? <>todavía no. Se puede empezar el <strong>{fmtDate(g.from)}</strong>, {p.after_chemo_days} días después de la última quimio ({fmtDate(g.chemo)}){p.condition ? `, solo si ${p.condition}` : ''}.</>
-              : <>desde el {fmtDate(g.from)} ({p.after_chemo_days} días tras la última quimio, {fmtDate(g.chemo)}) {p.condition ? <>se puede dar <strong>si {p.condition}</strong></> : 'se puede dar'}.</>}
+            {(() => {
+              const desde = g.basis === 'fin_ciclo' ? 'el cisplatino + adriamicina, cuando termina el ciclo' : 'la última quimio'
+              const despuesDe = g.basis === 'fin_ciclo' ? 'del cisplatino + adriamicina, cuando termina el ciclo' : 'de la última quimio'
+              const solo = p.condition ? `, solo si ${p.condition}` : ''
+              if (g.waiting && !g.from) return <>todavía no. Se podrá empezar {p.after_chemo_days} días después del cisplatino + adriamicina de este ciclo (aún sin fecha en Tratamiento){solo}.</>
+              if (g.waiting) return <>todavía no. Se puede empezar el <strong>{fmtDate(g.from!)}</strong>, {p.after_chemo_days} días después {despuesDe} ({fmtDate(g.chemo!)}{g.planned ? ', fecha prevista' : ''}){solo}.</>
+              return <>desde el {fmtDate(g.from!)} ({p.after_chemo_days} días tras {desde}, {fmtDate(g.chemo!)}) {p.condition ? <>se puede dar <strong>si {p.condition}</strong></> : 'se puede dar'}.</>
+            })()}
           </div>
         )
       })}
@@ -152,7 +157,7 @@ export default function Medicacion() {
                             </select>
                           </div>
                         ))}
-                        <button className="linkbtn" onClick={() => setRetiring(p)}>Retirar</button>
+                        <button className="linkbtn" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
                       </td>
                       {usedMoments.map((m) => {
                         const planned = p.moments.includes(m.key as Moment)
@@ -180,7 +185,7 @@ export default function Medicacion() {
                     <div>{p.name} {trafficNow(p) && <span className={'tag ' + trafficNow(p)}>{TRAFFIC_LABELS[trafficNow(p)!]}</span>}</div>
                     <div className="meta">{p.dose}{extraMeta(p) ? ` · ${extraMeta(p)}` : ''}</div>
                   </div>
-                  <button className="btn sm ghost" onClick={() => setRetiring(p)}>Retirar</button>
+                  <button className="btn sm ghost" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
                 </div>
               ))}
             </div>
@@ -201,13 +206,13 @@ export default function Medicacion() {
                   <div className="meta">
                     {p.moments.length ? p.moments.map((m) => MOMENTS.find((x) => x.key === m)?.label).join(', ') : 'a demanda'}
                     {p.lab ? ` · ${p.lab}` : ''}{p.prescribed_by ? ` · ${p.prescribed_by}` : ''}
-                    {extraMeta(p) ? ` · ${extraMeta(p)}` : ''}{p.after_chemo_days ? ` · desde ${p.after_chemo_days} días tras la quimio` : ''}
+                    {extraMeta(p) ? ` · ${extraMeta(p)}` : ''}{p.after_chemo_days ? ` · desde ${p.after_chemo_days} días tras ${countsFromCycleEnd(p) ? 'el fin del ciclo (cisplatino + adriamicina)' : 'la quimio'}` : ''}
                   </div>
                   <div>
                     {(['mtx', 'cddp_adm', 'nadir', 'infusion'] as const).map((k) => p.traffic?.[k] && <span key={k} className={'tag ' + p.traffic[k]}>{k === 'mtx' ? 'MTX' : k === 'cddp_adm' ? 'CDDP+ADM' : k === 'nadir' ? 'nadir' : 'infusión'}: {TRAFFIC_LABELS[p.traffic[k]!]}</span>)}
                   </div>
                 </div>
-                <button className="btn sm ghost" onClick={() => setRetiring(p)}>Retirar</button>
+                <button className="btn sm ghost" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
               </div>
             ))}
           </Section>

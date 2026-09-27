@@ -65,6 +65,14 @@ export default function Nutricion() {
         </div>
       </div>
 
+      <Section title="Pauta de la nutricionista (10-sept-2026)">
+        <p className="small"><strong>Siempre:</strong> todo cocido, nada crudo. Base: caldo de verduras + caldo de huesos. Agua + chupitos de agua de mar; manzanilla y jengibre sin limón.</p>
+        <p className="small"><strong>Invisibles en todas las comidas:</strong> {FAT_EXAMPLES}.</p>
+        <p className="small"><strong>Imprescindibles:</strong> pescado, verdura de fibra soluble, shiitake, quinoa, omega-3 (coco, aguacate), frutos rojos, paté de sardinas + hígado de bacalao.</p>
+        <p className="small"><strong>Plato:</strong> ½ verdura cocida · ⅓ proteína · ¼ almidón resistente (menos en cisplatino) · grasas por encima.</p>
+        <p className="muted small">Los umbrales de los semáforos son una propuesta a validar con la nutricionista.</p>
+      </Section>
+
       <Section title="Modo de la semana y ayuno" open>
         <Field label="Modo" hint={draft.extra?.mode ? `Elegido a mano (por el ciclo sería "${MODE_LABELS[autoMode]}")` : 'Se deduce del ciclo: quimio = en ciclo y D0-D6; nadir = desde D7. Se puede forzar.'}>
           <Segmented
@@ -153,17 +161,6 @@ export default function Nutricion() {
         <Weights open={showWeights} />
       </Section>
 
-      <Section title="Últimos 14 días">
-        <Trend date={date} />
-      </Section>
-
-      <Section title="Pauta de la nutricionista (10-sept-2026)">
-        <p className="small"><strong>Siempre:</strong> todo cocido, nada crudo. Base: caldo de verduras + caldo de huesos. Agua + chupitos de agua de mar; manzanilla y jengibre sin limón.</p>
-        <p className="small"><strong>Invisibles en todas las comidas:</strong> {FAT_EXAMPLES}.</p>
-        <p className="small"><strong>Imprescindibles:</strong> pescado, verdura de fibra soluble, shiitake, quinoa, omega-3 (coco, aguacate), frutos rojos, paté de sardinas + hígado de bacalao.</p>
-        <p className="small"><strong>Plato:</strong> ½ verdura cocida · ⅓ proteína · ¼ almidón resistente (menos en cisplatino) · grasas por encima.</p>
-        <p className="muted small">Los umbrales de los semáforos son una propuesta a validar con la nutricionista.</p>
-      </Section>
     </div>
   )
 }
@@ -217,36 +214,3 @@ function Weights({ open }: { open: boolean }) {
   )
 }
 
-function Trend({ date }: { date: string }) {
-  const logs = useRows('daily_logs')
-  const cycles = useRows('cycles')
-  const byDate = new Map(logs.map((l) => [l.date, l]))
-  const days = Array.from({ length: 14 }, (_, i) => addDays(date, i - 13))
-  return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead><tr><th>Día</th><th>Modo</th><th>Comidas</th><th>Ayuno</th><th>Desayuno</th><th>Líquidos</th><th>Día</th></tr></thead>
-        <tbody>
-          {days.map((d) => {
-            const l = byDate.get(d)
-            const c = cycleContext(cycles, d)
-            const m = weekMode(l, c)
-            const n = l ? dayNutrition(l, m, { cisplatin: isCisplatinDay(c) }) : null
-            const f = fastingHours(l, byDate.get(addDays(d, -1)))
-            return (
-              <tr key={d}>
-                <td><Link to={`/nutricion/${d}`}>{fmtDate(d)}</Link></td>
-                <td className="small">{l ? (m === 'quimio' ? 'quimio' : 'nadir') : '—'}</td>
-                <td>{n ? `${n.meals}/${n.target}` : '—'}</td>
-                <td className="small">{f != null ? `${f} h` : '—'}</td>
-                <td className="small">{breakfastTime(l) ?? '—'}</td>
-                <td className="small">{totalFluids(l) ?? '—'}</td>
-                <td>{n ? <span className={'dot ' + n.level} /> : '—'}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}

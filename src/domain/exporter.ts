@@ -2,10 +2,10 @@ import { backend } from '../store'
 import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
 import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './cycle'
-import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
+import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 
-export const APP_VERSION = '0.14.1'
+export const APP_VERSION = '0.15.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -196,7 +196,7 @@ export function buildAiReport(from: string, to: string): string {
     if (nmTxt.length) c.push(`no se pudo medir: ${nmTxt.join(', ')}`)
     if (c.length) L.push(`- Constantes: ${c.join(' · ')}`)
     const vom = (l.extra?.vomits ?? []).map((e) => `${e.time}${e.kind ? ' ' + (VOMIT_KINDS.find((k) => k.value === e.kind)?.label.toLowerCase() ?? e.kind) : ''}`).join(', ')
-    const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}${k === 'flemas' && l.extra?.phlegm_color ? ` (${l.extra.phlegm_color})` : ''}${k === 'vomitos' && vom ? ` (${vom}${l.extra?.vomit_no_liquids ? '; no retiene líquidos' : ''})` : ''}`)
+    const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}${k === 'flemas' && l.extra?.phlegm_color ? ` (${l.extra.phlegm_color})` : ''}${k === 'fiebre' && l.extra?.fever_cause ? ` (motivo: ${l.extra.fever_cause === 'otro' ? (l.extra.fever_cause_other || 'otro') : FEVER_CAUSES.find((f) => f.value === l.extra!.fever_cause)?.label.toLowerCase()})` : ''}${k === 'vomitos' && vom ? ` (${vom}${l.extra?.vomit_no_liquids ? '; no retiene líquidos' : ''})` : ''}`)
     if (s.length) L.push(`- Síntomas: ${s.join(' · ')}`)
     const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros)
     const mode = weekMode(l, ctx)

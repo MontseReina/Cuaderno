@@ -2,7 +2,7 @@
 // Diseño y decisiones: documento «Huma · Informe semanal (diseño)», 27/09/2026.
 import type { Cycle, DailyLog, Diagnosis, ExerciseSession, Intake, Meal, Patient, Product, VitalEntry, WeightEntry } from '../store/types'
 import { addDays, todayStr } from './dates'
-import { afterChemoGate, corticoidAlert, cycleContext, isCisplatinDay, vomitSeverity, type CycleContext } from './cycle'
+import { afterChemoGate, corticoidAlert, cycleContext, isCisplatinDay, isMtxPerfusionDay, vomitSeverity, type CycleContext } from './cycle'
 import { medicationProgress, trafficWindow } from './medication'
 import { dayCompleteness } from './completeness'
 import { dayNutrition, fastingHours, isFatSlot, mealTraffic, totalFluids, weekMode } from './nutrition'
@@ -301,7 +301,7 @@ function preventivos(days: string[], logOf: (d: string) => DailyLog | undefined,
   for (const d of days) {
     const c = ctx(d)
     const l = logOf(d)
-    const aplica = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && c.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && c.mtxDay) || (p.when === 'infusion' && trafficWindow(c, d) === 'infusion'))
+    const aplica = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && c.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && isMtxPerfusionDay(data.cycles, d)) || (p.when === 'infusion' && trafficWindow(c, d) === 'infusion'))
     for (const p of aplica) {
       const mark = l?.preventive?.[p.key]
       if (mark === 'np') continue

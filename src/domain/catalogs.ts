@@ -32,6 +32,17 @@ export const SYMPTOMS: SymptomDef[] = [
   { key: 'sueno_alterado', label: 'Sueño alterado', when: 'fuera' },
 ]
 
+/** Motivo de la fiebre, al marcar «Fiebre o escalofríos» (decisión 27/09/2026). */
+export const FEVER_CAUSES: { value: 'cateter' | 'respiratorio' | 'orina' | 'tripa' | 'perfusion' | 'sin_foco' | 'otro'; label: string }[] = [
+  { value: 'cateter', label: 'Catéter' },
+  { value: 'respiratorio', label: 'Respiratorio (tos o mocos)' },
+  { value: 'orina', label: 'Orina' },
+  { value: 'tripa', label: 'Tripa o diarrea' },
+  { value: 'perfusion', label: 'Tras la perfusión' },
+  { value: 'sin_foco', label: 'Sin foco claro' },
+  { value: 'otro', label: 'Otro' },
+]
+
 export const SEVERITY_LABELS = ['No', 'Leve', 'Moderado', 'Intenso'] as const
 
 export interface PreventiveDef {
@@ -165,7 +176,7 @@ export const SYNC_ITEMS: { key: 'ir_morning' | 'ir_night' | 'glasses' | 'dayligh
 /** Signos y síntomas a vigilar según el diagnóstico (se rellenan solos al escribir el nombre; se pueden editar).
  *  Fuentes: fichas de oncología pediátrica (SIOP/ SEHOP), guías de neutropenia febril y de catéter central. */
 export const DX_SIGNS: { match: RegExp; signs: string[] }[] = [
-  { match: /osteosarcoma|tumor óseo|sarcoma/i, signs: ['Dolor en la zona del tumor que aumenta o despierta por la noche', 'Hinchazón o calor local', 'Dificultad para apoyar o mover el miembro', 'Fiebre sin foco'] },
+  { match: /osteosarcoma|tumor óseo|sarcoma/i, signs: ['Dolor en la zona del tumor que aumenta o despierta por la noche', 'Hinchazón o calor local', 'Dificultad para apoyar o mover el miembro'] },
   { match: /met[aá]stasis pulmonar|pulm[oó]n|n[oó]dulo pulmonar/i, signs: ['Tos nueva o persistente', 'Dificultad para respirar o respiración rápida', 'Dolor en el pecho o al respirar', 'Sangre al toser'] },
   { match: /neutropenia|neutrop[eé]nico/i, signs: ['Temperatura ≥ 38 °C (o 37,5 °C repetida)', 'Escalofríos o tiritona', 'Decaimiento brusco', 'Rojez o dolor en catéter, boca, ano o piel'] },
   { match: /mucositis|llagas|estomatitis/i, signs: ['Dolor al tragar', 'Bebe menos de lo habitual', 'Babea o no quiere abrir la boca', 'Sangrado de encías'] },
