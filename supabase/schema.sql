@@ -303,3 +303,6 @@ alter table intakes add column if not exists reason text;
 -- v0.13 (Huma 0.13.0, 27/09/2026): micciones habituales al día (informe semanal)
 -- ============================================================
 alter table patients add column if not exists usual_voids int;
+
+-- v0.13 (27/09/2026): nombre del entrenador para el relato del Reto
+alter table public.challenges add column if not exists trainer_name text;
