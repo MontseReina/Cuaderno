@@ -5,10 +5,10 @@ import { useDailyDraft } from '../store/useDailyDraft'
 import type { Meal, MealMacros, MealSlot, WeekMode, WeightEntry } from '../store/types'
 import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
-import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, overnightFastDetail, slotsForMode, totalFluids, weekMode, isFatSlot } from '../domain/nutrition'
+import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, overnightFastDetail, slotsForMode, totalFluids, weekMode, isFatSlot, fatCount } from '../domain/nutrition'
 import { CARB_HELP, FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEAL_SLOTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
 import { DateNav } from '../components/DateNav'
-import { Field, Section, Segmented } from '../components/ui'
+import { Check, Field, Section, Segmented } from '../components/ui'
 
 /** Pilar 6 · Nutrición: registro por comida según el modo de la semana (quimio / nadir), ayuno,
  *  estimación del plato (verdura · proteína · almidón · grasa) con semáforo, semáforo del día y peso. */
@@ -31,6 +31,9 @@ export default function Nutricion() {
   const fastDet = draft.extra?.fasting_h == null ? overnightFastDetail(draft, yesterday) : null
   const bk = breakfastTime(draft)
   const [showWeights, setShowWeights] = useState(false)
+  // Talla: una vez al mes. Aviso si la última medida tiene más de 30 días (o no hay ninguna).
+  const ultimaTalla = useRows('weights').filter((w) => w.height_cm).sort((a, b) => b.at.localeCompare(a.at))[0]
+  const tallaPendiente = !ultimaTalla || ultimaTalla.at.slice(0, 10) < addDays(todayStr(), -30)
 
   const meal = (slot: string) => draft.meals.find((m) => m.slot === slot)
   const setMeal = (slot: MealSlot, patch: Partial<Meal>) => {
@@ -104,8 +107,8 @@ export default function Nutricion() {
               />
               {fat ? (
                 <div className="macros">
-                  <Field label="Snack de pura grasa (batido con aceite de coco, macadamias, puré con ghee…)">
-                    <Segmented options={[{ value: 'si', label: 'Sí, grasa' }, { value: 'no', label: 'No era de grasa' }]} value={m?.macros?.fat == null ? null : m.macros.fat ? 'si' : 'no'} onChange={(v) => setMacro(s.key as MealSlot, { fat: v == null ? undefined : v === 'si' })} />
+                  <Field label="¿Ha sido pura grasa?" hint="Batido con aceite de coco, macadamias, puré con ghee… Si llevaba fruta, pan u otro hidrato: No.">
+                    <Segmented options={[{ value: 'si', label: 'Sí, pura grasa' }, { value: 'no', label: 'No' }]} value={m?.macros?.fat == null ? null : m.macros.fat ? 'si' : 'no'} onChange={(v) => setMacro(s.key as MealSlot, { fat: v == null ? undefined : v === 'si' })} />
                   </Field>
                 </div>
               ) : (
@@ -113,8 +116,11 @@ export default function Nutricion() {
                   <Field label="Verdura cocida (objetivo ≈ ½ plato)"><Segmented options={[...MACRO_OPTS.veg]} value={m?.macros?.veg} onChange={(v) => setMacro(s.key as MealSlot, { veg: v ?? undefined })} /></Field>
                   <Field label="Proteína (objetivo ≈ ⅓: pescado, huevo, pollo, paté de sardinas…)"><Segmented options={[...MACRO_OPTS.prot]} value={m?.macros?.prot} onChange={(v) => setMacro(s.key as MealSlot, { prot: v ?? undefined })} /></Field>
                   <Field label={cisplatin ? 'Almidón resistente (hoy, cisplatino: poco)' : 'Almidón resistente (objetivo ≈ ¼: quinoa, patata o boniato enfriados, arroz)'}><Segmented options={[...MACRO_OPTS.starch]} value={m?.macros?.starch} onChange={(v) => setMacro(s.key as MealSlot, { starch: v ?? undefined })} /></Field>
-                  <Field label="Grasa añadida" hint={FAT_EXAMPLES}>
-                    <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]} value={m?.macros?.fat == null ? null : m.macros.fat ? 'si' : 'no'} onChange={(v) => setMacro(s.key as MealSlot, { fat: v == null ? undefined : v === 'si' })} />
+                  {(s.key === 'comida' || s.key === 'cena') && (m?.macros?.starch ?? 0) > 0 && (
+                    <Check plain checked={!!m?.macros?.resistant} onChange={(v) => setMacro(s.key as MealSlot, { resistant: v })}>Resistente (cocido y enfriado)</Check>
+                  )}
+                  <Field label="Grasas añadidas (objetivo: 2)" hint={FAT_EXAMPLES}>
+                    <Segmented options={[{ value: 0, label: 'Ninguna' }, { value: 1, label: '1' }, { value: 2, label: '2 o más' }]} value={fatCount(m?.macros)} onChange={(v) => setMacro(s.key as MealSlot, { fat_n: v == null ? undefined : (v as 0 | 1 | 2), fat: v == null ? undefined : v > 0 })} />
                   </Field>
                 </div>
               )}
@@ -142,6 +148,7 @@ export default function Nutricion() {
         <div className="muted small">Ingesta media: {meanIntake(draft.meals) != null ? Math.round(meanIntake(draft.meals)! * 100) + ' %' : '—'} · Líquidos: {totalFluids(draft) ?? '—'} ml → <Link to={`/hidratacion/${date}`}>Hidratación</Link></div>
       </Section>
 
+      {tallaPendiente && <div className="notice small">📏 Toca medir la talla{ultimaTalla ? ` (última: ${fmtWall(ultimaTalla.at)}, ${ultimaTalla.height_cm} cm)` : ''}. Se apunta con la pesada, una vez al mes.</div>}
       <Section title="Peso y altura" open={showWeights} right={<button className="btn sm ghost" onClick={(e) => { e.preventDefault(); setShowWeights(true) }}>+</button>}>
         <Weights open={showWeights} />
       </Section>

@@ -28,6 +28,7 @@ export default function Diario() {
   }
   const cycles = useRows('cycles')
   const diagnoses = useRows('diagnoses')
+  const patientVoids = useRows('patients')[0]?.usual_voids ?? null
   const patient = backend.all('patients')[0]
 
   const ctx = cycleContext(cycles, date)
@@ -121,6 +122,9 @@ export default function Diario() {
         <Field label="Cantidad de orina">
           <Segmented options={[{ value: 'menos', label: 'Menos de lo habitual' }, { value: 'normal', label: 'Normal' }, { value: 'mas', label: 'Más' }]} value={draft.urine_amount} onChange={(v) => set('urine_amount', v)} />
         </Field>
+        {!(ctx.mtxDay || draft.location === 'ingreso') && (
+          <Field label="Micciones (nº)" hint={patientVoids ? `Lo habitual: ${patientVoids} al día` : 'Lo habitual se pone en Pilares → Ajustes'}><Stepper value={draft.urine_count} onChange={(v) => set('urine_count', v)} /></Field>
+        )}
         {(ctx.mtxDay || draft.location === 'ingreso') && (
           <div className="grid3">
             <Field label="Micciones (nº)"><Stepper value={draft.urine_count} onChange={(v) => set('urine_count', v)} /></Field>
@@ -134,7 +138,7 @@ export default function Diario() {
             {draft.urine_ph == null && <span className="small">pH: <NoMedido k="urine_ph" extra={draft.extra} onChange={(nm) => setExtra({ not_measured: nm })} /></span>}
           </div>
         )}
-        <Field label="Deposiciones (nº)"><Stepper value={draft.stools_n} onChange={(v) => set('stools_n', v)} /></Field>
+        <Field label="Deposiciones (nº)" hint="Si hoy no ha hecho, apunta 0: así se ve el estreñimiento."><Stepper value={draft.stools_n} onChange={(v) => set('stools_n', v)} /></Field>
         <Field label="Tipo de deposición (escala de Bristol)">
           <Bristol value={draft.bristol} onChange={(v) => set('bristol', v)} help={BRISTOL_HELP} />
         </Field>

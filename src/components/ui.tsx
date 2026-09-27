@@ -77,9 +77,10 @@ export function TriButton({ value, onChange, disabled, size = 'md', label }: { v
   )
 }
 
-export function Check({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
+/** Casilla. `plain`: sin tachar al marcarla (para datos sí/no, no para tareas hechas). */
+export function Check({ checked, onChange, children, plain }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode; plain?: boolean }) {
   return (
-    <label className={'check ' + (checked ? 'done' : '')}>
+    <label className={'check ' + (checked && !plain ? 'done' : '')}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{children}</span>
     </label>

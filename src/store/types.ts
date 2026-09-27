@@ -27,6 +27,8 @@ export interface Patient extends Omit<BaseRow, 'patient_id'> {
   arm?: string
   pgp?: string
   necrosis_pct?: number | null
+  /** Micciones habituales al día (para el informe: «menos de lo habitual»). */
+  usual_voids?: number | null
   load_limits?: string
   notes?: string
 }
@@ -124,7 +126,11 @@ export interface MealMacros {
   veg?: 0 | 1 | 2 // nada · poca · ≈ medio plato
   prot?: 0 | 1 | 2 // nada · poca · ≈ un tercio
   starch?: 0 | 1 | 2 | 3 // nada · poca · ≈ un cuarto · más
-  fat?: boolean // grasa "invisible" añadida (AOVE, ghee, tahine, coco…)
+  fat?: boolean // grasa "invisible" añadida (AOVE, ghee, tahine, coco…). Se mantiene: = fat_n > 0
+  /** Nº de grasas añadidas: 0 · 1 · 2 (= 2 o más). El plato cumple con 2 (decisión 27/09). */
+  fat_n?: 0 | 1 | 2
+  /** El almidón era resistente (cocido y enfriado: quinoa, patata, boniato, arroz). */
+  resistant?: boolean
 }
 export interface Meal {
   slot: MealSlot
@@ -162,6 +168,8 @@ export interface DailyExtra {
   not_measured?: Partial<Record<'temp' | 'urine' | 'urine_ml' | 'urine_ph', boolean>>
   /** Constantes por momento del día: temperatura y tensión arterial. */
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
+  /** Se ha movido después de cada comida («snacks de movimiento», pauta de IMOHE). */
+  move_after?: Partial<Record<'desayuno' | 'comida' | 'cena', boolean>>
 }
 
 export type PreventiveMark = boolean | 'x' | 'np'

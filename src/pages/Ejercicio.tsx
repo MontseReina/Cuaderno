@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { backend, currentPatientId, remove, save, useRows } from '../store'
-import { emptyLog } from '../store/useDailyDraft'
+import { emptyLog, useDailyDraft } from '../store/useDailyDraft'
 import type { DailyLog, ExerciseSession, FunctionalDaily } from '../store/types'
-import { fmtDate, todayStr } from '../domain/dates'
+import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
 import { ACTIVITIES } from '../domain/catalogs'
 import { Check, Field, Section, Segmented } from '../components/ui'
@@ -52,6 +52,8 @@ export default function Ejercicio() {
       {TRAMO[ctx.phase] && <div className="notice">{ctx.cycle ? `D${ctx.day}. ` : ''}{TRAMO[ctx.phase]}</div>}
       {patient?.load_limits && <div className="notice"><strong>Límites de traumatología:</strong> {patient.load_limits}</div>}
       <p className="muted small">Cada sesión es la ficha del día: actividad y pasos, capacidad funcional y los ejercicios con detalle (series, repeticiones, carga), que puede rellenar el entrenador.</p>
+
+      <MoveAfterMeals />
 
       <h2>Sesiones</h2>
       {sessions.length === 0 && <div className="empty">Sin sesiones registradas. Pulsa «+ Sesión» para la de hoy.</div>}
@@ -189,5 +191,29 @@ function SessionForm({ initial, names, onClose }: { initial: Partial<ExerciseSes
         {s.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar esta sesión? La actividad y los pasos del día se conservan.')) { await remove('exercise_sessions', s.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
+  )
+}
+
+/** Movimiento después de cada comida («snacks de movimiento», pauta de IMOHE). Se guarda solo, por día. */
+function MoveAfterMeals() {
+  const [date, setDate] = useState(todayStr())
+  const { draft, setExtra, toastNode } = useDailyDraft(date)
+  const mv = draft.extra?.move_after ?? {}
+  const n = (['desayuno', 'comida', 'cena'] as const).filter((k) => mv[k]).length
+  return (
+    <Section title={`Movimiento después de comer · ${n}/3`} open>
+      {toastNode}
+      <div className="row between" style={{ marginBottom: '.4rem' }}>
+        <button type="button" className="btn sm ghost" onClick={() => setDate(addDays(date, -1))}>‹</button>
+        <strong>{date === todayStr() ? 'Hoy' : fmtDate(date)}</strong>
+        <button type="button" className="btn sm ghost" disabled={date >= todayStr()} onClick={() => setDate(addDays(date, 1))}>›</button>
+      </div>
+      <p className="muted small">Un paseo corto, bailar, jugar de pie… unos minutos después de cada comida.</p>
+      {(['desayuno', 'comida', 'cena'] as const).map((k) => (
+        <Check plain key={k} checked={!!mv[k]} onChange={(v) => setExtra({ move_after: { ...mv, [k]: v } })}>
+          Después {k === 'desayuno' ? 'del desayuno' : k === 'comida' ? 'de la comida' : 'de la cena'}
+        </Check>
+      ))}
+    </Section>
   )
 }

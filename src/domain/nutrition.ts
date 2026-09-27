@@ -1,4 +1,4 @@
-import type { DailyLog, Meal, WeekMode } from '../store/types'
+import type { DailyLog, Meal, MealMacros, WeekMode } from '../store/types'
 import type { CycleContext } from './cycle'
 import { CUP_ML, FLUID_TARGET, MEAL_SLOTS, MEAL_SLOTS_BY_MODE, MEALS_TARGET } from './catalogs'
 
@@ -73,6 +73,13 @@ export function weekMode(log: DailyLog | undefined, ctx: CycleContext): WeekMode
 export function slotsForMode(mode: WeekMode) {
   return MEAL_SLOTS.filter((s) => MEAL_SLOTS_BY_MODE[mode].includes(s.key))
 }
+/** Nº de grasas añadidas de una comida (registros antiguos: sí = 1). */
+export function fatCount(m: MealMacros | undefined): number | null {
+  if (!m) return null
+  if (m.fat_n != null) return m.fat_n
+  if (m.fat == null) return null
+  return m.fat ? 1 : 0
+}
 export function isFatSlot(slot: string) {
   return !!MEAL_SLOTS.find((s) => s.key === slot)?.fat
 }
@@ -93,7 +100,11 @@ export function mealTraffic(meal: Meal, opts: { cisplatin?: boolean } = {}): Mea
   } else {
     if ((m.veg ?? 0) < 2) missing.push(m.veg ? 'más verdura cocida' : 'verdura cocida')
     if ((m.prot ?? 0) < 2) missing.push(m.prot ? 'más proteína' : 'proteína')
-    if (!m.fat) missing.push('grasa añadida')
+    const nf = fatCount(m) ?? 0
+    // Dos grasas añadidas por plato; en cisplatino se pide menos grasa y basta con una.
+    const fatGoal = opts.cisplatin ? 1 : 2
+    if (nf === 0) missing.push('grasa añadida')
+    else if (nf < fatGoal) missing.push('otra grasa añadida (objetivo 2)')
     if (opts.cisplatin) {
       if ((m.starch ?? 0) >= 2) missing.push('menos almidón (día de cisplatino)')
     } else if ((m.starch ?? 0) === 0) missing.push('algo de almidón resistente')

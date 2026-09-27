@@ -298,3 +298,8 @@ exception when duplicate_object then null; end $$;
 -- v0.12: tomas con estado (dada / no dada / no precisa) y motivo
 alter table intakes add column if not exists status text;
 alter table intakes add column if not exists reason text;
+
+-- ============================================================
+-- v0.13 (Huma 0.13.0, 27/09/2026): micciones habituales al día (informe semanal)
+-- ============================================================
+alter table patients add column if not exists usual_voids int;

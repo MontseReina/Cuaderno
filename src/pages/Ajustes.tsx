@@ -27,6 +27,7 @@ export default function Ajustes() {
           <Field label="Tipo de catéter"><input type="text" value={p.catheter_type ?? ''} onChange={(e) => set('catheter_type', e.target.value)} /></Field>
           <Field label="Catéter desde"><input type="date" value={p.catheter_since ?? ''} onChange={(e) => set('catheter_since', e.target.value)} /></Field>
           <Field label="Última cura del catéter"><input type="date" value={p.catheter_last_dressing ?? ''} onChange={(e) => set('catheter_last_dressing', e.target.value || null)} /></Field>
+          <Field label="Micciones habituales al día" hint="Para que el informe semanal diga si orina menos de lo habitual"><input type="number" inputMode="numeric" min={0} max={20} value={p.usual_voids ?? ''} onChange={(e) => set('usual_voids', e.target.value === '' ? null : Number(e.target.value))} /></Field>
           <Field label="Cada cuántos días toca la cura" hint="La app avisa en Inicio cuando toca"><input type="number" value={p.catheter_dressing_days ?? ''} onChange={(e) => set('catheter_dressing_days', e.target.value === '' ? null : Number(e.target.value))} /></Field>
         </div>
         <Field label="Límites de carga marcados por traumatología"><textarea value={p.load_limits ?? ''} onChange={(e) => set('load_limits', e.target.value)} /></Field>
