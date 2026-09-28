@@ -88,15 +88,15 @@ export const MEAL_SLOTS: { key: string; label: string; fat?: boolean }[] = [
   { key: 'comida', label: 'Comida' },
   { key: 'merienda', label: 'Merienda' },
   { key: 'cena', label: 'Cena' },
-  { key: 'snack_grasa_1', label: 'Snack de grasa (media mañana)', fat: true },
-  { key: 'snack_grasa_2', label: 'Snack de grasa', fat: true },
+  { key: 'snack_grasa_1', label: 'Snack de grasa (entre desayuno y comida)', fat: true },
+  { key: 'snack_grasa_2', label: 'Snack de grasa (entre merienda y cena)', fat: true },
   { key: 'otra', label: 'Otra' },
 ]
 /** Comidas que se muestran según el modo de la semana (pauta de la nutricionista, 10-sept-2026). */
 export const MEAL_SLOTS_BY_MODE: Record<'quimio' | 'nadir', string[]> = {
   quimio: ['desayuno', 'comida', 'merienda', 'cena'], // 3-4 comidas, lo que tolere
-  // 6 comidas; la media mañana es el 1.er snack de grasa (decisión 28/09/2026) y el 2.º va al final del día.
-  nadir: ['desayuno', 'snack_grasa_1', 'comida', 'merienda', 'cena', 'snack_grasa_2'],
+  // 6 comidas (decisión 28/09/2026): un snack de grasa entre desayuno y comida y otro entre merienda y cena.
+  nadir: ['desayuno', 'snack_grasa_1', 'comida', 'merienda', 'snack_grasa_2', 'cena'],
 }
 export const MEALS_TARGET: Record<'quimio' | 'nadir', { min: number; fatSnacks: number }> = {
   quimio: { min: 3, fatSnacks: 0 },
@@ -113,10 +113,13 @@ export const MEAL_UNITS = ['unidades', 'g', 'ml', 'cucharadas', 'raciones']
 export const FAT_EXAMPLES = 'AOVE o sésamo crudo por encima, ghee, tahine, semillas, aceite de coco, huevo, caldo de huesos, proteína de guisante'
 /** Objetivos de líquidos orientativos por modo (ml/día). Pendiente de validar con la nutricionista. */
 export const FLUID_TARGET: Record<'quimio' | 'nadir', number> = { quimio: 1500, nadir: 1200 }
-export const SEAWATER_TARGET_ML = 50 // "chupitos" de agua de mar
+/** Agua de mar (decisión de Montserrate, 28/09/2026): los días de perfusión (metotrexato y cisplatino + adriamicina),
+ *  chupitos de 10 ml cada 2 horas hasta terminar la perfusión; el resto de días, 20 ml al día. */
+export const SEAWATER_TARGET_ML = 20
+export const SEAWATER_PERFUSION = 'chupito de 10 ml cada 2 horas hasta terminar la perfusión'
 export const HYDRATION_TIPS: Record<'quimio' | 'nadir', string[]> = {
-  quimio: ['Agua a sorbos frecuentes; en metotrexato, líquidos abundantes y pH de orina controlado', 'Chupitos de agua de mar', 'Manzanilla y jengibre (sin limón): regeneran mucosas', 'Caldo de verduras + huesos como base de los platos'],
-  nadir: ['Mantener agua + agua de mar aunque no tenga sed', 'Infusiones de manzanilla / jengibre templadas', 'Caldo de Santa Paciencia (medias tazas) cuenta como líquido', 'Si vomita o hay diarrea: reponer con caldo salado y avisar si no retiene'],
+  quimio: ['Agua a sorbos frecuentes; en metotrexato, líquidos abundantes y pH de orina controlado', 'Agua de mar: los días de perfusión, chupitos de 10 ml cada 2 horas hasta terminar la perfusión; el resto de días, 20 ml al día', 'Manzanilla y jengibre (sin limón): regeneran mucosas', 'Caldo de verduras + huesos como base de los platos'],
+  nadir: ['Mantener el agua aunque no tenga sed; agua de mar, 20 ml al día', 'Infusiones de manzanilla / jengibre templadas', 'Caldo de Santa Paciencia (medias tazas) cuenta como líquido', 'Si vomita o hay diarrea: reponer con caldo salado y avisar si no retiene'],
 }
 export const CUP_ML = 200 // media taza = 200 ml (decisión de la familia)
 

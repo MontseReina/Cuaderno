@@ -100,11 +100,8 @@ export default function Nutricion() {
             onChange={(v) => setExtra({ mode: v && v !== autoMode ? v : undefined })}
           />
         </Field>
-        <p className="muted small">
-          {mode === 'quimio'
-            ? 'Semana de quimio: 3-4 comidas, lo que tolere, fácil de digerir; todo cocido. Metotrexato: desayunar antes, perfusión 2-3 h después y no comer hasta terminar. Cisplatino: menos hidrato y grasa (pescado y verdura cocida).'
-            : 'Semana nadir: 6 comidas; la 5ª y la 6ª son snacks de pura grasa (batido con aceite de coco, macadamias, puré con ghee…). Plato: ½ verdura cocida · ⅓ proteína · ¼ almidón resistente + grasas "invisibles".'}
-        </p>
+        {/* 28/09: el texto de cada modo sobraba (ya lo dice la pauta de arriba); en nadir queda solo el aviso. */}
+        {mode === 'nadir' && <div className="aviso-nutrir">🌱 Semana de nutrir y recuperar</div>}
         <div className="grid2">
           <Field label="Horas de ayuno (noche)" hint={draft.extra?.fasting_h != null ? 'Tecleadas a mano' : fastDet ? `Calculadas: ${slotName(fastDet.last.slot)} de ayer ${fastDet.last.time} → ${slotName(fastDet.first.slot)} de hoy ${fastDet.first.time}` : 'Se calculan al poner horas a las comidas'}>
             <input type="number" inputMode="decimal" step="0.5" min={0} max={48} value={draft.extra?.fasting_h ?? fast ?? ''} onChange={(e) => setExtra({ fasting_h: e.target.value === '' ? null : Number(e.target.value) })} />

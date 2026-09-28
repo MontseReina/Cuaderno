@@ -5,7 +5,8 @@ import type { WeekMode } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
 import { totalFluids, weekMode } from '../domain/nutrition'
-import { CUP_ML, FLUID_TARGET, HYDRATION_TIPS, MODE_LABELS, SEAWATER_TARGET_ML, URINE_COLORS, URINE_LABELS } from '../domain/catalogs'
+import { CUP_ML, FLUID_TARGET, HYDRATION_TIPS, MODE_LABELS, SEAWATER_PERFUSION, SEAWATER_TARGET_ML, URINE_COLORS } from '../domain/catalogs'
+import { faseDelDia } from '../domain/fases'
 import { DateNav } from '../components/DateNav'
 import { Field, Section, Segmented, Stepper } from '../components/ui'
 
@@ -15,7 +16,11 @@ export default function Hidratacion() {
   const date = params.date ?? todayStr()
   const { draft, set, setExtra, logs, toastNode } = useDailyDraft(date)
   const cycles = useRows('cycles')
+  const patient = useRows('patients')[0]
   const ctx = cycleContext(cycles, date)
+  // Día de perfusión (metotrexato o cisplatino + adriamicina): chupitos de agua de mar de 10 ml cada 2 h hasta terminar.
+  const tramo = faseDelDia(patient?.protocol_start, cycles, date)?.tramo
+  const perfusion = tramo === 'perfusion' || tramo === 'perfusion48'
   const mode = weekMode(draft, ctx)
   const autoMode = weekMode({ ...draft, extra: { ...draft.extra, mode: undefined } }, ctx)
   const target = FLUID_TARGET[mode]
@@ -56,7 +61,7 @@ export default function Hidratacion() {
         <p className="muted small">Media taza = {CUP_ML} ml. Si no se teclea el total, se suma solo.</p>
         <div className="grid2">
           <Field label="Agua (ml)"><input type="number" inputMode="numeric" step={100} min={0} value={draft.water_ml ?? ''} onChange={(e) => set('water_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-          <Field label={`Agua de mar (ml) · chupitos, objetivo ${SEAWATER_TARGET_ML}`}><input type="number" inputMode="numeric" step={10} min={0} value={draft.seawater_ml ?? ''} onChange={(e) => set('seawater_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
+          <Field label={perfusion ? 'Agua de mar (ml) · día de perfusión' : `Agua de mar (ml) · objetivo ${SEAWATER_TARGET_ML} ml al día`} hint={perfusion ? `Hoy: ${SEAWATER_PERFUSION}.` : undefined}><input type="number" inputMode="numeric" step={10} min={0} value={draft.seawater_ml ?? ''} onChange={(e) => set('seawater_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
           <Field label="Caldo de Santa Paciencia (medias tazas)"><Stepper value={draft.broth_cups} onChange={(v) => set('broth_cups', v)} /></Field>
           <Field label="Manzanilla / jengibre (medias tazas)"><Stepper value={draft.extra?.infusion_cups} onChange={(v) => setExtra({ infusion_cups: v })} /></Field>
         </div>
