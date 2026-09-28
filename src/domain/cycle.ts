@@ -1,6 +1,7 @@
 import type { Cycle, DailyLog, Diagnosis } from '../store/types'
 import { addDays, diffDays } from './dates'
 import { DRUG_LABELS, SYMPTOMS, type SymptomDef } from './catalogs'
+import { faseDelDia, type Fase } from './fases'
 
 export interface CycleContext {
   cycle: Cycle | null
@@ -9,6 +10,8 @@ export interface CycleContext {
   nadir: boolean // D7-14
   mtxDay: boolean // día de MTX o rescate en curso
   phase: 'sin_ciclos' | 'previo' | 'en_ciclo' | 'valle' | 'recuperacion'
+  /** Semana del tratamiento según la regla de las pautas (`fases.ts`): metotrexato, cisplatino o nadir (desde el 8.º día del cisplatino). */
+  fase: Fase | null
 }
 
 /** Ventana "en ciclo": desde el inicio hasta 48 h tras el fin de la infusión (CDDP/ADM)
@@ -18,7 +21,7 @@ export function cycleContext(cycles: Cycle[], date: string): CycleContext {
     .filter((c) => (c.start_at ?? c.planned_date) <= date + 'T23:59')
     .sort((a, b) => (b.start_at ?? b.planned_date).localeCompare(a.start_at ?? a.planned_date))
   const cycle = started[0] ?? null
-  if (!cycle) return { cycle: null, day: null, inCycle: false, nadir: false, mtxDay: false, phase: 'sin_ciclos' }
+  if (!cycle) return { cycle: null, day: null, inCycle: false, nadir: false, mtxDay: false, phase: 'sin_ciclos', fase: null }
   const d0 = (cycle.start_at ?? cycle.planned_date).slice(0, 10)
   const day = diffDays(date, d0)
   let windowEnd = 4
@@ -29,7 +32,7 @@ export function cycleContext(cycles: Cycle[], date: string): CycleContext {
   const nadir = day >= 7 && day <= 14
   const mtxDay = cycle.drugs.includes('MTX') && day >= 0 && (cycle.rescue?.end ? date <= cycle.rescue.end.slice(0, 10) : day <= 4)
   const phase = inCycle ? 'en_ciclo' : nadir ? 'valle' : day < 0 ? 'previo' : 'recuperacion'
-  return { cycle, day, inCycle, nadir, mtxDay, phase }
+  return { cycle, day, inCycle, nadir, mtxDay, phase, fase: faseDelDia(null, cycles, date)?.fase ?? null }
 }
 
 /** Lista de síntomas a mostrar hoy: siempre + (en ciclo | fuera) + signos de diagnósticos activos. */

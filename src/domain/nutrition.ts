@@ -66,12 +66,13 @@ export function meanIntake(meals: Meal[]) {
 }
 
 /** Modo de la semana: manual si se ha elegido; si no, "quimio" en ciclo o D0-D6 y "nadir" desde D7. */
-/** Modo de la semana. Decisión 28/09/2026: sale del lugar apuntado en Signos y síntomas
- *  (hospital, hospital de día o urgencias = quimio; casa = nadir). Si no hay lugar, se deduce del ciclo. */
+/** Modo de la semana (comidas de quimio o de nadir). Decisión 28/09/2026: sigue la misma regla que las pautas
+ *  de alimentación y el calendario: **semana nadir desde el 8.º día del cisplatino** hasta la siguiente quimio;
+ *  semana de metotrexato y de cisplatino = semana de quimio. Se puede forzar a mano. Sin sesiones registradas
+ *  alrededor de ese día, se deduce del ciclo como antes. */
 export function weekMode(log: DailyLog | undefined, ctx: CycleContext): WeekMode {
   if (log?.extra?.mode) return log.extra.mode
-  if (log?.location === 'casa') return 'nadir'
-  if (log?.location === 'ingreso' || log?.location === 'hospital_dia' || log?.location === 'urgencias') return 'quimio'
+  if (ctx.fase) return ctx.fase === 'nadir' ? 'nadir' : 'quimio'
   if (!ctx.cycle || ctx.day == null) return 'nadir'
   if (ctx.inCycle || (ctx.day >= 0 && ctx.day < 7)) return 'quimio'
   return 'nadir'

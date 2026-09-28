@@ -93,7 +93,7 @@ export default function Nutricion() {
           )}
 
       <Section title="Modo de la semana y ayuno" open>
-        <Field label="Modo" hint={draft.extra?.mode ? `Elegido a mano (por el ciclo sería "${MODE_LABELS[autoMode]}")` : 'Sale del lugar apuntado en Signos y síntomas: hospital = quimio, casa = nadir (sin lugar, se deduce del ciclo). Se puede forzar.'}>
+        <Field label="Modo" hint={draft.extra?.mode ? `Elegido a mano (por la semana del tratamiento sería "${MODE_LABELS[autoMode]}")` : 'Sale de la semana del tratamiento: semana nadir desde el 8.º día del cisplatino; semanas de metotrexato y de cisplatino = semana de quimio. Se puede forzar.'}>
           <Segmented
             options={(['quimio', 'nadir'] as WeekMode[]).map((m) => ({ value: m, label: MODE_LABELS[m] }))}
             value={mode}
