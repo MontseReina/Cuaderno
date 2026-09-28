@@ -6,13 +6,22 @@ import type { Meal, MealMacros, MealSlot, WeekMode, WeightEntry } from '../store
 import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, overnightFastDetail, slotsForMode, totalFluids, weekMode, isFatSlot, fatCount } from '../domain/nutrition'
-import { CARB_HELP, FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEAL_SLOTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
+import { FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEAL_SLOTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
 import { DateNav } from '../components/DateNav'
-import { Check, Field, Section, Segmented } from '../components/ui'
+import { Plato } from '../components/Plato'
+import { MiniChart } from '../components/MiniChart'
+import { Field, Section, Segmented } from '../components/ui'
 
 /** Pilar 6 · Nutrición: registro por comida según el modo de la semana (quimio / nadir), ayuno,
  *  estimación del plato (verdura · proteína · almidón · grasa) con semáforo, semáforo del día y peso. */
 const slotName = (k: string) => (MEAL_SLOTS.find((x) => x.key === k)?.label ?? k).toLowerCase()
+
+const TEXTURES = [
+  { value: 'normal', label: '🍽️ Normal' },
+  { value: 'blando', label: '🍮 Blando' },
+  { value: 'triturado', label: '🥣 Triturado' },
+  { value: 'liquido', label: '🥤 Líquido' },
+]
 
 export default function Nutricion() {
   const params = useParams()
@@ -74,7 +83,7 @@ export default function Nutricion() {
       </Section>
 
       <Section title="Modo de la semana y ayuno" open>
-        <Field label="Modo" hint={draft.extra?.mode ? `Elegido a mano (por el ciclo sería "${MODE_LABELS[autoMode]}")` : 'Se deduce del ciclo: quimio = en ciclo y D0-D6; nadir = desde D7. Se puede forzar.'}>
+        <Field label="Modo" hint={draft.extra?.mode ? `Elegido a mano (por el ciclo sería "${MODE_LABELS[autoMode]}")` : 'Sale del lugar apuntado en Signos y síntomas: hospital = quimio, casa = nadir (sin lugar, se deduce del ciclo). Se puede forzar.'}>
           <Segmented
             options={(['quimio', 'nadir'] as WeekMode[]).map((m) => ({ value: m, label: MODE_LABELS[m] }))}
             value={mode}
@@ -97,7 +106,7 @@ export default function Nutricion() {
       </Section>
 
       <Section title={`Comidas · ${MODE_LABELS[mode].toLowerCase()} (${day.meals}/${MEALS_TARGET[mode].min})`} open right={<span className="tag gray">{carbProfile(draft.meals)}</span>}>
-        <p className="muted small">Por cada comida: cuánto se comió del plato y qué había (verdura cocida, proteína, almidón, grasa añadida). El semáforo compara con la pauta de la nutricionista. Las fotos del antes y después llegarán en el siguiente bloque.</p>
+        <p className="muted small">Por cada comida: cuánto se comió y qué había en el plato (verdura cocida, proteína, hidratos, grasa añadida). El semáforo compara con la pauta de la nutricionista. Las fotos del antes y después llegarán en el siguiente bloque.</p>
         {slots.map((s) => {
           const m = meal(s.key)
           const check = m ? mealTraffic(m, { cisplatin }) : null
@@ -121,34 +130,29 @@ export default function Nutricion() {
                 </div>
               ) : (
                 <div className="macros">
-                  <Field label="Verdura cocida (objetivo ≈ ½ plato)"><Segmented options={[...MACRO_OPTS.veg]} value={m?.macros?.veg} onChange={(v) => setMacro(s.key as MealSlot, { veg: v ?? undefined })} /></Field>
-                  <Field label="Proteína (objetivo ≈ ⅓: pescado, huevo, pollo, paté de sardinas…)"><Segmented options={[...MACRO_OPTS.prot]} value={m?.macros?.prot} onChange={(v) => setMacro(s.key as MealSlot, { prot: v ?? undefined })} /></Field>
-                  <Field label={cisplatin ? 'Almidón resistente (hoy, cisplatino: poco)' : 'Almidón resistente (objetivo ≈ ¼: quinoa, patata o boniato enfriados, arroz)'}><Segmented options={[...MACRO_OPTS.starch]} value={m?.macros?.starch} onChange={(v) => setMacro(s.key as MealSlot, { starch: v ?? undefined })} /></Field>
-                  {(s.key === 'comida' || s.key === 'cena') && (m?.macros?.starch ?? 0) > 0 && (
-                    <Check plain checked={!!m?.macros?.resistant} onChange={(v) => setMacro(s.key as MealSlot, { resistant: v })}>Resistente (cocido y enfriado)</Check>
-                  )}
+                  <Plato veg={m?.macros?.veg} prot={m?.macros?.prot} starch={m?.macros?.starch} onChange={(patch) => setMacro(s.key as MealSlot, patch)} />
                   <Field label="Grasas añadidas (objetivo: 2)" hint={FAT_EXAMPLES}>
-                    <Segmented options={[{ value: 0, label: 'Ninguna' }, { value: 1, label: '1' }, { value: 2, label: '2 o más' }]} value={fatCount(m?.macros)} onChange={(v) => setMacro(s.key as MealSlot, { fat_n: v == null ? undefined : (v as 0 | 1 | 2), fat: v == null ? undefined : v > 0 })} />
+                    <Segmented options={[{ value: 0, label: 'Ninguna' }, { value: 1, label: '🫒 1' }, { value: 2, label: '🫒🫒 2 o más' }]} value={fatCount(m?.macros)} onChange={(v) => setMacro(s.key as MealSlot, { fat_n: v == null ? undefined : (v as 0 | 1 | 2), fat: v == null ? undefined : v > 0 })} />
                   </Field>
+                  {(s.key === 'comida' || s.key === 'cena') && (
+                    <Field label="Almidón resistente (cocido y enfriado: quinoa, patata, boniato, arroz)">
+                      <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]} value={m?.macros?.resistant == null ? null : m.macros.resistant ? 'si' : 'no'} onChange={(v) => setMacro(s.key as MealSlot, { resistant: v == null ? undefined : v === 'si' })} />
+                    </Field>
+                  )}
                 </div>
               )}
               {check && check.level !== 'verde' && <div className="muted small" style={{ marginTop: '.3rem' }}>Falta: {check.missing.join(', ')}</div>}
               <details style={{ marginTop: '.4rem' }}>
-                <summary className="small muted">Hidratos, textura y qué comió</summary>
-                <div style={{ marginTop: '.3rem' }}>
-                  <Segmented options={(['sin', 'baja', 'media', 'alta'] as const).map((c) => ({ value: c, label: CARB_HELP[c].label }))} value={m?.carb} onChange={(v) => setMeal(s.key as MealSlot, { carb: v ?? undefined })} />
-                  {m?.carb && <div className="muted small">{CARB_HELP[m.carb].help}</div>}
-                </div>
-                <div className="row" style={{ marginTop: '.4rem' }}>
-                  <select style={{ width: 'auto' }} value={m?.texture ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { texture: (e.target.value || undefined) as Meal['texture'] })}>
-                    <option value="">Textura…</option>
-                    <option value="normal">Normal</option>
-                    <option value="blando">Blando</option>
-                    <option value="triturado">Triturado</option>
-                    <option value="liquido">Líquido</option>
-                  </select>
-                  <input type="text" placeholder="Qué comió (opcional)" value={m?.note ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { note: e.target.value })} style={{ flex: 1 }} />
-                </div>
+                <summary className="small muted">{fat ? 'Textura y qué comió' : 'Hidratos, textura y qué comió'}</summary>
+                {!fat && (
+                  <Field label={cisplatin ? 'Hidratos (hoy, cisplatino: poco)' : 'Hidratos (arroz, pasta, patata, pan, fruta, legumbre)'}>
+                    <Segmented options={[...MACRO_OPTS.starch]} value={m?.macros?.starch} onChange={(v) => setMacro(s.key as MealSlot, { starch: v ?? undefined })} />
+                  </Field>
+                )}
+                <Field label="Textura">
+                  <Segmented options={TEXTURES} value={m?.texture ?? null} onChange={(v) => setMeal(s.key as MealSlot, { texture: (v ?? undefined) as Meal['texture'] })} />
+                </Field>
+                <input type="text" placeholder="Qué comió (opcional)" value={m?.note ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { note: e.target.value })} />
               </details>
             </div>
           )
@@ -196,11 +200,20 @@ function Weights({ open }: { open: boolean }) {
         </div>
       )}
       {!adding && !open && <button className="btn sm secondary" onClick={() => setAdding(true)}>+ Nueva pesada</button>}
-      {weights.length > 1 && (
-        <div style={{ marginTop: '.5rem' }}>
-          <div className="spark">{[...weights].reverse().slice(-12).map((x, _, arr) => { const min = Math.min(...arr.map((y) => y.kg)) - 1; const max = Math.max(...arr.map((y) => y.kg)); return <span key={x.id} style={{ height: `${Math.max(4, ((x.kg - min) / (max - min || 1)) * 40)}px` }} title={`${fmtWall(x.at)}: ${x.kg} kg`} /> })}</div>
-        </div>
-      )}
+      {weights.length > 0 && (() => {
+        // Una columna por día de medición, de la más antigua a la más reciente.
+        const asc = [...weights].reverse()
+        const serie = (f: (x: WeightEntry) => number | null | undefined) => asc.filter((x) => f(x) != null).map((x) => ({ x: fmtDate(x.at.slice(0, 10)).replace(/^\S+,\s*/, ''), y: f(x)! }))
+        return (
+          <div className="charts">
+            <MiniChart title="Peso" unit="kg" kind="bar" points={serie((x) => x.kg)} />
+            <MiniChart title="Altura" unit="cm" kind="line" decimals={0} points={serie((x) => x.height_cm)} />
+            <MiniChart title="Grasa" unit="%" kind="line" points={serie((x) => x.fat_pct)} />
+            <MiniChart title="Músculo" unit="kg" kind="line" points={serie((x) => x.muscle_kg)} />
+            <MiniChart title="Agua corporal" unit="%" kind="line" points={serie((x) => x.water_pct)} />
+          </div>
+        )
+      })()}
       {weights.slice(0, 8).map((x) => (
         <div className="item" key={x.id}>
           <div className="main">

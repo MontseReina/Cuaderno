@@ -439,3 +439,22 @@ code { background: #eef0f3; padding: 0 .3rem; border-radius: 4px; font-size: .85
   a { color: inherit; text-decoration: none; }
   @page { margin: 12mm; }
 }
+
+/* 0.16.0 · Botón o etiqueta del bloque junto a la flecha (antes quedaba en medio). */
+details.section > summary { gap: .5rem; }
+details.section > summary > span:first-child { flex: 1; }
+
+/* 0.16.0 · Plato dibujado de cada comida */
+.plato { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .9rem; margin: .4rem 0 .2rem; }
+.plato svg { width: 148px; height: 148px; flex: 0 0 auto; }
+.plato-part { cursor: pointer; outline: none; }
+.plato-part:focus-visible path:first-child { stroke: var(--primary); stroke-width: 2.5; }
+.plato-legend { display: flex; flex-direction: column; gap: .3rem; flex: 1 1 120px; min-width: 120px; }
+.plato-chip { display: flex; align-items: center; gap: .5rem; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .3rem .5rem; font-size: .8rem; line-height: 1.2; cursor: pointer; }
+.plato-chip.on { border-color: var(--primary); }
+.plato-chip .sw { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+
+/* 0.16.0 · Gráficos de peso y composición corporal */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .6rem; margin: .6rem 0; }
+.minichart { border: 1px solid var(--line); border-radius: 10px; padding: .45rem .6rem .2rem; background: var(--card); }
+.minichart svg { width: 100%; height: auto; display: block; }

@@ -50,7 +50,9 @@ export function breakfastTime(log: DailyLog | undefined) {
 }
 export function carbProfile(meals: Meal[]): 'sin datos' | 'cetogénico (orientativo)' | 'low carb (orientativo)' | 'moderado' | 'alto' {
   const w: Record<string, number> = { sin: 0, baja: 1, media: 2, alta: 3 }
-  const vals = meals.map((m) => m.carb).filter((c): c is NonNullable<typeof c> => !!c)
+  // Desde la 0.16.0 la cantidad de hidratos es `macros.starch` (0-3); los registros antiguos usan `carb`.
+  const fromStarch = ['sin', 'baja', 'media', 'alta'] as const
+  const vals = meals.map((m) => m.carb ?? (m.macros?.starch != null ? fromStarch[m.macros.starch] : undefined)).filter((c): c is NonNullable<typeof c> => !!c)
   if (!vals.length) return 'sin datos'
   const avg = vals.reduce((a, c) => a + w[c], 0) / vals.length
   if (avg <= 0.5) return 'cetogénico (orientativo)'
@@ -64,8 +66,12 @@ export function meanIntake(meals: Meal[]) {
 }
 
 /** Modo de la semana: manual si se ha elegido; si no, "quimio" en ciclo o D0-D6 y "nadir" desde D7. */
+/** Modo de la semana. Decisión 28/09/2026: sale del lugar apuntado en Signos y síntomas
+ *  (hospital, hospital de día o urgencias = quimio; casa = nadir). Si no hay lugar, se deduce del ciclo. */
 export function weekMode(log: DailyLog | undefined, ctx: CycleContext): WeekMode {
   if (log?.extra?.mode) return log.extra.mode
+  if (log?.location === 'casa') return 'nadir'
+  if (log?.location === 'ingreso' || log?.location === 'hospital_dia' || log?.location === 'urgencias') return 'quimio'
   if (!ctx.cycle || ctx.day == null) return 'nadir'
   if (ctx.inCycle || (ctx.day >= 0 && ctx.day < 7)) return 'quimio'
   return 'nadir'
@@ -106,9 +112,9 @@ export function mealTraffic(meal: Meal, opts: { cisplatin?: boolean } = {}): Mea
     if (nf === 0) missing.push('grasa añadida')
     else if (nf < fatGoal) missing.push('otra grasa añadida (objetivo 2)')
     if (opts.cisplatin) {
-      if ((m.starch ?? 0) >= 2) missing.push('menos almidón (día de cisplatino)')
-    } else if ((m.starch ?? 0) === 0) missing.push('algo de almidón resistente')
-    else if ((m.starch ?? 0) === 3) missing.push('demasiado almidón')
+      if ((m.starch ?? 0) >= 2) missing.push('menos hidratos (día de cisplatino)')
+    } else if ((m.starch ?? 0) === 0) missing.push('algo de hidratos')
+    else if ((m.starch ?? 0) === 3) missing.push('demasiados hidratos')
   }
   if (eaten != null && eaten < 0.5) missing.push('comió menos de la mitad')
   const level: Light = missing.length === 0 ? 'verde' : missing.length === 1 && (eaten ?? 1) >= 0.5 ? 'amarillo' : 'rojo'
