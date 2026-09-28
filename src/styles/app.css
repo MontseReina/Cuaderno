@@ -559,3 +559,10 @@ details.pauta > summary { letter-spacing: .03em; }
 
 /* Aviso de la semana nadir en Nutrición (0.24.0) */
 .aviso-nutrir { margin: .6rem 0 .8rem; padding: .7rem .9rem; border-radius: 12px; background: #e6efdc; color: #3D4126; border: 1px solid #b9cc9f; font-weight: 800; font-size: 1.15rem; text-align: center; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Lista de pesadas plegada (0.24.1) */
+details.pesadas { margin-top: .8rem; border-top: 1px solid var(--line, #e7e1d6); }
+details.pesadas > summary { cursor: pointer; padding: .6rem 0; font-weight: 700; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.pesadas > summary::-webkit-details-marker { display: none; }
+details.pesadas > summary::after { content: '▸'; color: #6d7266; }
+details.pesadas[open] > summary::after { content: '▾'; }

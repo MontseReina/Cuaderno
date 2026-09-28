@@ -216,6 +216,10 @@ function Weights({ open }: { open: boolean }) {
           </div>
         )
       })()}
+      {/* 28/09: la lista de pesadas va plegada; se abre al tocar. */}
+      {weights.length > 0 && (
+      <details className="pesadas">
+        <summary>Pesadas apuntadas ({Math.min(weights.length, 8)})</summary>
       {weights.slice(0, 8).map((x) => (
         <div className="item" key={x.id}>
           <div className="main">
@@ -225,6 +229,8 @@ function Weights({ open }: { open: boolean }) {
           <button className="btn sm ghost" onClick={() => { if (confirm('¿Borrar esta pesada?')) remove('weights', x.id) }}>✕</button>
         </div>
       ))}
+      </details>
+      )}
     </div>
   )
 }
