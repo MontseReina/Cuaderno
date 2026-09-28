@@ -68,9 +68,11 @@ export default function Nutricion() {
 
       <div className={'traffic ' + day.level} style={{ padding: '.6rem .9rem' }}>
         <strong>{day.level === 'verde' ? 'Objetivos del día cumplidos' : day.level === 'amarillo' ? 'AMARILLO — casi' : 'ROJO — lejos de la pauta'}</strong>
+        {/* Una sola línea (28/09): si falta algo, lo que falta; si no, el resumen. Antes salían las dos y decían lo mismo. */}
         <div className="small">
-          {day.meals}/{day.target} comidas{day.fatTarget ? ` · ${day.fatSnacks}/${day.fatTarget} snacks de grasa` : ''} · {day.greens} platos en verde · líquidos {day.fluids ?? '—'} ml (objetivo {day.fluidTarget})
-          {day.reasons.length > 0 && <div>{day.reasons.join(' · ')}</div>}
+          {day.reasons.length > 0
+            ? day.reasons.join(' · ')
+            : <>{day.meals}/{day.target} comidas{day.fatTarget ? ` · ${day.fatSnacks}/${day.fatTarget} snacks de grasa` : ''} · {day.greens} platos en verde · líquidos {day.fluids ?? '—'} ml (objetivo {day.fluidTarget})</>}
         </div>
       </div>
 
