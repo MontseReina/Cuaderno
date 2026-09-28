@@ -8,6 +8,7 @@ import { dayCompleteness } from './completeness'
 import { dayNutrition, fastingHours, isFatSlot, mealTraffic, totalFluids, weekMode } from './nutrition'
 import { FLUID_TARGET, PREVENTIVE, SEAWATER_TARGET_ML, STOOL_COLORS, SYMPTOMS, SYNC_ITEMS, URINE_LABELS, VOMIT_KINDS, CUP_ML } from './catalogs'
 import { protocolPoint } from './protocol'
+import { controlDelDia, nauseaMax, resumenesRecientes } from './nausea'
 
 // ---------- Reglas (decididas el 27/09/2026) ----------
 export const RANGOS = {
@@ -342,7 +343,7 @@ function preventivos(days: string[], logOf: (d: string) => DailyLog | undefined,
 
 // ---------- 3. Vómitos ----------
 function vomitos(days: string[], logOf: (d: string) => DailyLog | undefined, ctx: (d: string) => CycleContext, data: WeeklyData, alerts: Alerta[]): Bloque {
-  const B = 'Vómitos'
+  const B = 'Vómitos y náuseas'
   const eps = days.flatMap((d) => (logOf(d)?.extra?.vomits ?? []).map((e) => ({ d, ...e })))
   const vdays = days.filter((d) => (logOf(d)?.extra?.vomits?.length ?? 0) > 0 || logOf(d)?.extra?.vomit_no_liquids)
   const sev = days.map((d) => ({ d, s: vomitSeverity(logOf(d)?.extra) }))
@@ -353,15 +354,26 @@ function vomitos(days: string[], logOf: (d: string) => DailyLog | undefined, ctx
   const fr = modeOf(eps.filter((e) => e.time).map((e) => franja(e.time)))
   const afterChemo = Array.from(new Set(vdays.map((d) => ctx(d).day).filter((x): x is number => x != null && x >= 0))).sort((a, b) => a - b)
   const noLiq = days.filter((d) => logOf(d)?.extra?.vomit_no_liquids)
-  const nau = days.map((d) => logOf(d)?.symptoms?.nauseas ?? 0)
+  // Náuseas (0.25.0): escala 0-10 si está apuntada (si no, la escala antigua), control del día y rescates.
+  const nau = days.map((d) => { const l = logOf(d); const m = nauseaMax(l?.extra?.nausea); return m != null ? m : [0, 2, 5, 8][l?.symptoms?.nauseas ?? 0] ?? 0 })
   const nauDays = nau.filter((v) => v > 0).length
+  const nauMaxDay = nauDays ? days[nau.indexOf(Math.max(...nau))] : null
+  const ctrl = days.map((d) => ({ d, c: controlDelDia(logOf(d)) })).filter((x) => x.c)
+  const ctrlOk = ctrl.filter((x) => x.c!.nivel === 'verde').length
+  const ctrlRojo = ctrl.filter((x) => x.c!.nivel === 'rojo')
+  const resc = days.flatMap((d) => logOf(d)?.extra?.nausea?.rescates ?? [])
+  const rescOk = resc.filter((r) => r.efecto === 'si').length
+  const antic = days.filter((d) => logOf(d)?.extra?.nausea?.anticipatoria)
+  const sesionesSemana = resumenesRecientes(data.patient?.protocol_start, data.cycles, data.logs, days[days.length - 1] ?? addDays(days[0] ?? todayStr(), 6), 3)
+    .filter((r) => r.sesion >= addDays(days[0] ?? todayStr(), -6) && (r.aguda.dias + r.retardada.dias) > 0)
+  for (const x of ctrlRojo) alerts.push({ date: x.d, text: `Náuseas sin control (${x.c!.motivos.slice(0, 2).join(', ')})`, block: B })
   const lost = data.intakes.filter((i) => days.includes(i.date) && i.status === 'no_dada' && /v[oó]mito/i.test(i.reason ?? '')).length
   const rescue = data.products.filter((p) => /nux|ondansetr/i.test(p.name))
   const rescueN = rescue.map((p) => ({ p, n: data.intakes.filter((i) => i.product_id === p.id && days.includes(i.date) && (i.status === 'dada' || i.taken)).length })).filter((x) => x.n > 0)
   const red = eps.some((e) => VOMIT_KINDS.find((k) => k.value === e.kind)?.alerta) || noLiq.length > 0
   for (const e of eps.filter((e) => VOMIT_KINDS.find((k) => k.value === e.kind)?.alerta)) alerts.push({ date: e.d, text: `Vómito ${VOMIT_KINDS.find((k) => k.value === e.kind)?.label.toLowerCase()}`, block: B })
   for (const d of noLiq) alerts.push({ date: d, text: 'No retiene ni líquidos', block: B })
-  const light: Light = red ? 'rojo' : sev.some((x) => x.s >= 2) || vdays.length >= 3 ? 'amarillo' : 'verde'
+  const light: Light = red ? 'rojo' : sev.some((x) => x.s >= 2) || vdays.length >= 3 || ctrlRojo.length > 0 ? 'amarillo' : 'verde'
   const ind: Indicador[] = [
     { label: 'Episodios', value: eps.length ? `${eps.length} en ${vdays.length} día${vdays.length > 1 ? 's' : ''}` : 'Ninguno', light },
     ...(worst && worst.s > 0 ? [{ label: 'Peor día', value: `${dayLabel(worst.d)} · ${logOf(worst.d)?.extra?.vomits?.length ?? 0} episodios · ${['', 'leve', 'moderado', 'intenso'][worst.s]}` }] : []),
@@ -369,7 +381,11 @@ function vomitos(days: string[], logOf: (d: string) => DailyLog | undefined, ctx
     ...(fr ? [{ label: 'Franja con más vómitos', value: fr }] : []),
     ...(afterChemo.length ? [{ label: 'Días tras la quimio', value: afterChemo.map((x) => `D${x}`).join(', ') }] : []),
     ...(noLiq.length ? [{ label: 'No retiene líquidos', value: noLiq.map(dayLabel).join(', '), light: 'rojo' as Light }] : []),
-    { label: 'Náuseas', value: nauDays ? `${nauDays} día${nauDays > 1 ? 's' : ''} · máximo ${['', 'leve', 'moderada', 'intensa'][Math.max(...nau)]}` : 'Ninguna' },
+    { label: 'Náuseas', value: nauDays ? `${nauDays} día${nauDays > 1 ? 's' : ''} · máximo ${Math.max(...nau)}/10${nauMaxDay ? ` (${dayLabel(nauMaxDay)})` : ''}` : 'Ninguna' },
+    ...(ctrl.length ? [{ label: 'Control completo de náuseas y vómitos', value: `${ctrlOk} de ${ctrl.length} días`, light: (ctrlRojo.length ? 'rojo' : ctrlOk === ctrl.length ? 'verde' : 'amarillo') as Light }] : []),
+    ...sesionesSemana.map((r) => ({ label: r.titulo, value: `aguda ${r.aguda.dias ? `${r.aguda.completos}/${r.aguda.dias}` : '—'} · retardada ${r.retardada.dias ? `${r.retardada.completos}/${r.retardada.dias}` : '—'} días con control completo`, light: (r.retardada.dias && r.retardada.completos < r.retardada.dias / 2 ? 'rojo' : r.aguda.completos + r.retardada.completos === r.aguda.dias + r.retardada.dias ? 'verde' : 'amarillo') as Light })),
+    ...(resc.length ? [{ label: 'Rescates de antiemético', value: `${resc.length} · ${rescOk} ${rescOk === 1 ? 'eficaz' : 'eficaces'}` }] : []),
+    ...(antic.length ? [{ label: 'Náusea anticipatoria', value: antic.map(dayLabel).join(', '), light: 'amarillo' as Light }] : []),
     ...(lost ? [{ label: 'Tomas perdidas por vómito', value: String(lost) }] : []),
     ...(rescueN.length ? [{ label: 'Rescate usado', value: rescueN.map((x) => `${x.p.name}: ${x.n}`).join(' · ') }] : []),
   ]
@@ -377,7 +393,11 @@ function vomitos(days: string[], logOf: (d: string) => DailyLog | undefined, ctx
     key: 'vomitos', title: B, ico: '🤢', light,
     summary: eps.length ? `${eps.length} episodios` : 'Sin vómitos',
     indicators: ind,
-    advice: eps.length ? ['La hora y los días tras la quimio sirven para comentar con oncología si el antiemético cubre bien esa franja.'] : [],
+    advice: [
+      ...(eps.length ? ['La hora y los días tras la quimio sirven para comentar con oncología si el antiemético cubre bien esa franja.'] : []),
+      ...sesionesSemana.filter((r) => r.retardada.dias && r.retardada.completos < r.retardada.dias / 2).map((r) => `Náusea retardada mal controlada tras ${r.titulo.toLowerCase().replace(/ del .*/, '')} (${r.retardada.completos} de ${r.retardada.dias} días con control completo): comentar con oncología si la pauta antiemética es suficiente.`),
+      ...(antic.length ? ['Ha habido náusea anticipatoria (antes de la quimio): comentarlo con el equipo, se trata distinto.'] : []),
+    ],
   }
 }
 

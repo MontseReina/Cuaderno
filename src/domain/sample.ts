@@ -23,6 +23,7 @@ export async function loadSampleData() {
       temp_max: rnd(36.4, 37.3), weight: i % 3 === 0 ? rnd(26.2, 27.1) : null, urine_color: 2 + (i % 2), urine_amount: 'normal',
       stools_n: i % 4 === 0 ? 0 : 1, bristol: 4, stool_color: 'normal', pain_max: day != null && day < 3 ? 3 : 1, fatigue: day != null && day >= 5 && day <= 12 ? 2 : 1,
       symptoms: { mucositis, nauseas: day != null && day <= 2 ? 2 : 0 }, mood_child: 3 + (i % 2),
+      extra: day != null && day <= 2 ? { nausea: { score: { manana: 2, tarde: 4, noche: 2 }, impide: 1 } } : undefined,
       preventive: { cepillado: true, enj_coco: true, enj_lactoferrina: i % 3 !== 0, enj_marromero: true, emoliente: true, aposito: true, nada_rectal: true },
       meals: [
         { slot: 'desayuno', time: '08:30', fraction: 0.75, carb: 'baja', texture: 'normal' },

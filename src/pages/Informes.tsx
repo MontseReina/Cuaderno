@@ -8,6 +8,7 @@ import { RegistroCard } from '../components/RegistroCard'
 import { CuadroMandos } from '../components/CuadroMandos'
 import { SuenoSemana } from '../components/SuenoSemana'
 import { Section } from '../components/ui'
+import { resumenesRecientes } from '../domain/nausea'
 
 /** Pilar 📊 Evaluaciones (antes «Informes», renombrado el 28/09/2026): cómo se rellena el registro,
  *  el informe semanal y, en espera, el diario y el mensual. La ruta sigue siendo /informes. */
@@ -23,6 +24,10 @@ function Portada() {
   const cycles = useRows('cycles')
   const [lunes, setLunes] = useState(weekStart(todayStr()))
   const esEsta = lunes === weekStart(todayStr())
+  const patient = useRows('patients')[0]
+  // Náuseas por sesión de quimio (0.25.0): hasta el domingo de la semana que se ve (o hoy).
+  const hasta = esEsta ? todayStr() : addDays(lunes, 6)
+  const nauseas = resumenesRecientes(patient?.protocol_start, cycles, logs, hasta, 3)
   return (
     <div>
       <h1>📊 Evaluaciones</h1>
@@ -35,6 +40,24 @@ function Portada() {
       </div>
       <Section title="Cuadro de mandos de la semana" open>
         <CuadroMandos lunes={lunes} logs={logs} cycles={cycles} />
+      </Section>
+      <Section title="Náuseas y pauta antiemética" open>
+        <p className="muted small">Por cada quimio: días con control completo (sin vómitos, sin arcadas, sin rescate y náusea de 2 o menos) en la fase aguda (perfusión y primeras 24 h) y en la retardada (días 2 a 5 tras terminar). Si la retardada no se controla, es el dato para comentar con oncología.</p>
+        {nauseas.length === 0 && <div className="muted small">Todavía no hay sesiones de quimio con días apuntados.</div>}
+        {nauseas.map((r) => {
+          const nivel = (f: { dias: number; completos: number }) => (!f.dias ? '' : f.completos === f.dias ? 'ok' : f.completos >= f.dias / 2 ? 'ambar' : 'rojo')
+          return (
+            <div key={r.sesion} className="nausea-sesion">
+              <strong>{r.titulo}</strong>
+              <div className="nausea-fases">
+                <span className={'cuadro-c ' + nivel(r.aguda)}>Aguda {r.aguda.dias ? `${r.aguda.completos}/${r.aguda.dias}` : '—'}</span>
+                <span className={'cuadro-c ' + nivel(r.retardada)}>Retardada {r.retardada.dias ? `${r.retardada.completos}/${r.retardada.dias}` : '—'}</span>
+                <span className="cuadro-c">{r.rescates ? `${r.rescates} rescate${r.rescates > 1 ? 's' : ''} · ${r.eficaces} ${r.eficaces === 1 ? 'eficaz' : 'eficaces'}` : 'Sin rescates'}</span>
+                {r.anticipatoria && <span className="cuadro-c ambar">Anticipatoria</span>}
+              </div>
+            </div>
+          )
+        })}
       </Section>
       <Section title="Sueño y ritmo circadiano de la semana" open>
         <SuenoSemana lunes={lunes} logs={logs} />

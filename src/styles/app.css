@@ -566,3 +566,31 @@ details.pesadas > summary { cursor: pointer; padding: .6rem 0; font-weight: 700;
 details.pesadas > summary::-webkit-details-marker { display: none; }
 details.pesadas > summary::after { content: '▸'; color: #6d7266; }
 details.pesadas[open] > summary::after { content: '▾'; }
+
+/* Náuseas: escala de caras 0-10 por momento, fase, rescates y control del día (0.25.0) */
+.nausea-fase { display: inline-block; margin-bottom: .35rem; padding: .2rem .55rem; border-radius: 999px; font-size: .8rem; font-weight: 700; background: #e3eef0; color: #24505a; }
+.nausea-fase.aguda { background: #fbeccc; color: #6d4a00; }
+.nausea-fase.vispera { background: #efe9f6; color: #4b3a66; }
+.nausea-escala { display: grid; gap: .3rem; }
+.nausea-fila { display: grid; grid-template-columns: 4.2rem 1fr; align-items: center; gap: .3rem; }
+.nausea-mom { font-size: .85rem; color: var(--muted, #6d7266); }
+.nausea-caras { display: grid; grid-template-columns: repeat(6, 1fr); gap: .25rem; }
+.nausea-caras button { display: flex; flex-direction: column; align-items: center; gap: 0; padding: .2rem 0 .15rem; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; line-height: 1.1; }
+.nausea-caras .cara { font-size: 1.35rem; filter: grayscale(.6); opacity: .75; }
+.nausea-caras .num { font-size: .72rem; color: #6d7266; font-weight: 700; }
+.nausea-caras button.on { border-width: 2px; }
+.nausea-caras button.on .cara { filter: none; opacity: 1; }
+.nausea-caras button.on.n0, .nausea-caras button.on.n2 { background: #e3eef0; border-color: var(--green); }
+.nausea-caras button.on.n4, .nausea-caras button.on.n6 { background: #fbeccc; border-color: var(--amber); }
+.nausea-caras button.on.n8, .nausea-caras button.on.n10 { background: #f6d7d2; border-color: var(--red); }
+.nausea-caras button:focus-visible { outline: 3px solid var(--green); outline-offset: 1px; }
+.nausea-rescate { border-left: 3px solid var(--line); padding-left: .5rem; margin-bottom: .45rem; }
+.nausea-control { margin-top: .6rem; padding: .45rem .65rem; border-radius: 10px; font-size: .88rem; }
+.nausea-control.verde { background: #e3eef0; color: #24505a; }
+.nausea-control.ambar { background: #fbeccc; color: #6d4a00; }
+.nausea-control.rojo { background: #f6d7d2; color: #8c2a20; }
+.nausea-sesion { padding: .5rem 0; border-top: 1px solid var(--line); }
+.nausea-sesion:first-of-type { border-top: 0; }
+.nausea-fases { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .3rem; }
+.nausea-fases .cuadro-c { padding: .2rem .55rem; border-radius: 8px; font-size: .82rem; }
+.nausea-fases .cuadro-c:not(.ok):not(.ambar):not(.rojo) { background: #f3efe6; }

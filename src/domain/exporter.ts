@@ -4,8 +4,9 @@ import { addDays, fmtDate, todayStr } from './dates'
 import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './cycle'
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
+import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 
-export const APP_VERSION = '0.24.2'
+export const APP_VERSION = '0.25.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -160,6 +161,7 @@ export function buildAiReport(from: string, to: string): string {
     if (c.other_meds?.infusion?.length) L.push(`  - durante la perfusión: ${c.other_meds.infusion.map(medRow).join('; ')}`)
     if (c.antiemetic?.items?.length) L.push(`  - antiemético: ${c.antiemetic.items.map((m) => `${medRow(m)}${m.nausea != null ? ` · náusea ${m.nausea}/3` : ''}${m.sufficient ? ` · suficiente: ${m.sufficient}` : ''}`).join('; ')}`)
     else if (c.antiemetic?.drug) L.push(`  - antiemético: ${c.antiemetic.drug} ${c.antiemetic.scheme ?? ''} · suficiente: ${c.antiemetic.sufficient ?? '—'}`)
+    { const rn = resumenDeCiclo(c, backend.all('daily_logs'), to < todayStr() ? to : todayStr()); if (rn) L.push(`  - náuseas según el registro diario: ${rn.texto}`) }
     if (c.other_meds?.between?.length) L.push(`  - entre quimio y quimio: ${c.other_meds.between.map(medRow).join('; ')}`)
     if (c.fasting_last_meal_at && c.start_at) L.push(`  - ayuno previo: desde ${c.fasting_last_meal_at.replace('T', ' ')}`)
     if (c.notes) L.push(`  - notas: ${c.notes}`)
@@ -198,6 +200,15 @@ export function buildAiReport(from: string, to: string): string {
     const vom = (l.extra?.vomits ?? []).map((e) => `${e.time}${e.kind ? ' ' + (VOMIT_KINDS.find((k) => k.value === e.kind)?.label.toLowerCase() ?? e.kind) : ''}`).join(', ')
     const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}${k === 'flemas' && l.extra?.phlegm_color ? ` (${l.extra.phlegm_color})` : ''}${k === 'fiebre' && l.extra?.fever_cause ? ` (motivo: ${l.extra.fever_cause === 'otro' ? (l.extra.fever_cause_other || 'otro') : FEVER_CAUSES.find((f) => f.value === l.extra!.fever_cause)?.label.toLowerCase()})` : ''}${k === 'vomitos' && vom ? ` (${vom}${l.extra?.vomit_no_liquids ? '; no retiene líquidos' : ''})` : ''}`)
     if (s.length) L.push(`- Síntomas: ${s.join(' · ')}`)
+    // Náuseas (0.25.0): escala 0-10 por momento, fase, impacto, arcadas, rescates y control del día.
+    const nz = l.extra?.nausea
+    if (nz && (nauseaMax(nz) != null || nz.arcadas || nz.rescates?.length || nz.anticipatoria)) {
+      const sc = (['manana', 'tarde', 'noche'] as const).filter((k) => nz.score?.[k] != null).map((k) => `${k === 'manana' ? 'mañana' : k} ${nz.score![k]}/10`).join(', ')
+      const fz = faseNausea(patient?.protocol_start, cycles, l.date)
+      const ctl = controlDelDia(l)
+      const partes = [sc, fz && fz.fase !== 'vispera' ? `fase ${fz.fase}` : '', nz.impide != null ? `le impide comer: ${['nada', 'algo', 'mucho'][nz.impide]}` : '', nz.anticipatoria ? 'anticipatoria' : '', nz.arcadas ? `${nz.arcadas} arcadas` : '', nz.desencadenantes?.length ? `desencadenante: ${nz.desencadenantes.join(', ').toLowerCase()}` : '', nz.rescates?.length ? `rescates: ${nz.rescates.map((r) => `${r.time} ${r.med || 'antiemético'}${r.efecto ? ` (${r.efecto === 'si' ? 'eficaz' : r.efecto === 'algo' ? 'parcial' : 'no eficaz'})` : ''}`).join('; ')}` : '', ctl ? `control ${ctl.nivel === 'verde' ? 'completo' : ctl.nivel === 'ambar' ? 'parcial' : 'insuficiente'}` : ''].filter(Boolean)
+      L.push(`- Náuseas: ${partes.join(' · ')}`)
+    }
     const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros || m.note || m.amount)
     const mode = weekMode(l, ctx)
     const nut = dayNutrition(l, mode, { cisplatin: isCisplatinDay(ctx) })

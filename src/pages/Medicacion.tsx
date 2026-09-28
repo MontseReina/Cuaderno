@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
 import type { Intake, IntakeStatus, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
 import {
@@ -34,6 +34,8 @@ export default function Medicacion() {
   const retired = all.filter((p) => !isActive(p, today)).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
   const intakes = useRows('intakes', (i) => i.date === today)
   const cycles = useRows('cycles')
+  // Rescates de antiemético apuntados hoy en Signos y síntomas (registro de náuseas, 0.25.0).
+  const rescatesHoy = useRows('daily_logs', (l) => l.date === today)[0]?.extra?.nausea?.rescates ?? []
   const panels = useRows('lab_panels')
   const labResults = useRows('lab_results', (r) => r.analyte === 'plaquetas')
   const [editing, setEditing] = useState<Partial<Product> | null>(null)
@@ -187,11 +189,13 @@ export default function Medicacion() {
           {onDemand.length > 0 && (
             <div style={{ marginTop: '.5rem' }}>
               <h3>A demanda</h3>
+              <p className="muted small">Las dosis extra de antiemético se apuntan en <Link to={`/diario/${today}`}>Signos y síntomas → Náuseas</Link>, con la hora y si ha mejorado.</p>
               {onDemand.map((p) => (
                 <div className="item" key={p.id}>
                   <div className="main" onClick={() => setEditing(p)} style={{ cursor: 'pointer' }}>
                     <div>{p.name} {trafficNow(p) && <span className={'tag ' + trafficNow(p)}>{TRAFFIC_LABELS[trafficNow(p)!]}</span>}</div>
                     <div className="meta">{p.dose}{extraMeta(p) ? ` · ${extraMeta(p)}` : ''}</div>
+                    {(() => { const r = rescatesHoy.filter((x) => x.med === p.name); return r.length ? <div className="meta">{esHoy ? 'Hoy' : 'Ese día'}: {r.map((x) => `${x.time}${x.efecto ? ` (${x.efecto === 'si' ? 'mejoró' : x.efecto === 'algo' ? 'mejoró algo' : 'no mejoró'})` : ''}`).join(', ')}</div> : null })()}
                   </div>
                   <button className="btn sm ghost" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
                 </div>

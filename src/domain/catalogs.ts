@@ -21,7 +21,7 @@ export const SYMPTOMS: SymptomDef[] = [
   { key: 'flemas', label: 'Flemas', when: 'siempre', help: 'Leve: alguna vez al día · Moderado: le cuesta echarlas · Intenso: constantes o le dificultan respirar' },
   { key: 'somnolencia', label: 'Somnolencia o confusión inusual', when: 'siempre', redAt3: true },
   { key: 'mareo', label: 'Mareo o inestabilidad', when: 'siempre', help: 'Leve: se marea al levantarse · Moderado: necesita sentarse o apoyarse · Intenso: no se sostiene o se ha desmayado', redAt3: true },
-  { key: 'nauseas', label: 'Náuseas', when: 'siempre', help: 'Leve: lo dice pero come · Moderado: come menos por las náuseas · Intenso: no puede comer' },
+  { key: 'nauseas', label: 'Náuseas', when: 'siempre', help: 'Escala de caras 0-10 por la mañana, la tarde y la noche; impacto en comer, arcadas y rescates' },
   { key: 'vomitos', label: 'Vómitos', when: 'siempre', redAt3: true, help: 'Intenso: no retiene líquidos' },
   { key: 'distension', label: 'Plenitud o tripa hinchada', when: 'ciclo' },
   { key: 'estrenimiento', label: 'Estreñimiento', when: 'ciclo' },

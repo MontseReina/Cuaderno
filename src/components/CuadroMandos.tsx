@@ -6,6 +6,7 @@ import { cycleContext, vomitSeverity } from '../domain/cycle'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { FLUID_TARGET, SYMPTOMS, URINE_COLORS } from '../domain/catalogs'
 import type { Cycle } from '../store/types'
+import { controlDelDia, nauseaMax } from '../domain/nausea'
 
 /** Cuadro de mandos de la semana (Evaluaciones, pedido en «New mock up v2»): días en columnas (L-D) y
  *  los datos en filas. Los síntomas que aparecen como leves o más se quedan hasta el domingo; el lunes
@@ -66,6 +67,28 @@ export function CuadroMandos({ lunes, logs, cycles }: { lunes: string; logs: Dai
       return { txt: String(n), nivel: sev >= 3 ? 'rojo' : n > 0 ? 'ambar' : 'ok' }
     }),
   })
+  // Náuseas (0.25.0): máximo del día en la escala 0-10 y color del control de náuseas y vómitos.
+  filas.push({
+    key: 'nauseas', label: '😣 Náuseas (0-10)',
+    celdas: dias.map((d) => {
+      const l = logOf(d)
+      const c = controlDelDia(l)
+      if (!l || !c) return { txt: '' }
+      const max = nauseaMax(l.extra?.nausea)
+      const legacy = l.symptoms?.nauseas ?? 0
+      const txt = max != null ? String(max) : legacy ? SEV[legacy] : '0'
+      return { txt, nivel: c.nivel === 'verde' ? 'ok' : c.nivel, titulo: c.motivos.length ? c.motivos.join(', ') : 'Control completo' }
+    }),
+  })
+  filas.push({
+    key: 'rescates', label: 'Rescates', sub: true,
+    celdas: dias.map((d) => {
+      const r = logOf(d)?.extra?.nausea?.rescates ?? []
+      if (!r.length) return { txt: '' }
+      const ok = r.filter((x) => x.efecto === 'si').length
+      return { txt: String(r.length), nivel: r.some((x) => x.efecto === 'no') || r.length >= 2 ? 'rojo' : 'ambar', titulo: `${r.length} rescate${r.length > 1 ? 's' : ''}, ${ok} ${ok === 1 ? 'eficaz' : 'eficaces'}` }
+    }),
+  })
   filas.push({
     key: 'liquidos', label: '💧 Líquidos (ml)',
     celdas: dias.map((d) => {
@@ -101,7 +124,7 @@ export function CuadroMandos({ lunes, logs, cycles }: { lunes: string; logs: Dai
   // Síntomas marcados como leves o más en algún día de la semana: se quedan hasta el domingo.
   const hasta = dias.filter((d) => byDate.has(d))
   const claves: string[] = []
-  for (const d of hasta) for (const [k, v] of Object.entries(logOf(d)!.symptoms ?? {})) if (v > 0 && k !== 'vomitos' && !claves.includes(k)) claves.push(k)
+  for (const d of hasta) for (const [k, v] of Object.entries(logOf(d)!.symptoms ?? {})) if (v > 0 && k !== 'vomitos' && k !== 'nauseas' && !claves.includes(k)) claves.push(k)
   const nombre = (k: string) => SYMPTOMS.find((s) => s.key === k)?.label ?? k.replace(/^dx_/, '').replace(/_/g, ' ')
   for (const k of claves) {
     filas.push({

@@ -178,6 +178,24 @@ export interface DailyExtra {
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
   /** Se ha movido después de cada comida («snacks de movimiento», pauta de IMOHE). */
   move_after?: Partial<Record<'desayuno' | 'comida' | 'cena', boolean>>
+  /** Registro de náuseas (0.25.0): escala de caras 0-10 por momento, impacto, arcadas y rescates. */
+  nausea?: NauseaDia
+}
+
+export type NauseaEfecto = 'si' | 'algo' | 'no'
+/** Dosis extra de antiemético (a demanda) y si ha funcionado a la hora. */
+export interface NauseaRescate { time: string; med: string; efecto?: NauseaEfecto | null }
+export interface NauseaDia {
+  /** Escala de caras 0-10 (la señala el niño) por momento del día. */
+  score?: Partial<Record<VitalSlot, number | null>>
+  /** ¿Le ha impedido comer o beber? 0 nada · 1 algo · 2 mucho. */
+  impide?: 0 | 1 | 2 | null
+  /** Empezó antes de la quimio o al llegar al hospital (náusea anticipatoria). */
+  anticipatoria?: boolean
+  /** Arcadas sin vómito (nº). */
+  arcadas?: number | null
+  desencadenantes?: string[]
+  rescates?: NauseaRescate[]
 }
 
 export type PreventiveMark = boolean | 'x' | 'np'

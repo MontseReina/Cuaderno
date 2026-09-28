@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { DailyLog, FeverCause, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
+import type { DailyLog, FeverCause, NauseaDia, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, isMtxPerfusionDay, symptomsForToday, vomitSeverity } from '../domain/cycle'
 import { medicationProgress, trafficWindow } from '../domain/medication'
@@ -14,6 +14,9 @@ import {
 } from '../domain/catalogs'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { DateNav } from '../components/DateNav'
+import { Nauseas } from '../components/Nauseas'
+import { controlDelDia, faseNausea, nauseaMax, resumenSesion, severidadDesdeEscala } from '../domain/nausea'
+import { sesionesTratamiento } from '../domain/fases'
 import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper, TriButton, type TriState } from '../components/ui'
 
 export default function Diario() {
@@ -32,6 +35,20 @@ export default function Diario() {
   const diagnoses = useRows('diagnoses')
   const patientVoids = useRows('patients')[0]?.usual_voids ?? null
   const patient = backend.all('patients')[0]
+  const protocolStart = useRows('patients')[0]?.protocol_start
+  // Náuseas (0.25.0): fase respecto a la quimio, control del día y resumen de la sesión.
+  const sesiones = sesionesTratamiento(protocolStart, cycles)
+  const faseN = faseNausea(protocolStart, cycles, date, sesiones)
+  const controlN = controlDelDia(draft)
+  const sesionN = faseN && faseN.fase !== 'vispera' ? sesiones.find((s) => s.date === faseN.sesion) : undefined
+  const resumenN = sesionN ? resumenSesion(sesionN, [...logs.filter((l) => l.date !== date), draft], date) : null
+  const aDemanda = products.filter((p) => !p.moments?.length && (!p.end_date || p.end_date >= date)).map((p) => p.name)
+  const antiemeticos = aDemanda.filter((n) => /ondansetr|zofran|yatrox|nux|arsenic|metoclopr|primperan|domperid|granisetr|aprepit|emend|antiem/i.test(n))
+  const setNausea = (n: NauseaDia) => {
+    setExtra({ nausea: n })
+    const max = nauseaMax(n)
+    if (max != null) set('symptoms', { ...draft.symptoms, nauseas: severidadDesdeEscala(max) })
+  }
 
   const ctx = cycleContext(cycles, date)
   const defs = symptomsForToday(ctx, diagnoses)
@@ -172,8 +189,10 @@ export default function Diario() {
             <div className="small" style={{ marginBottom: '.2rem' }}>{d.label}</div>
             {d.key === 'vomitos'
               ? <Vomitos episodios={draft.extra?.vomits ?? []} noLiquidos={!!draft.extra?.vomit_no_liquids} onChange={setVomitos} />
-              : <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />}
-            {d.key !== 'vomitos' && d.help && (draft.symptoms[d.key] ?? 0) > 0 && <div className="muted small">{d.help}</div>}
+              : d.key === 'nauseas'
+                ? <Nauseas value={draft.extra?.nausea ?? {}} legacy={draft.symptoms.nauseas ?? 0} fase={faseN} control={controlN} resumen={resumenN} antiemeticos={antiemeticos.length ? antiemeticos : aDemanda} onChange={setNausea} />
+                : <Severity value={draft.symptoms[d.key]} onChange={(v) => set('symptoms', { ...draft.symptoms, [d.key]: v })} labels={SEVERITY_LABELS} />}
+            {d.key !== 'vomitos' && d.key !== 'nauseas' && d.help && (draft.symptoms[d.key] ?? 0) > 0 && <div className="muted small">{d.help}</div>}
             {d.key === 'fiebre' && (draft.symptoms.fiebre ?? 0) > 0 && (
               <div style={{ marginTop: '.35rem' }}>
                 <div className="muted small" style={{ marginBottom: '.2rem' }}>Motivo de la fiebre</div>

@@ -5,6 +5,7 @@ import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, PROTOCOL_34, ROUTE_LABELS } fro
 import { cumulativeDoses, DOSE_THRESHOLDS } from '../domain/cycle'
 import { addDays, fmtDate, fmtWall, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
 import { sesionesTratamiento, type Sesion } from '../domain/fases'
+import { resumenDeCiclo } from '../domain/nausea'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
@@ -30,6 +31,7 @@ export default function Ciclos() {
   const [editing, setEditing] = useState<Partial<Cycle> | null>(null)
   const acc = cumulativeDoses(cycles)
   const patient = useRows('patients')[0]
+  const logs = useRows('daily_logs')
   // Sesiones del protocolo que aún no están en Tratamiento: fecha de la hoja (miércoles). Al registrarlas se pone la fecha definitiva.
   const pendientes = sesionesTratamiento(patient?.protocol_start, cycles).filter((x) => x.delProtocolo && x.date >= addDays(todayStr(), -7))
   const DRUGS_OF: Record<string, Drug[]> = { mtx: ['MTX'], cddp: ['CDDP', 'ADM'] }
@@ -100,6 +102,7 @@ export default function Ciclos() {
           </div>
           {c.actual_dose && <div className="small">Dosis real: {c.actual_dose}</div>}
           {c.rescue?.substance && <div className="small">Rescate: {c.rescue.substance} {c.rescue.start ? `desde ${fmtWall(c.rescue.start)}` : ''} {c.rescue.end ? `hasta ${fmtWall(c.rescue.end)}` : '(en curso)'}</div>}
+          {(() => { const r = resumenDeCiclo(c, logs, todayStr()); return r ? <div className="small">Náuseas: aguda {r.aguda.dias ? `${r.aguda.completos}/${r.aguda.dias}` : '—'} · retardada {r.retardada.dias ? `${r.retardada.completos}/${r.retardada.dias}` : '—'} días con control completo{r.rescates ? ` · ${r.rescates} rescate${r.rescates > 1 ? 's' : ''}` : ''}</div> : null })()}
         </div>
       ))}
     </div>
@@ -155,6 +158,8 @@ function legacyBetween(c: Partial<Cycle>): MedRow[] {
 
 function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycles: Cycle[]; onClose: () => void }) {
   const [c, setC] = useState<Partial<Cycle>>({ drugs: [], corticoid_iv: false, rescue: {}, antiemetic: {}, other_meds: {}, drug_watch: {}, actual_dose_mg_m2: {}, ...initial })
+  const logsN = useRows('daily_logs')
+  const nauseaCiclo = c.id && c.planned_date ? resumenDeCiclo(c as Cycle, logsN, todayStr()) : null
   const set = <K extends keyof Cycle>(k: K, v: Cycle[K]) => setC((x) => ({ ...x, [k]: v }))
   // En un ciclo nuevo el número se propone solo contando por medicamento; se puede corregir a mano.
   const [numeroAMano, setNumeroAMano] = useState(false)
@@ -249,6 +254,11 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
           columns={COLS_ANTIEMETIC}
           render={renderMedCell}
         />
+        {nauseaCiclo && (
+          <div className="notice small">
+            <strong>Según lo apuntado en Signos y síntomas:</strong> {nauseaCiclo.texto}. Sirve para rellenar «¿Fue suficiente?».
+          </div>
+        )}
       </Section>
 
       <Section title="Rescate">
