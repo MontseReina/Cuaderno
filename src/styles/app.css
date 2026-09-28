@@ -483,3 +483,14 @@ details.avisos[open] > summary::after { transform: rotate(90deg); }
 .aviso-mas { color: var(--muted); font-size: 1.1rem; transition: transform .15s; }
 .aviso[open] .aviso-mas { transform: rotate(90deg); }
 .aviso-det { padding: 0 .7rem .55rem 2.4rem; font-size: .85rem; color: #3b3f36; }
+
+/* 0.19.0 · Pauta de alimentación de la semana (Nutrición) */
+details.pauta > summary { letter-spacing: .03em; }
+.pauta-semana { margin: 0 0 .2rem; color: var(--primary); }
+.pauta-sec { border-left: 3px solid var(--line); padding: .1rem 0 .1rem .7rem; margin: .6rem 0; }
+.pauta-sec.hoy { border-left-color: var(--green); background: #f4f8f8; border-radius: 0 10px 10px 0; padding: .35rem .6rem .35rem .7rem; }
+.pauta-sec h4 { margin: 0 0 .25rem; font-size: .95rem; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.pauta-sec h4 .tag { background: var(--green); color: #fff; margin: 0; }
+.pauta-sec ul { margin: 0; padding-left: 1.1rem; font-size: .88rem; }
+.pauta-sec li { margin: .15rem 0; }
+.pauta-sec ol { margin: .2rem 0; padding-left: 1.2rem; }
