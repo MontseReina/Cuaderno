@@ -18,6 +18,7 @@ import { Nauseas } from '../components/Nauseas'
 import { controlDelDia, faseNausea, nauseaMax, resumenSesion, severidadDesdeEscala } from '../domain/nausea'
 import { sesionesTratamiento } from '../domain/fases'
 import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper, TriButton, type TriState } from '../components/ui'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 export default function Diario() {
   const params = useParams()
@@ -71,7 +72,7 @@ export default function Diario() {
   return (
     <div>
       {toastNode}
-      <DateNav date={date} base="/diario" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day} · ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle D7-14' : 'fuera de ciclo'}` : 'sin ciclo'} />
+      <DateNav date={date} base="/diario" sub={diaTratamiento(protocolStart, cycles, date)?.texto ?? 'sin ciclo'} />
 
       <div className={'traffic ' + traffic.level} style={{ padding: '.6rem .9rem' }}>
         <strong>

@@ -6,6 +6,7 @@ import { PILLARS } from '../domain/catalogs'
 import { fmtDate, fmtDateTime, todayStr } from '../domain/dates'
 import { Field, Segmented } from '../components/ui'
 import { knownUsers } from '../domain/users'
+import { confirmar } from '../components/Confirmar'
 
 export default function Pendientes() {
   const todos = useRows('todos')
@@ -117,7 +118,7 @@ function TodoForm({ initial, onClose }: { initial: Partial<Todo>; onClose: () =>
       </div>
       <div className="row">
         <button className="btn" disabled={!t.title?.trim()} onClick={async () => { await save('todos', { ...t, patient_id: currentPatientId() } as Todo); onClose() }}>Guardar</button>
-        {t.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar?')) { await remove('todos', t.id!); onClose() } }}>Borrar</button>}
+        {t.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar?')) { await remove('todos', t.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

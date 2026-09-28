@@ -3,6 +3,7 @@ import { currentPatientId, remove, save, useRows } from '../store'
 import type { MicrobiomeTest } from '../store/types'
 import { fmtDate, todayStr } from '../domain/dates'
 import { Field, Section } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
 
 const SUGGESTED = ['Diversidad (Shannon)', 'Firmicutes/Bacteroidetes', 'Akkermansia muciniphila', 'Faecalibacterium prausnitzii', 'Bifidobacterium', 'Lactobacillus', 'Escherichia coli', 'Candida', 'Parásitos', 'Calprotectina', 'Zonulina', 'IgA secretora', 'Butirato / AGCC', 'pH fecal']
 
@@ -80,7 +81,7 @@ function TestForm({ initial, onClose }: { initial: Partial<MicrobiomeTest>; onCl
       </div>
       <div className="row">
         <button className="btn" disabled={!t.date} onClick={async () => { await save('microbiome_tests', { ...t, results: rows.filter((r) => r.name.trim()), patient_id: currentPatientId() } as MicrobiomeTest); onClose() }}>Guardar</button>
-        {t.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar?')) { await remove('microbiome_tests', t.id!); onClose() } }}>Borrar</button>}
+        {t.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar?')) { await remove('microbiome_tests', t.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

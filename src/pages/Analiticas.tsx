@@ -3,8 +3,9 @@ import { currentPatientId, remove, save, useRows } from '../store'
 import type { LabPanel, LabResult, OrganTest } from '../store/types'
 import { ANALYTES } from '../domain/catalogs'
 import { fmtDate, todayStr } from '../domain/dates'
-import { cycleContext } from '../domain/cycle'
 import { Field, Section, Segmented } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
+import { faseTexto } from '../domain/diaTratamiento'
 
 type Flag = 'bajo' | 'alto' | 'ok'
 const flagOf = (r: LabResult): Flag => (r.ref_low != null && r.value < r.ref_low ? 'bajo' : r.ref_high != null && r.value > r.ref_high ? 'alto' : 'ok')
@@ -14,6 +15,7 @@ export default function Analiticas() {
   const results = useRows('lab_results')
   const organ = useRows('organ_tests').sort((a, b) => b.date.localeCompare(a.date))
   const cycles = useRows('cycles')
+  const protocolStart = useRows('patients')[0]?.protocol_start
   const [editing, setEditing] = useState<{ panel: Partial<LabPanel>; results: Partial<LabResult>[] } | null>(null)
   const [organEdit, setOrganEdit] = useState<Partial<OrganTest> | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -53,7 +55,7 @@ export default function Analiticas() {
         <div className="card">
           <div className="row between">
             <strong>Última: {fmtDate(latest.date)}</strong>
-            <span className="tag gray">{cycleContext(cycles, latest.date).cycle ? `D${cycleContext(cycles, latest.date).day}` : ''} {latest.context}</span>
+            <span className="tag gray">{faseTexto(protocolStart, cycles, latest.date) ?? ''} {latest.context}</span>
           </div>
           {latestOut.length === 0 && <div className="muted">Todo dentro de rango.</div>}
           {latestOut.sort((a, b) => Math.abs(dev(b)) - Math.abs(dev(a))).map((r) => (
@@ -193,7 +195,7 @@ function PanelForm({ state, onClose }: { state: { panel: Partial<LabPanel>; resu
         >
           Guardar
         </button>
-        {panel.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar esta analítica?')) { await remove('lab_panels', panel.id!); onClose() } }}>Borrar</button>}
+        {panel.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar esta analítica?')) { await remove('lab_panels', panel.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

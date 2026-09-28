@@ -13,6 +13,8 @@ import { MiniChart } from '../components/MiniChart'
 import { PautaCard } from '../components/PautaCard'
 import { pautaDelDia } from '../domain/pautas'
 import { Field, Section, Segmented } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 /** Pilar 6 · Nutrición: registro por comida según el modo de la semana (quimio / nadir), ayuno,
  *  estimación del plato (verdura · proteína · almidón · grasa) con semáforo, semáforo del día y peso. */
@@ -68,7 +70,7 @@ export default function Nutricion() {
     <div>
       {toastNode}
       <h1>Nutrición</h1>
-      <DateNav date={date} base="/nutricion" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day}${cisplatin ? ' · día de cisplatino' : ''}` : 'sin ciclo'} />
+      <DateNav date={date} base="/nutricion" sub={`${diaTratamiento(patient?.protocol_start, cycles, date)?.texto ?? 'sin ciclo'}${cisplatin && ctx.day ? ' · sigue el cisplatino' : ''}`} />
 
       <div className={'traffic ' + day.level} style={{ padding: '.6rem .9rem' }}>
         <strong>{day.level === 'verde' ? 'Objetivos del día cumplidos' : day.level === 'amarillo' ? 'AMARILLO — casi' : 'ROJO — lejos de la pauta'}</strong>
@@ -100,8 +102,10 @@ export default function Nutricion() {
             onChange={(v) => setExtra({ mode: v && v !== autoMode ? v : undefined })}
           />
         </Field>
-        {/* 28/09: el texto de cada modo sobraba (ya lo dice la pauta de arriba); en nadir queda solo el aviso. */}
-        {mode === 'nadir' && <div className="aviso-nutrir">🌱 Semana de nutrir y recuperar</div>}
+        {/* 28/09: en nadir, solo el aviso (la pauta ya está arriba); el texto de la semana de quimio se mantiene (lo pidió Montserrate). */}
+        {mode === 'nadir'
+          ? <div className="aviso-nutrir">🌱 Semana de nutrir y recuperar</div>
+          : <p className="muted small">Semana de quimio: 4 comidas, lo que tolere, fácil de digerir; todo cocido. Fruta: solo frutos rojos o fruta cocida. Metotrexato: desayunar antes, perfusión 2-3 h después y no comer hasta terminar. Cisplatino: menos hidrato; 1 grasa añadida en las comidas principales (pescado y verdura cocida).</p>}
         <div className="grid2">
           <Field label="Horas de ayuno (noche)" hint={draft.extra?.fasting_h != null ? 'Tecleadas a mano' : fastDet ? `Calculadas: ${slotName(fastDet.last.slot)} de ayer ${fastDet.last.time} → ${slotName(fastDet.first.slot)} de hoy ${fastDet.first.time}` : 'Se calculan al poner horas a las comidas'}>
             <input type="number" inputMode="decimal" step="0.5" min={0} max={48} value={draft.extra?.fasting_h ?? fast ?? ''} onChange={(e) => setExtra({ fasting_h: e.target.value === '' ? null : Number(e.target.value) })} />
@@ -226,7 +230,7 @@ function Weights({ open }: { open: boolean }) {
             <div>{x.kg} kg <span className="tag gray">{WEIGHT_SOURCES.find((s) => s.value === x.source)?.label}</span></div>
             <div className="meta">{fmtWall(x.at)}{x.height_cm ? ` · ${x.height_cm} cm` : ''}{x.muscle_kg ? ` · músculo ${x.muscle_kg} kg` : ''}{x.fat_pct ? ` · grasa ${x.fat_pct} %` : ''}{x.notes ? ` · ${x.notes}` : ''}</div>
           </div>
-          <button className="btn sm ghost" onClick={() => { if (confirm('¿Borrar esta pesada?')) remove('weights', x.id) }}>✕</button>
+          <button className="btn sm ghost" onClick={async () => { if (await confirmar('¿Borrar esta pesada?')) remove('weights', x.id) }}>✕</button>
         </div>
       ))}
       </details>

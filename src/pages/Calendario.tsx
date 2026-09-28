@@ -6,6 +6,7 @@ import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from
 import { Check, Field, Segmented } from '../components/ui'
 import { calendarioTratamiento, protocolPoint } from '../domain/protocol'
 import { faseDelDia, sesionesTratamiento } from '../domain/fases'
+import { confirmar } from '../components/Confirmar'
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -212,7 +213,7 @@ function EventForm({ initial, onClose }: { initial: Partial<CalendarEvent>; onCl
           }
           onClose()
         }}>Guardar</button>
-        {e.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar este evento?')) { await remove('calendar_events', e.id!); onClose() } }}>Borrar</button>}
+        {e.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar este evento?')) { await remove('calendar_events', e.id!); onClose() } }}>Borrar</button>}
       </div>
       {e.id && e.status === 'previsto' && (
         <p className="muted small" style={{ marginTop: '.6rem' }}>

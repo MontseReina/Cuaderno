@@ -597,3 +597,22 @@ details.pesadas[open] > summary::after { content: '▾'; }
 .informe .informe-notice { display: block; align-self: stretch; width: auto; max-width: none; text-align: left; margin: .5rem 0 0; }
 .informe .informe-lista { margin: .2rem 0 0; padding-left: 1.1rem; text-align: left; }
 .informe .informe-lista li { margin-bottom: .15rem; }
+
+/* Aviso «¿Seguro?» propio de la app (0.27.0) */
+.confirmar-fondo { position: fixed; inset: 0; background: rgba(24, 24, 24, .45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
+.confirmar { background: #FFFAF2; border-radius: 16px; padding: 1.1rem 1.1rem .9rem; width: 100%; max-width: 360px; box-shadow: 0 12px 32px rgba(0,0,0,.25); border: 1px solid var(--line); }
+.confirmar-msg { margin: 0 0 .4rem; font-size: 1.02rem; font-weight: 700; color: #181818; line-height: 1.4; }
+.confirmar-botones { display: flex; gap: .5rem; justify-content: flex-end; margin-top: .9rem; flex-wrap: wrap; }
+.confirmar-botones .btn { min-width: 7rem; }
+
+/* Hidratación: vaso que se llena y botones rápidos (0.27.0) */
+.vaso-card { display: grid; grid-template-columns: 96px 1fr; gap: .8rem; align-items: center; border-left: 6px solid var(--green); }
+.vaso-card.amarillo { border-left-color: var(--amber); }
+.vaso-card.rojo { border-left-color: var(--red); }
+.vaso { width: 96px; height: auto; display: block; }
+.vaso-total { font-size: 1.15rem; }
+.vaso-mar { margin: .3rem 0 .45rem; }
+.vaso-botones { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+.vaso-botones .btn { padding: .45rem .4rem; font-size: .82rem; line-height: 1.2; }
+.vaso-nota { grid-column: 1 / -1; }
+@media (max-width: 360px) { .vaso-card { grid-template-columns: 76px 1fr; } .vaso { width: 76px; } }

@@ -26,6 +26,7 @@ import Datos from './pages/Datos'
 import Reto from './pages/Reto'
 import Informes from './pages/Informes'
 import { AvisoVersion } from './components/AvisoVersion'
+import { ConfirmarHost } from './components/Confirmar'
 import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
@@ -110,6 +111,7 @@ function Shell() {
       </nav>
       <main className="content">
         <AvisoVersion />
+        <ConfirmarHost />
         <Routes>
           <Route path="/" element={<Reto />} />
           <Route path="/inicio" element={<Home />} />

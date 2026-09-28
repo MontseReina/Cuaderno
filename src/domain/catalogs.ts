@@ -88,18 +88,18 @@ export const MEAL_SLOTS: { key: string; label: string; fat?: boolean }[] = [
   { key: 'comida', label: 'Comida' },
   { key: 'merienda', label: 'Merienda' },
   { key: 'cena', label: 'Cena' },
-  { key: 'snack_grasa_1', label: 'Snack de grasa (entre desayuno y comida)', fat: true },
+  { key: 'snack_grasa_1', label: 'Snack de grasa (media mañana)', fat: true },
   { key: 'snack_grasa_2', label: 'Snack de grasa (entre merienda y cena)', fat: true },
   { key: 'otra', label: 'Otra' },
 ]
 /** Comidas que se muestran según el modo de la semana (pauta de la nutricionista, 10-sept-2026). */
 export const MEAL_SLOTS_BY_MODE: Record<'quimio' | 'nadir', string[]> = {
   quimio: ['desayuno', 'comida', 'merienda', 'cena'], // 3-4 comidas, lo que tolere
-  // 6 comidas (decisión 28/09/2026): un snack de grasa entre desayuno y comida y otro entre merienda y cena.
+  // 6 comidas (decisión 28/09/2026): un snack de grasa a media mañana y otro entre merienda y cena.
   nadir: ['desayuno', 'snack_grasa_1', 'comida', 'merienda', 'snack_grasa_2', 'cena'],
 }
 export const MEALS_TARGET: Record<'quimio' | 'nadir', { min: number; fatSnacks: number }> = {
-  quimio: { min: 3, fatSnacks: 0 },
+  quimio: { min: 4, fatSnacks: 0 }, // 4 comidas en semana de quimio (Montserrate, 28/09/2026)
   nadir: { min: 6, fatSnacks: 2 },
 }
 export const MODE_LABELS: Record<'quimio' | 'nadir', string> = { quimio: 'Semana de quimio', nadir: 'Semana nadir' }

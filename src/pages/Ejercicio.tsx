@@ -7,11 +7,13 @@ import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
 import { ACTIVITIES } from '../domain/catalogs'
 import { Check, Field, Section, Segmented } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
+import { faseTexto } from '../domain/diaTratamiento'
 
 /** Aviso del tramo del día según el día real tras la última sesión de quimio (antes el texto de «D15-21»
  *  salía también en D3-6; corregido en la 0.15.0). */
-function tramo(phase: string, day: number | null): string {
-  const d = day != null ? `D${day}: ` : ''
+function tramo(phase: string, day: number | null, etiqueta?: string | null): string {
+  const d = etiqueta ? `${etiqueta}: ` : ''
   if (phase === 'en_ciclo') return `${d}en ciclo. Movilización, levantarse, paseos cortos. Nada de encamamiento total.`
   if (phase === 'valle') return `${d}valle (D7-14). Actividad ligera, sin exigencia. Sin contacto ni frotar fuerte si hay trombopenia.`
   if (phase === 'recuperacion' && day != null && day >= 15) return `${d}ventana de mayor capacidad (D15-21). Buen momento para fuerza y aeróbico.`
@@ -53,7 +55,7 @@ export default function Ejercicio() {
         <h1>Ejercicio y composición corporal</h1>
         <button className="btn sm" onClick={() => setEditing(sessions.find((s) => s.date === todayStr()) ?? nueva(todayStr()))}>+ Sesión</button>
       </div>
-      {tramo(ctx.phase, ctx.day) && <div className="notice">{tramo(ctx.phase, ctx.day)}</div>}
+      {tramo(ctx.phase, ctx.day, faseTexto(patient?.protocol_start, cycles, todayStr())) && <div className="notice">{tramo(ctx.phase, ctx.day, faseTexto(patient?.protocol_start, cycles, todayStr()))}</div>}
       {patient?.load_limits && <div className="notice"><strong>Límites de traumatología:</strong> {patient.load_limits}</div>}
       <p className="muted small">Cada sesión es la ficha del día: actividad y pasos, capacidad funcional y los ejercicios con detalle (series, repeticiones, carga), que puede rellenar el entrenador.</p>
 
@@ -82,7 +84,7 @@ export default function Ejercicio() {
                 <div className="small">Semana del {fmtDate(f.week_start)}</div>
                 <div className="meta">{[f.stairs && 'sube escaleras', f.stands_alone && 'se levanta solo', f.walk_min != null && `paseo ${f.walk_min} min`, f.falls && `caídas: ${f.falls}`].filter(Boolean).join(' · ') || 'sin datos'}</div>
               </div>
-              <button className="btn sm ghost" title="Borrar este registro" onClick={() => { if (confirm(`¿Borrar el registro de la semana del ${fmtDate(f.week_start)}?`)) remove('functional_weekly', f.id) }}>✕</button>
+              <button className="btn sm ghost" title="Borrar este registro" onClick={async () => { if (await confirmar(`¿Borrar el registro de la semana del ${fmtDate(f.week_start)}?`)) remove('functional_weekly', f.id) }}>✕</button>
             </div>
           ))}
         </Section>
@@ -193,7 +195,7 @@ function SessionForm({ initial, names, onClose }: { initial: Partial<ExerciseSes
 
       <div className="row">
         <button className="btn" disabled={!s.date} onClick={guardar}>Guardar</button>
-        {s.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar esta sesión? La actividad y los pasos del día se conservan.')) { await remove('exercise_sessions', s.id!); onClose() } }}>Borrar</button>}
+        {s.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar esta sesión? La actividad y los pasos del día se conservan.')) { await remove('exercise_sessions', s.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

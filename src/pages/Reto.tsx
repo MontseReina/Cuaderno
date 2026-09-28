@@ -9,6 +9,7 @@ import { SAGA_INICIO } from '../domain/saga'
 import { EscenaFinal, HumaArt } from '../components/Huma'
 import { RelatoPlayer } from '../components/RelatoPlayer'
 import { Field } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
 
 export const ICONOS_PREMIO = ['🎮', '🏛️', '🍦', '🎬', '🧩', '⚽', '🎁', '🍕', '🎢', '📚']
 
@@ -347,7 +348,7 @@ function Evolucion({ nivel, name, goal, onOk }: { nivel: number; name: string; g
 
 function Premio({ week, ch, name }: { week: WeekPoints; ch: ReturnType<typeof challengeFor>; name: string }) {
   const entregar = async () => {
-    if (!confirm('¿Marcar el premio como entregado?')) return
+    if (!await confirmar('¿Marcar el premio como entregado?')) return
     await save('challenges', { ...(ch as Partial<Challenge>), id: ch.id, patient_id: currentPatientId(), week_start: week.start, goal: ch.goal, shield_min: ch.shield_min, delivered_at: new Date().toISOString() } as Challenge)
   }
   return (

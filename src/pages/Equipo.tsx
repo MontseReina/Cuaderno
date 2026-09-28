@@ -6,6 +6,7 @@ import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
 import { meanIntake } from '../domain/nutrition'
 import { Field, Section } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
 
 export default function Equipo() {
   const questions = useRows('questions')
@@ -69,7 +70,7 @@ function QuestionItem({ q }: { q: Question }) {
           <div className="row" style={{ marginTop: '.3rem' }}>
             <button className="btn sm" disabled={!answer.trim()} onClick={() => save('questions', { ...q, answer: answer.trim(), status: 'respondida', answered_by: backend.currentUserName(), answered_at: todayStr() })}>Guardar respuesta</button>
             {q.status === 'respondida' && <button className="btn sm ghost" onClick={() => save('questions', { ...q, status: 'pendiente' })}>Reabrir</button>}
-            <button className="btn sm danger" onClick={() => { if (confirm('¿Borrar la pregunta?')) remove('questions', q.id) }}>Borrar</button>
+            <button className="btn sm danger" onClick={async () => { if (await confirmar('¿Borrar la pregunta?')) remove('questions', q.id) }}>Borrar</button>
           </div>
         </div>
       )}

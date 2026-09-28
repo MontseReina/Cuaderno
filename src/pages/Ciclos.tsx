@@ -7,6 +7,7 @@ import { addDays, fmtDate, fmtWall, hoursBetween, toLocalInput, todayStr } from 
 import { sesionesTratamiento, type Sesion } from '../domain/fases'
 import { resumenDeCiclo } from '../domain/nausea'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
 
@@ -309,7 +310,7 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
       <Field label="Notas"><textarea value={c.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
       <div className="row">
         <button className="btn" disabled={!c.drugs?.length || !c.planned_date} onClick={async () => { await save('cycles', { ...c, patient_id: currentPatientId() } as Cycle); onClose() }}>Guardar</button>
-        {c.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar este ciclo? Se puede recuperar desde el registro.')) { await remove('cycles', c.id!); onClose() } }}>Borrar</button>}
+        {c.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar este ciclo? Se puede recuperar desde el registro.')) { await remove('cycles', c.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

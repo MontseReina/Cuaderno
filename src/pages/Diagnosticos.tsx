@@ -4,6 +4,7 @@ import type { Diagnosis, DiagnosisKind, DiagnosisStatus, Finding, Patient } from
 import { fmtDate, todayStr } from '../domain/dates'
 import { Field, Section, Segmented } from '../components/ui'
 import { DX_SIGNS_GENERIC, suggestSigns } from '../domain/catalogs'
+import { confirmar } from '../components/Confirmar'
 
 const KINDS: { value: DiagnosisKind; label: string }[] = [
   { value: 'principal', label: 'Principal' }, { value: 'metastasis', label: 'Metástasis' }, { value: 'complicacion', label: 'Complicación' }, { value: 'infeccion', label: 'Infección' }, { value: 'otro', label: 'Otro' },
@@ -139,7 +140,7 @@ function DxForm({ initial, onClose }: { initial: Partial<Diagnosis>; onClose: ()
       </div>
       <div className="row">
         <button className="btn" disabled={!d.name?.trim() || !d.date} onClick={async () => { await save('diagnoses', { ...d, patient_id: currentPatientId() } as Diagnosis); onClose() }}>Guardar</button>
-        {d.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar este diagnóstico?')) { await remove('diagnoses', d.id!); onClose() } }}>Borrar</button>}
+        {d.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar este diagnóstico?')) { await remove('diagnoses', d.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

@@ -7,8 +7,8 @@ import { protocolPoint } from '../domain/protocol'
 import { medicationProgress } from '../domain/medication'
 import { knownUsers } from '../domain/users'
 import { LOCATIONS } from '../domain/catalogs'
-import { DRUG_LABELS } from '../domain/catalogs'
 import { useEffect } from 'react'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 export default function Home() {
   const today = todayStr()
@@ -105,13 +105,13 @@ export default function Home() {
             <strong>{patient?.name}</strong>
             <div className="muted small">
               {ctx.cycle
-                ? `Ciclo ${ctx.cycle.number} · ${ctx.cycle.drugs.map((d) => DRUG_LABELS[d] ?? d).join(' + ')}${pp ? ` · Semana ${pp.week} · Día ${pp.day}` : ` · D${ctx.day}`} · ${estado}`
+                ? `${diaTratamiento(patient?.protocol_start, cycles, today)?.texto ?? `Ciclo ${ctx.cycle.number}`} · ${estado}`
                 : 'Sin ciclos registrados · '}
               {!ctx.cycle && <Link to="/ciclos">añadir el primer ciclo</Link>}
             </div>
             {pp && (
               <div className="muted small">
-                Semana {pp.week} de {pp.total} del protocolo{pp.plan ? ` · esta semana toca ${pp.plan}` : ' · semana de descanso'}
+                {pp.plan ? `Esta semana del protocolo toca ${pp.plan}` : 'Semana de descanso del protocolo'}
               </div>
             )}
             {lugar && <div className="small" style={{ marginTop: '.2rem' }}>{lugar.emoji} {lugar.short}</div>}

@@ -8,6 +8,8 @@ import { corticoidAlert, cycleContext } from '../domain/cycle'
 import { SYNC_ITEMS, WAKEUP_CAUSES } from '../domain/catalogs'
 import { DateNav } from '../components/DateNav'
 import { Check, Field, Section, Segmented, Stepper } from '../components/ui'
+import { confirmar } from '../components/Confirmar'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 export const EXPOSURE_ITEMS = [
   { key: 'limpieza', label: 'Productos de limpieza sin fragancia; sin ambientadores' },
@@ -43,6 +45,7 @@ export default function Biohacking() {
   const ws = weekStart(today)
   const { draft, set, setExtra, logs, toastNode } = useDailyDraft(date)
   const cycles = useRows('cycles')
+  const protocolStart = useRows('patients')[0]?.protocol_start
   const cortico = corticoidAlert(cycles, date)
   const dctx = cycleContext(cycles, date)
   const sync = draft.extra?.sync ?? {}
@@ -91,7 +94,7 @@ export default function Biohacking() {
     <div>
       {toastNode}
       <h1>Biohacking</h1>
-      <DateNav date={date} base="/biohacking" sub={dctx.cycle ? `Ciclo ${dctx.cycle.number} · D${dctx.day}` : 'sin ciclo'} />
+      <DateNav date={date} base="/biohacking" sub={diaTratamiento(protocolStart, cycles, date)?.texto ?? 'sin ciclo'} />
       {cortico && <div className="notice"><strong>Corticoide IV en el ciclo {cortico.number}:</strong> es normal que duerma peor estos días; anotar despertares y causa.</div>}
 
       <Section title="Sueño de esta noche" open>
@@ -183,7 +186,7 @@ function PracticeForm({ initial, onClose }: { initial: Partial<Practice>; onClos
       </div>
       <div className="row">
         <button className="btn" disabled={!p.name?.trim()} onClick={async () => { await save('practices', { ...p, patient_id: currentPatientId() } as Practice); onClose() }}>Guardar</button>
-        {p.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar?')) { await remove('practices', p.id!); onClose() } }}>Borrar</button>}
+        {p.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar?')) { await remove('practices', p.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

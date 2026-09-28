@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
@@ -7,7 +8,9 @@ import { totalFluids, weekMode } from '../domain/nutrition'
 import { CUP_ML, FLUID_TARGET, HYDRATION_TIPS, MODE_LABELS, SEAWATER_PERFUSION, SEAWATER_TARGET_ML, URINE_COLORS } from '../domain/catalogs'
 import { faseDelDia } from '../domain/fases'
 import { DateNav } from '../components/DateNav'
+import { Vaso } from '../components/Vaso'
 import { Field, Section, Stepper } from '../components/ui'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 /** Hidratación por modo de semana (quimio / nadir): objetivo, desglose y color de orina. */
 export default function Hidratacion() {
@@ -23,22 +26,51 @@ export default function Hidratacion() {
   const mode = weekMode(draft, ctx)
   const target = FLUID_TARGET[mode]
   const total = totalFluids(draft)
-  const pct = total != null ? Math.min(100, Math.round((total / target) * 100)) : 0
   const level = total == null ? 'rojo' : total >= target ? 'verde' : total >= target * 0.7 ? 'amarillo' : 'rojo'
   const byDate = new Map(logs.map((l) => [l.date, l]))
   const days = Array.from({ length: 7 }, (_, i) => addDays(date, i - 6))
   const sum = (draft.water_ml ?? 0) + (draft.seawater_ml ?? 0) + (draft.broth_cups ?? 0) * CUP_ML + (draft.extra?.infusion_cups ?? 0) * CUP_ML
+  // Botones rápidos (0.27.0): cada toque suma a su casilla (y al total si está tecleado a mano). Se puede deshacer el último.
+  type Previo = Pick<typeof draft, 'water_ml' | 'seawater_ml' | 'broth_cups' | 'fluids_total_ml'> & { infusion_cups: number | null | undefined; txt: string }
+  const [ultimo, setUltimo] = useState<Previo | null>(null)
+  const sumar = (k: 'agua' | 'mar' | 'caldo' | 'infusion', txt: string) => {
+    setUltimo({ water_ml: draft.water_ml, seawater_ml: draft.seawater_ml, broth_cups: draft.broth_cups, fluids_total_ml: draft.fluids_total_ml, infusion_cups: draft.extra?.infusion_cups, txt })
+    const ml = k === 'mar' ? 10 : CUP_ML
+    if (k === 'agua') set('water_ml', (draft.water_ml ?? 0) + CUP_ML)
+    if (k === 'mar') set('seawater_ml', (draft.seawater_ml ?? 0) + 10)
+    if (k === 'caldo') set('broth_cups', (draft.broth_cups ?? 0) + 1)
+    if (k === 'infusion') setExtra({ infusion_cups: (draft.extra?.infusion_cups ?? 0) + 1 })
+    if (draft.fluids_total_ml != null) set('fluids_total_ml', draft.fluids_total_ml + ml)
+  }
+  const deshacer = () => {
+    if (!ultimo) return
+    set('water_ml', ultimo.water_ml ?? null); set('seawater_ml', ultimo.seawater_ml ?? null); set('broth_cups', ultimo.broth_cups ?? null)
+    set('fluids_total_ml', ultimo.fluids_total_ml ?? null); setExtra({ infusion_cups: ultimo.infusion_cups ?? null })
+    setUltimo(null)
+  }
+  const mar = draft.seawater_ml ?? 0
 
   return (
     <div>
       {toastNode}
       <h1>Hidratación</h1>
-      <DateNav date={date} base="/hidratacion" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day}${ctx.mtxDay ? ' · metotrexato: líquidos abundantes' : ''}` : 'sin ciclo'} />
+      <DateNav date={date} base="/hidratacion" sub={`${diaTratamiento(patient?.protocol_start, cycles, date)?.texto ?? 'sin ciclo'}${ctx.mtxDay ? ' · metotrexato: líquidos abundantes' : ''}`} />
 
-      <div className={'traffic ' + level} style={{ padding: '.6rem .9rem' }}>
-        <strong>{total ?? 0} ml de {target} ml</strong> · {MODE_LABELS[mode]}
-        <div style={{ height: 10, background: 'rgba(255,255,255,.35)', borderRadius: 5, marginTop: '.4rem' }}><div style={{ width: `${pct}%`, height: 10, background: '#fff', borderRadius: 5 }} /></div>
-        {ctx.mtxDay && <div className="small" style={{ marginTop: '.3rem' }}>Día de metotrexato: además del objetivo, pH de orina &gt; 7 y micciones frecuentes (se anotan en el Diario).</div>}
+      <div className={'card vaso-card ' + level}>
+        <Vaso total={total ?? 0} objetivo={target} nivel={level} />
+        <div className="vaso-info">
+          <div className="vaso-total"><strong>{total ?? 0} ml</strong> de {target} ml</div>
+          <div className="muted small">{MODE_LABELS[mode]}{total != null && total < target ? ` · faltan ${target - total} ml` : total != null ? ' · objetivo cumplido' : ''}</div>
+          <div className="vaso-mar small">🌊 Agua de mar: {perfusion ? <><strong>{Math.round(mar / 10)} chupito{Math.round(mar / 10) === 1 ? '' : 's'}</strong> ({mar} ml) · uno de 10 ml cada 2 h hasta terminar la perfusión</> : <><strong>{mar} de {SEAWATER_TARGET_ML} ml</strong></>}</div>
+          <div className="vaso-botones">
+            <button type="button" className="btn sm secondary" onClick={() => sumar('agua', '½ taza de agua')}>💧 + ½ taza de agua</button>
+            <button type="button" className="btn sm secondary" onClick={() => sumar('mar', 'chupito de agua de mar')}>🌊 + chupito de mar</button>
+            <button type="button" className="btn sm secondary" onClick={() => sumar('caldo', '½ taza de caldo')}>🍲 + ½ taza de caldo</button>
+            <button type="button" className="btn sm secondary" onClick={() => sumar('infusion', '½ taza de manzanilla')}>🌼 + ½ taza de manzanilla</button>
+          </div>
+          {ultimo && <button type="button" className="linkbtn small" onClick={deshacer}>↩︎ Deshacer «{ultimo.txt}»</button>}
+        </div>
+        {ctx.mtxDay && <div className="small vaso-nota">Día de metotrexato: además del objetivo, pH de orina &gt; 7 y micciones frecuentes (se anotan en Signos y síntomas).</div>}
       </div>
 
       <Section title={`Consejos · ${MODE_LABELS[mode].toLowerCase()}`} open>
@@ -47,7 +79,7 @@ export default function Hidratacion() {
 
       <Section title="Qué ha bebido hoy" open>
         <div className="notice small"><strong>0 también es un dato:</strong> en agua, agua de mar, caldo y manzanilla, pon 0 si no ha tomado nada. Dejarlo en blanco significa «no apuntado».</div>
-        <p className="muted small">Media taza = {CUP_ML} ml. Si no se teclea el total, se suma solo.</p>
+        <p className="muted small">Media taza = {CUP_ML} ml; chupito de agua de mar = 10 ml. Los botones de arriba suman aquí; si algo no cuadra, se corrige a mano. Si no se teclea el total, se suma solo.</p>
         <div className="grid2">
           <Field label="Agua (ml)"><input type="number" inputMode="numeric" step={100} min={0} value={draft.water_ml ?? ''} onChange={(e) => set('water_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>
           <Field label={perfusion ? 'Agua de mar (ml) · día de perfusión' : `Agua de mar (ml) · objetivo ${SEAWATER_TARGET_ML} ml al día`} hint={perfusion ? `Hoy: ${SEAWATER_PERFUSION}.` : undefined}><input type="number" inputMode="numeric" step={10} min={0} value={draft.seawater_ml ?? ''} onChange={(e) => set('seawater_ml', e.target.value === '' ? null : Number(e.target.value))} /></Field>

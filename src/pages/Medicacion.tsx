@@ -13,6 +13,8 @@ import { DateNav } from '../components/DateNav'
 import { Avisos } from '../components/Avisos'
 import { Field, Section, Segmented, TriButton, type TriState } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
+import { confirmar } from '../components/Confirmar'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 const BLOCKS: ProductBlock[] = ['hospital', 'sup_ciclo', 'sup_fuera']
 type Outcome = NonNullable<Product['outcome']>
@@ -34,6 +36,7 @@ export default function Medicacion() {
   const retired = all.filter((p) => !isActive(p, today)).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
   const intakes = useRows('intakes', (i) => i.date === today)
   const cycles = useRows('cycles')
+  const protocolStart = useRows('patients')[0]?.protocol_start
   // Rescates de antiemético apuntados hoy en Signos y síntomas (registro de náuseas, 0.25.0).
   const rescatesHoy = useRows('daily_logs', (l) => l.date === today)[0]?.extra?.nausea?.rescates ?? []
   const panels = useRows('lab_panels')
@@ -88,7 +91,7 @@ export default function Medicacion() {
         <h1>Medicación y suplementos</h1>
         <button className="btn sm" onClick={() => setEditing({ block: 'sup_fuera', moments: [], traffic: {} })}>+ Producto</button>
       </div>
-      <DateNav date={today} base="/medicacion" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day} · ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle D7-14' : 'fuera de ciclo'}` : 'sin ciclo'} />
+      <DateNav date={today} base="/medicacion" sub={diaTratamiento(protocolStart, cycles, today)?.texto ?? 'sin ciclo'} />
       <Avisos avisos={[
         ...(anticoag && pltValue != null && pltValue < 50 ? [{
           key: 'plt', nivel: 'rojo' as const, icono: '🩸',
@@ -167,7 +170,7 @@ export default function Medicacion() {
                             </select>
                           </div>
                         ))}
-                        <button className="linkbtn" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
+                        <button className="linkbtn" onClick={async () => { if (await confirmar(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
                       </td>
                       {usedMoments.map((m) => {
                         const planned = p.moments.includes(m.key as Moment)
@@ -197,7 +200,7 @@ export default function Medicacion() {
                     <div className="meta">{p.dose}{extraMeta(p) ? ` · ${extraMeta(p)}` : ''}</div>
                     {(() => { const r = rescatesHoy.filter((x) => x.med === p.name); return r.length ? <div className="meta">{esHoy ? 'Hoy' : 'Ese día'}: {r.map((x) => `${x.time}${x.efecto ? ` (${x.efecto === 'si' ? 'mejoró' : x.efecto === 'algo' ? 'mejoró algo' : 'no mejoró'})` : ''}`).join(', ')}</div> : null })()}
                   </div>
-                  <button className="btn sm ghost" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
+                  <button className="btn sm ghost" onClick={async () => { if (await confirmar(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
                 </div>
               ))}
             </div>
@@ -224,7 +227,7 @@ export default function Medicacion() {
                     {(['mtx', 'cddp_adm', 'nadir', 'infusion'] as const).map((k) => p.traffic?.[k] && <span key={k} className={'tag ' + p.traffic[k]}>{k === 'mtx' ? 'MTX' : k === 'cddp_adm' ? 'CDDP+ADM' : k === 'nadir' ? 'nadir' : 'infusión'}: {TRAFFIC_LABELS[p.traffic[k]!]}</span>)}
                   </div>
                 </div>
-                <button className="btn sm ghost" onClick={() => { if (confirm(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
+                <button className="btn sm ghost" onClick={async () => { if (await confirmar(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
               </div>
             ))}
           </Section>
@@ -378,7 +381,7 @@ function ProductForm({ initial, onClose }: { initial: Partial<Product>; onClose:
       )}
       <div className="row">
         <button className="btn" disabled={!p.name?.trim()} onClick={async () => { await save('products', { ...p, patient_id: currentPatientId() } as Product); onClose() }}>Guardar</button>
-        {p.id && <button className="btn danger" onClick={async () => { if (confirm('¿Borrar este producto? Si la doctora lo ha quitado, mejor usa «Retirar» para que quede en el historial.')) { await remove('products', p.id!); onClose() } }}>Borrar</button>}
+        {p.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar este producto? Si la doctora lo ha quitado, mejor usa «Retirar» para que quede en el historial.')) { await remove('products', p.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>
   )

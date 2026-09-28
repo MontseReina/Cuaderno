@@ -7,6 +7,7 @@ import { APP_VERSION, SCHEMA_VERSION, exportAiReport, exportBackup, exportCsv, i
 import { loadSampleData } from '../domain/sample'
 import { Field, Section, Segmented, useToast } from '../components/ui'
 import { getPin, setPin } from '../domain/pin'
+import { confirmar } from '../components/Confirmar'
 
 const TABLE_LABELS: Record<string, string> = {
   patients: 'Paciente', profiles: 'Usuarios', diagnoses: 'Diagnósticos', cycles: 'Ciclos', daily_logs: 'Registro diario', products: 'Medicación y suplementos',
@@ -97,8 +98,8 @@ export default function Datos() {
       <Section title="Pruebas y mantenimiento">
         <p className="small">Registros guardados: <strong>{total}</strong>. Versión de la app <strong>{APP_VERSION}</strong> · esquema de datos v{SCHEMA_VERSION}.</p>
         <div className="row">
-          <button className="btn secondary sm" onClick={async () => { if (confirm('Se añadirán datos INVENTADOS de ejemplo (14 días, ciclos, analíticas…). ¿Continuar?')) { await loadSampleData(); toast('Datos de ejemplo cargados') } }}>Cargar datos de ejemplo</button>
-          {isDemo && <button className="btn danger sm" onClick={() => { if (confirm('¿Borrar TODOS los datos de este aparato?') && confirm('Segunda confirmación: esta acción no se puede deshacer si no has exportado una copia. ¿Borrar?')) { (backend as LocalBackend).reset(); location.reload() } }}>Borrar todo</button>}
+          <button className="btn secondary sm" onClick={async () => { if (await confirmar('Se añadirán datos INVENTADOS de ejemplo (14 días, ciclos, analíticas…). ¿Continuar?')) { await loadSampleData(); toast('Datos de ejemplo cargados') } }}>Cargar datos de ejemplo</button>
+          {isDemo && <button className="btn danger sm" onClick={async () => { if (await confirmar('¿Borrar TODOS los datos de este aparato?') && await confirmar('Segunda confirmación: esta acción no se puede deshacer si no has exportado una copia. ¿Borrar?')) { (backend as LocalBackend).reset(); location.reload() } }}>Borrar todo</button>}
         </div>
       </Section>
     </div>
