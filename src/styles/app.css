@@ -494,3 +494,26 @@ details.pauta > summary { letter-spacing: .03em; }
 .pauta-sec ul { margin: 0; padding-left: 1.1rem; font-size: .88rem; }
 .pauta-sec li { margin: .15rem 0; }
 .pauta-sec ol { margin: .2rem 0; padding-left: 1.2rem; }
+
+/* 0.20.0 · Calendario mensual con el tratamiento */
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+.cal-mes { display: flex; flex-direction: column; align-items: center; font-size: 1.05rem; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.cal-dow { text-align: center; font-size: .75rem; color: var(--muted); font-weight: 700; }
+.cal-dia { display: flex; flex-direction: column; align-items: stretch; gap: 1px; min-height: 64px; min-width: 0; padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: #fff; text-align: left; font: inherit; cursor: pointer; overflow: hidden; }
+.cal-dia.hoy { background: var(--primary-soft); }
+.cal-dia.sel { outline: 2px solid var(--primary); outline-offset: -1px; }
+.cal-num { font-size: .8rem; font-weight: 700; color: var(--text); }
+.cal-sd { font-size: .58rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.cal-trat { display: inline-block; font-style: normal; font-size: .6rem; font-weight: 800; line-height: 1.15; border-radius: 4px; padding: 1px 3px; color: #fff; background: var(--green); white-space: normal; overflow-wrap: anywhere; }
+.cal-trat.cddp { background: #8a4a2b; }
+.cal-trat.adm { background: #a0412f; }
+.cal-trat.cirugia { background: #5b4a86; }
+.cal-ev { font-size: .6rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.cal-leyenda { display: flex; flex-wrap: wrap; gap: .3rem .8rem; margin-top: .6rem; align-items: center; }
+.cal-leyenda i { margin-right: .2rem; }
+.cal-detalle { margin-top: .7rem; border-top: 1px solid var(--line); padding-top: .6rem; }
+.cal-lista { margin-top: .7rem; border-top: 1px solid var(--line); padding-top: .3rem; }
+.cal-lista h3 { margin: .3rem 0; }
+.cal-fila { display: grid; grid-template-columns: 7.5rem 1fr; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid var(--line); cursor: pointer; font-size: .9rem; }
+.cal-fecha { color: var(--muted); text-transform: capitalize; }

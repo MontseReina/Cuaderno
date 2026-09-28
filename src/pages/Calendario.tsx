@@ -4,32 +4,72 @@ import type { CalendarEvent, EventStatus, EventType } from '../store/types'
 import { EVENT_TYPES, PROFESSIONALS } from '../domain/catalogs'
 import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { Check, Field, Segmented } from '../components/ui'
+import { calendarioTratamiento, protocolPoint } from '../domain/protocol'
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+
+/** Días del mes (YYYY-MM) con huecos al principio para empezar en lunes. */
+function diasDelMes(ym: string) {
+  const [y, m] = ym.split('-').map(Number)
+  const first = new Date(y, m - 1, 1, 12)
+  const pad = (first.getDay() + 6) % 7
+  const n = new Date(y, m, 0, 12).getDate()
+  const days: string[] = Array.from({ length: pad }, () => '')
+  for (let d = 1; d <= n; d++) days.push(`${ym}-${String(d).padStart(2, '0')}`)
+  return days
+}
+function otroMes(ym: string, delta: number) {
+  const [y, m] = ym.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1, 12)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
 export default function Calendario() {
   const events = useRows('calendar_events').sort((a, b) => a.start_at.localeCompare(b.start_at))
+  const cycles = useRows('cycles')
+  const patient = useRows('patients')[0]
   const [editing, setEditing] = useState<Partial<CalendarEvent> | null>(null)
-  const [view, setView] = useState<'proximos' | 'mes' | 'pasados'>('proximos')
+  // Orden y vista por defecto pedidos el 28/09: primero «Este mes» (abierto siempre), luego Próximos y Pasados.
+  const [view, setView] = useState<'proximos' | 'mes' | 'pasados'>('mes')
   const today = todayStr()
+  const [mes, setMes] = useState(today.slice(0, 7))
+  const [diaSel, setDiaSel] = useState<string | null>(null)
 
   if (editing) return <EventForm initial={editing} onClose={() => setEditing(null)} />
 
   const upcoming = events.filter((e) => e.start_at.slice(0, 10) >= today && e.status !== 'cancelado')
   const past = events.filter((e) => e.start_at.slice(0, 10) < today).reverse()
   const label = (t: string) => EVENT_TYPES.find((x) => x.key === t)?.label ?? t
+  const start = patient?.protocol_start ?? null
+  const trat = calendarioTratamiento(start, cycles)
+  const pp = (d: string) => protocolPoint(start, d)
+  const dias = diasDelMes(mes)
+  const [y, m] = mes.split('-').map(Number)
+  const evDe = (d: string) => events.filter((e) => e.start_at.slice(0, 10) === d && e.status !== 'cancelado')
+  const nombreDia = (d: string) => { const f = new Date(d + 'T12:00:00'); return `${DIAS_SEMANA[f.getDay()]} ${f.getDate()}` }
+  const lineaTrat = (d: string) => {
+    const t = trat.get(d)
+    const p = pp(d)
+    return [p ? `Sem ${p.week} · Día ${p.day}` : null, t ? t.largo : null].filter(Boolean).join(' · ')
+  }
+  const delMes = dias.filter((d) => d && (trat.has(d) || evDe(d).length))
 
-  const monthDays = (() => {
-    const d = new Date(today + 'T12:00:00')
-    d.setDate(1)
-    const first = new Date(d)
-    const pad = (first.getDay() + 6) % 7
-    const days: string[] = []
-    for (let i = 0; i < pad; i++) days.push('')
-    while (d.getMonth() === first.getMonth()) {
-      days.push(d.toISOString().slice(0, 10))
-      d.setDate(d.getDate() + 1)
-    }
-    return days
-  })()
+  const tarjetaEvento = (e: CalendarEvent) => (
+    <div className="card tight" key={e.id} onClick={() => setEditing(e)} style={{ cursor: 'pointer', marginTop: '.5rem', opacity: e.status === 'realizado' ? 0.7 : 1 }}>
+      <div className="row between">
+        <div>
+          <span className="tag gray">{label(e.type)}</span>
+          <strong>{e.title}</strong>
+        </div>
+        {e.status !== 'previsto' && <span className="tag">{e.status}</span>}
+      </div>
+      <div className="muted small">
+        {e.all_day ? fmtDate(e.start_at) : fmtWall(e.start_at)}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}{e.professional ? ` · ${e.professional}` : ''}
+      </div>
+      {e.expected_result_date && <div className="small">Resultado esperado: {fmtDate(e.expected_result_date)}</div>}
+    </div>
+  )
 
   return (
     <div>
@@ -37,41 +77,73 @@ export default function Calendario() {
         <h1>Calendario</h1>
         <button className="btn sm" onClick={() => setEditing({ type: 'consulta', start_at: nowLocalInput(), all_day: false, status: 'previsto' })}>+ Evento</button>
       </div>
-      <Segmented options={[{ value: 'proximos', label: 'Próximos' }, { value: 'mes', label: 'Este mes' }, { value: 'pasados', label: 'Pasados' }]} value={view} onChange={(v) => setView(v ?? 'proximos')} />
+      <Segmented options={[{ value: 'mes', label: 'Este mes' }, { value: 'proximos', label: 'Próximos' }, { value: 'pasados', label: 'Pasados' }]} value={view} onChange={(v) => setView(v ?? 'mes')} />
 
       {view === 'mes' && (
-        <div className="card" style={{ marginTop: '.6rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', fontSize: '.8rem' }}>
-            {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => <div key={d} className="muted" style={{ textAlign: 'center' }}>{d}</div>)}
-            {monthDays.map((d, i) => {
-              const evs = d ? events.filter((e) => e.start_at.slice(0, 10) === d && e.status !== 'cancelado') : []
+        <div className="card cal" style={{ marginTop: '.6rem' }}>
+          <div className="cal-head">
+            <button type="button" className="btn sm secondary" aria-label="Mes anterior" onClick={() => { setMes(otroMes(mes, -1)); setDiaSel(null) }}>‹</button>
+            <div className="cal-mes">
+              <strong>{MESES[m - 1][0].toUpperCase() + MESES[m - 1].slice(1)} {y}</strong>
+              {mes !== today.slice(0, 7) && <button type="button" className="linkbtn small" onClick={() => { setMes(today.slice(0, 7)); setDiaSel(null) }}>volver a hoy</button>}
+            </div>
+            <button type="button" className="btn sm secondary" aria-label="Mes siguiente" onClick={() => { setMes(otroMes(mes, 1)); setDiaSel(null) }}>›</button>
+          </div>
+          <div className="cal-grid">
+            {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d) => <div key={d} className="cal-dow">{d}</div>)}
+            {dias.map((d, i) => {
+              if (!d) return <div key={i} />
+              const t = trat.get(d)
+              const p = pp(d)
+              const evs = evDe(d)
               return (
-                <div key={i} style={{ minHeight: 52, border: '1px solid var(--line)', borderRadius: 6, padding: 2, background: d === today ? 'var(--primary-soft)' : '#fff' }}>
-                  {d && <div className="muted">{Number(d.slice(8))}</div>}
-                  {evs.slice(0, 2).map((e) => <div key={e.id} onClick={() => setEditing(e)} style={{ fontSize: '.65rem', lineHeight: 1.1, cursor: 'pointer', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>• {e.title}</div>)}
-                  {evs.length > 2 && <div className="muted" style={{ fontSize: '.65rem' }}>+{evs.length - 2}</div>}
-                </div>
+                <button type="button" key={d} className={'cal-dia' + (d === today ? ' hoy' : '') + (d === diaSel ? ' sel' : '')} onClick={() => setDiaSel(d === diaSel ? null : d)}>
+                  <span className="cal-num">{Number(d.slice(8))}</span>
+                  {p && <span className="cal-sd">S{p.week}·D{p.day}</span>}
+                  {t && <span className={'cal-trat ' + t.tipo}>{t.corto}</span>}
+                  {evs.slice(0, 2).map((e) => <span key={e.id} className="cal-ev">• {e.title}</span>)}
+                  {evs.length > 2 && <span className="cal-ev muted">+{evs.length - 2}</span>}
+                </button>
               )
             })}
           </div>
+          <div className="cal-leyenda small muted">
+            <span><i className="cal-trat mtx">MTX</i> Metotrexato</span>
+            <span><i className="cal-trat cddp">CDDP</i> Cisplatino</span>
+            <span><i className="cal-trat adm">ADM</i> Adriamicina</span>
+            <span><i className="cal-trat cirugia">Cirugía</i> posible</span>
+            <span>S = semana · D = día del tratamiento</span>
+          </div>
+
+          {diaSel && (
+            <div className="cal-detalle">
+              <strong>{nombreDia(diaSel)} de {MESES[Number(diaSel.slice(5, 7)) - 1]}</strong>
+              {lineaTrat(diaSel) && <div className="small">{lineaTrat(diaSel)}{trat.get(diaSel)?.registrada ? ' · registrado en Tratamiento' : ''}</div>}
+              {evDe(diaSel).map((e) => tarjetaEvento(e))}
+              {!lineaTrat(diaSel) && !evDe(diaSel).length && <div className="muted small">Nada apuntado este día.</div>}
+              <button type="button" className="btn sm secondary" style={{ marginTop: '.5rem' }} onClick={() => setEditing({ type: 'consulta', start_at: diaSel + 'T09:00', all_day: false, status: 'previsto' })}>+ Evento este día</button>
+            </div>
+          )}
+
+          {delMes.length > 0 && (
+            <div className="cal-lista">
+              <h3>Este mes</h3>
+              {delMes.map((d) => (
+                <div key={d} className="cal-fila" onClick={() => setDiaSel(d)}>
+                  <span className="cal-fecha">{nombreDia(d)}</span>
+                  <span>
+                    {trat.get(d) && <strong>{lineaTrat(d)}</strong>}
+                    {!trat.get(d) && pp(d) && <span className="muted">Sem {pp(d)!.week} · Día {pp(d)!.day}</span>}
+                    {evDe(d).map((e) => <div key={e.id} className="small">{label(e.type)}: {e.title}{e.all_day ? '' : ` · ${e.start_at.slice(11, 16)}`}</div>)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {(view === 'proximos' ? upcoming : view === 'pasados' ? past : []).map((e) => (
-        <div className="card tight" key={e.id} onClick={() => setEditing(e)} style={{ cursor: 'pointer', marginTop: '.5rem', opacity: e.status === 'realizado' ? 0.7 : 1 }}>
-          <div className="row between">
-            <div>
-              <span className="tag gray">{label(e.type)}</span>
-              <strong>{e.title}</strong>
-            </div>
-            {e.status !== 'previsto' && <span className="tag">{e.status}</span>}
-          </div>
-          <div className="muted small">
-            {e.all_day ? fmtDate(e.start_at) : fmtWall(e.start_at)}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}{e.professional ? ` · ${e.professional}` : ''}
-          </div>
-          {e.expected_result_date && <div className="small">Resultado esperado: {fmtDate(e.expected_result_date)}</div>}
-        </div>
-      ))}
+      {(view === 'proximos' ? upcoming : view === 'pasados' ? past : []).map((e) => tarjetaEvento(e))}
       {view === 'proximos' && upcoming.length === 0 && <div className="empty">Nada previsto.</div>}
     </div>
   )
