@@ -4,15 +4,18 @@ import { currentPatientId, save, useRows } from '../store'
 import { addDays, fmtDate, todayStr, weekStart } from '../domain/dates'
 import { buildWeekly, dayLabel, type Bloque, type Light, type WeeklyData } from '../domain/weekly'
 import { initials } from '../domain/exporter'
+import { RegistroCard } from '../components/RegistroCard'
 
-/** Pilar 📊 Informes: diario y mensual (en espera) y el informe semanal. */
+/** Pilar 📊 Evaluaciones (antes «Informes», renombrado el 28/09/2026): cómo se rellena el registro,
+ *  el informe semanal y, en espera, el diario y el mensual. La ruta sigue siendo /informes. */
 export default function Informes() {
   const { kind } = useParams()
   if (kind === 'semanal') return <Semanal />
   return (
     <div>
-      <h1>📊 Informes</h1>
+      <h1>📊 Evaluaciones</h1>
       <p className="muted small">Se calculan solos con lo que se apunta cada día. No hay que rellenar nada más.</p>
+      <RegistroCard />
       <Link to="/informes/semanal" className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
         <span style={{ fontSize: '1.5rem' }}>🗓️</span>
         <span><strong>Informe semanal</strong><div className="muted small">De lunes a domingo: cómo ha ido cada bloque, alertas, qué mejorar y qué mantener. Se descarga en PDF.</div></span>
@@ -68,7 +71,7 @@ function Semanal() {
   return (
     <div className="informe">
       <div className="row between noprint">
-        <Link to="/informes" className="small">← Informes</Link>
+        <Link to="/informes" className="small">← Evaluaciones</Link>
         <button className="btn sm" onClick={() => window.print()}>⬇️ Descargar PDF</button>
       </div>
       <h1>Informe semanal</h1>

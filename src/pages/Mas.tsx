@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 const LINKS = [
-  { to: '/informes', ico: '📊', label: 'Informes', desc: 'Informe semanal (se descarga en PDF); diario y mensual en espera' },
+  { to: '/informes', ico: '📊', label: 'Evaluaciones', desc: 'Cómo se rellena el registro e informe semanal (se descarga en PDF); diario y mensual en espera' },
   { to: '/diagnosticos', ico: '🩺', label: 'Diagnósticos y evolución', desc: 'Línea de tiempo clínica, signos a vigilar, datos del protocolo' },
   { to: '/ciclos', ico: '💉', label: 'Tratamiento y ciclos', desc: 'Quimio, rescate, dosis acumulada, vigilancia por fármaco' },
   { to: '/nutricion', ico: '🥣', label: 'Nutrición', desc: 'Comidas por modo de semana (quimio / nadir), ayuno, plato con semáforo, peso InBody / hospital' },
