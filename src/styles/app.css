@@ -594,3 +594,6 @@ details.pesadas[open] > summary::after { content: '▾'; }
 .nausea-fases { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .3rem; }
 .nausea-fases .cuadro-c { padding: .2rem .55rem; border-radius: 8px; font-size: .82rem; }
 .nausea-fases .cuadro-c:not(.ok):not(.ambar):not(.rojo) { background: #f3efe6; }
+.informe .informe-notice { display: block; align-self: stretch; width: auto; max-width: none; text-align: left; margin: .5rem 0 0; }
+.informe .informe-lista { margin: .2rem 0 0; padding-left: 1.1rem; text-align: left; }
+.informe .informe-lista li { margin-bottom: .15rem; }

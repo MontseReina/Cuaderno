@@ -6,7 +6,7 @@ import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MOD
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 
-export const APP_VERSION = '0.25.0'
+export const APP_VERSION = '0.26.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 

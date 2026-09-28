@@ -100,7 +100,7 @@ function Semanal() {
   }
   const r = useMemo(() => buildWeekly(ws, data, today), [ws, data.logs, data.cycles, data.products, data.intakes, data.weights, data.sessions, data.diagnoses, data.patient, today]) // eslint-disable-line react-hooks/exhaustive-deps
   const prev = useMemo(() => buildWeekly(addDays(ws, -7), data, today), [ws, data.logs, data.cycles, data.products, data.intakes, data.weights, data.sessions, data.diagnoses, data.patient, today]) // eslint-disable-line react-hooks/exhaustive-deps
-  const [sent, setSent] = useState<Record<number, boolean>>({})
+  const [sent, setSent] = useState<Record<string, boolean>>({})
   const arrow = (b: Bloque) => {
     const p = prev.blocks.find((x) => x.key === b.key)
     if (b.pct == null || p?.pct == null) return ''
@@ -109,8 +109,8 @@ function Semanal() {
   const enCurso = r.weekEnd >= today
   const h = r.header
 
-  const aPreguntas = async (i: number, text: string, date: string) => {
-    await save('questions', { patient_id: currentPatientId(), professional: 'Oncología tradicional', question: `${text} (${fmtDate(date)}). ¿Qué hacemos?`, status: 'pendiente' } as never)
+  const aPreguntas = async (i: number | string, text: string, date?: string) => {
+    await save('questions', { patient_id: currentPatientId(), professional: 'Oncología tradicional', question: date ? `${text} (${fmtDate(date)}). ¿Qué hacemos?` : `${text} (semana del ${fmtDate(r.weekStart)})`, status: 'pendiente' } as never)
     setSent((s) => ({ ...s, [i]: true }))
   }
 
@@ -132,7 +132,7 @@ function Semanal() {
         <div className="small">
           {[h.protocolo, h.ciclo, h.farmacos && `Fármacos de la semana: ${h.farmacos}`].filter(Boolean).join(' · ') || 'Sin ciclo'}
         </div>
-        <div className="small">🏠 {h.casa} días en casa · 🏥 {h.hospital} en el hospital · {h.quimio} días de quimio · {h.nadir} de nadir</div>
+        <div className="small">🏠 {h.casa} días en casa · 🏥 {h.hospital} en el hospital</div>
         <div className="small">Registro diario completado: <strong>{h.registro ?? '—'} %</strong> · {h.diasApuntados} de {r.days.length} días apuntados</div>
       </div>
 
@@ -163,10 +163,36 @@ function Semanal() {
             </tbody>
           </table>
         </div>
-        {r.mejorar.length > 0 && (<><div className="small" style={{ marginTop: '.5rem' }}><strong>A mejorar la semana que viene</strong></div><ol className="small">{r.mejorar.map((m, i) => <li key={i}>{es(m)}</li>)}</ol></>)}
-        {r.mantener.length > 0 && (<><div className="small"><strong>Mantener</strong></div><ol className="small">{r.mantener.map((m, i) => <li key={i}>{m}</li>)}</ol></>)}
+        {r.mantener.length > 0 && (<><div className="small" style={{ marginTop: '.5rem' }}><strong>Mantener</strong></div><ol className="small">{r.mantener.map((m, i) => <li key={i}>{m}</li>)}</ol></>)}
         <p className="muted small">Notas: insuficiente &lt; 60 % · suficiente 60–79 % · bueno 80–94 % · excelente ≥ 95 %. Con menos de 4 días apuntados: «datos insuficientes». ↑ ↓ = frente a la semana anterior.</p>
       </div>
+
+      {r.acciones.length > 0 && (
+        <div className="card tight">
+          <h3 style={{ marginTop: 0 }}>✅ Qué hacer la semana que viene</h3>
+          {r.acciones.map((a) => (
+            <div key={a.title} style={{ marginBottom: '.5rem' }}>
+              <div className="small"><strong>{a.ico} {a.title}</strong> <span className="muted">({a.grade})</span></div>
+              <ul className="small informe-lista">{a.items.map((x, i) => <li key={i}>{es(x)}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {r.ojo.length > 0 && (
+        <div className="card tight">
+          <h3 style={{ marginTop: 0 }}>👀 OJO</h3>
+          {r.ojo.map((o, i) => (
+            <div key={i} className="item" style={{ alignItems: 'flex-start' }}>
+              <span className={'dot ' + (o.light === 'gris' ? 'verde' : o.light)} style={{ marginTop: '.35rem', flex: '0 0 auto' }} />
+              <div className="main">
+                <div className="small"><strong>{o.title}.</strong> {es(o.text)}</div>
+                {o.pregunta && <button className="btn sm ghost noprint" style={{ marginTop: '.3rem' }} disabled={sent['ojo' + i]} onClick={() => aPreguntas('ojo' + i, o.pregunta!)}>{sent['ojo' + i] ? 'En Preguntas ✓' : '→ Preguntas'}</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {r.blocks.map((b) => <BloqueCard key={b.key} b={b} />)}
 
@@ -200,7 +226,13 @@ function BloqueCard({ b }: { b: Bloque }) {
           </table>
         </div>
       )}
-      {b.advice.length > 0 && <div className="notice small" style={{ marginTop: '.5rem' }}>{b.advice.map((a, i) => <div key={i}>{es(a)}</div>)}</div>}
+      {b.sections?.map((sec) => (
+        <div key={sec.title} className="small" style={{ marginTop: '.5rem' }}>
+          <strong>{sec.title}</strong>
+          <ul className="informe-lista">{sec.lines.map((x, i) => <li key={i}>{es(x)}</li>)}</ul>
+        </div>
+      ))}
+      {b.advice.length > 0 && <div className="notice small informe-notice">{b.advice.map((a, i) => <div key={i}>{es(a)}</div>)}</div>}
       {b.complications && b.complications.length > 0 && (
         <div className="small" style={{ marginTop: '.4rem' }}>
           <strong>Complicaciones de salud de la semana</strong>
