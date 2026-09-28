@@ -10,6 +10,7 @@ import { afterChemoGate, countsFromCycleEnd, cycleContext } from '../domain/cycl
 import { trafficWindow } from '../domain/medication'
 import { fmtDate, todayStr } from '../domain/dates'
 import { DateNav } from '../components/DateNav'
+import { Avisos } from '../components/Avisos'
 import { Field, Section, Segmented, TriButton, type TriState } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
 
@@ -86,33 +87,40 @@ export default function Medicacion() {
         <button className="btn sm" onClick={() => setEditing({ block: 'sup_fuera', moments: [], traffic: {} })}>+ Producto</button>
       </div>
       <DateNav date={today} base="/medicacion" sub={ctx.cycle ? `Ciclo ${ctx.cycle.number} · D${ctx.day} · ${ctx.inCycle ? 'en ciclo' : ctx.nadir ? 'valle D7-14' : 'fuera de ciclo'}` : 'sin ciclo'} />
-      {windowKey && <div className="notice">{esHoy ? 'Hoy estamos' : 'Ese día estábamos'} en <strong>{windowLabel[windowKey]}</strong>: los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.</div>}
-      {antiplateletActive.length > 0 && (
-        <div className="notice">
-          <strong>Hay un anticoagulante en la pauta.</strong> Revisar con el equipo estos productos con efecto antiagregante: {antiplateletActive.map((p) => p.name).join(', ')}.
-        </div>
-      )}
-      {anticoag && pltValue != null && pltValue < 50 && (
-        <div className="notice">
-          <strong>Plaquetas {Math.round(pltValue * 1000).toLocaleString('es-ES')} (analítica del {fmtDate(lastPlt!.date)}).</strong> El informe de alta indica suspender la enoxaparina si las plaquetas bajan de 50.000: llamar a oncología antes de la siguiente dosis.
-        </div>
-      )}
-      {gated.map((p) => {
-        const g = gateOf(p)!
-        return (
-          <div className="notice" key={'g' + p.id}>
-            <strong>{p.name}:</strong>{' '}
-            {(() => {
-              const desde = g.basis === 'fin_ciclo' ? 'el cisplatino + adriamicina, cuando termina el ciclo' : 'la última quimio'
-              const despuesDe = g.basis === 'fin_ciclo' ? 'del cisplatino + adriamicina, cuando termina el ciclo' : 'de la última quimio'
-              const solo = p.condition ? `, solo si ${p.condition}` : ''
-              if (g.waiting && !g.from) return <>todavía no. Se podrá empezar {p.after_chemo_days} días después del cisplatino + adriamicina de este ciclo (aún sin fecha en Tratamiento){solo}.</>
-              if (g.waiting) return <>todavía no. Se puede empezar el <strong>{fmtDate(g.from!)}</strong>, {p.after_chemo_days} días después {despuesDe} ({fmtDate(g.chemo!)}{g.planned ? ', fecha prevista' : ''}){solo}.</>
-              return <>desde el {fmtDate(g.from!)} ({p.after_chemo_days} días tras {desde}, {fmtDate(g.chemo!)}) {p.condition ? <>se puede dar <strong>si {p.condition}</strong></> : 'se puede dar'}.</>
-            })()}
-          </div>
-        )
-      })}
+      <Avisos avisos={[
+        ...(anticoag && pltValue != null && pltValue < 50 ? [{
+          key: 'plt', nivel: 'rojo' as const, icono: '🩸',
+          titulo: <><strong>Plaquetas {Math.round(pltValue * 1000).toLocaleString('es-ES')}</strong>: llamar a oncología antes de la enoxaparina</>,
+          detalle: <>Analítica del {fmtDate(lastPlt!.date)}. El informe de alta indica suspender la enoxaparina si las plaquetas bajan de 50.000.</>,
+        }] : []),
+        ...(antiplateletActive.length > 0 ? [{
+          key: 'antiag', nivel: 'ambar' as const, icono: '💉',
+          titulo: <><strong>Anticoagulante</strong> + {antiplateletActive.length} {antiplateletActive.length === 1 ? 'producto antiagregante' : 'productos antiagregantes'}</>,
+          detalle: <>Revisar con el equipo: {antiplateletActive.map((p) => p.name).join(', ')}.</>,
+        }] : []),
+        ...(windowKey ? [{
+          key: 'ventana', nivel: 'info' as const, icono: '🗓️',
+          titulo: <>{esHoy ? 'Hoy' : 'Ese día'}: <strong>{windowLabel[windowKey]}</strong></>,
+          detalle: <>Los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.</>,
+        }] : []),
+        ...gated.map((p) => {
+          const g = gateOf(p)!
+          const desde = g.basis === 'fin_ciclo' ? 'el cisplatino + adriamicina, cuando termina el ciclo' : 'la última quimio'
+          const despuesDe = g.basis === 'fin_ciclo' ? 'del cisplatino + adriamicina, cuando termina el ciclo' : 'de la última quimio'
+          const solo = p.condition ? `, solo si ${p.condition}` : ''
+          return {
+            key: 'g' + p.id, nivel: 'info' as const, icono: g.waiting ? '⏳' : '✅',
+            titulo: g.waiting
+              ? <><strong>{p.name}</strong>: todavía no{g.from ? <>, desde el {fmtDate(g.from)}</> : ''}</>
+              : <><strong>{p.name}</strong>: ya se puede dar{p.condition ? ` si ${p.condition}` : ''}</>,
+            detalle: g.waiting && !g.from
+              ? <>Se podrá empezar {p.after_chemo_days} días después del cisplatino + adriamicina de este ciclo (aún sin fecha en Tratamiento){solo}.</>
+              : g.waiting
+                ? <>Se puede empezar el {fmtDate(g.from!)}, {p.after_chemo_days} días después {despuesDe} ({fmtDate(g.chemo!)}{g.planned ? ', fecha prevista' : ''}){solo}.</>
+                : <>Desde el {fmtDate(g.from!)} ({p.after_chemo_days} días tras {desde}, {fmtDate(g.chemo!)}){solo}.</>,
+          }
+        }),
+      ]} />
       {retiring && <RetirePanel product={retiring} onClose={() => setRetiring(null)} />}
       {products.length === 0 && retired.length === 0 && (
         <div className="empty">
