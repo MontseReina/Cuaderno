@@ -1,11 +1,12 @@
 import type { Cycle } from '../store/types'
-import { addDays } from './dates'
+import { faseDelDia } from './fases'
 
 /** Pautas de alimentación por tipo de quimio (textos de Montserrate, 28/09/2026, a partir del documento
  *  «Pautas de nutrición por quimio»). Se muestran en Nutrición según la semana del día que se está viendo. */
 
-export type PautaKey = 'mtx' | 'cddp'
-export type TramoKey = 'vispera' | 'perfusion' | 'rescate' | 'resto' | 'perfusion48' | 'alta' | 'nadir'
+export type PautaKey = 'mtx' | 'cddp' | 'nadir'
+export type { Tramo as TramoKey } from './fases'
+import type { Tramo as TramoKey } from './fases'
 
 export interface PautaSeccion {
   tramo?: TramoKey
@@ -98,6 +99,23 @@ export const PAUTAS: Record<PautaKey, Pauta> = {
         ],
       },
       {
+        titulo: 'En todas las comidas de la semana',
+        puntos: [
+          'Todo cocido, nada crudo. Base de los platos: caldo de verduras con caldo de huesos.',
+          'Imprescindibles: pescado, verdura de fibra soluble, shiitake, quinoa, grasas omega-3 (coco, aguacate), frutos rojos y paté de sardinas con hígado de bacalao (para evitar la pérdida de peso y músculo).',
+          'Sin legumbres. Menos carne roja.',
+          'Yogur de coco natural o de oveja mejor que de cabra.',
+        ],
+      },
+    ],
+  },
+  nadir: {
+    key: 'nadir',
+    titulo: 'PAUTAS DE ALIMENTACIÓN EN SEMANA NADIR',
+    semana: 'Semana nadir',
+    intro: 'Valle, del día 7 al 14 tras el cisplatino.',
+    secciones: [
+      {
         tramo: 'nadir',
         titulo: 'Semana Nadir',
         subtitulo: 'valle, del día 7 al 14 tras el cisplatino',
@@ -119,34 +137,14 @@ export const PAUTAS: Record<PautaKey, Pauta> = {
   },
 }
 
-const startOf = (c: Cycle) => (c.start_at ?? c.planned_date).slice(0, 10)
-const endOf = (c: Cycle) => (c.end_at ?? c.start_at ?? c.planned_date).slice(0, 10)
-const isMtx = (c: Cycle) => (c.drugs ?? []).includes('MTX')
-const isCddpAdm = (c: Cycle) => (c.drugs ?? []).includes('CDDP') || (c.drugs ?? []).includes('ADM')
-const diff = (a: string, b: string) => Math.round((Date.parse(a + 'T12:00') - Date.parse(b + 'T12:00')) / 864e5)
-
-/** Qué pauta toca un día y en qué tramo está.
- *  - Víspera de un metotrexato (sesión que empieza al día siguiente) → pauta MTX, tramo víspera.
- *  - Última sesión empezada = metotrexato → pauta MTX (perfusión, rescate hasta el fin del rescate o D3, luego «resto»).
- *  - Última sesión empezada = cisplatino y/o adriamicina → pauta de cisplatino (perfusión, tras el alta, nadir D7-14).
- *  Sin quimio registrada → null (se muestra la pauta general). */
-export function pautaDelDia(cycles: Cycle[], date: string): { pauta: PautaKey; tramo: TramoKey | null } | null {
-  const manana = addDays(date, 1)
-  if (cycles.some((c) => isMtx(c) && startOf(c) === manana)) return { pauta: 'mtx', tramo: 'vispera' }
-  const started = cycles.filter((c) => startOf(c) <= date).sort((a, b) => startOf(a).localeCompare(startOf(b)))
-  const last = started.at(-1)
-  if (!last) return null
-  const d = diff(date, startOf(last))
-  if (isMtx(last) && !isCddpAdm(last)) {
-    if (date <= endOf(last)) return { pauta: 'mtx', tramo: 'perfusion' }
-    const finRescate = last.rescue?.end ? last.rescue.end.slice(0, 10) : addDays(startOf(last), 3)
-    return { pauta: 'mtx', tramo: date <= finRescate ? 'rescate' : 'resto' }
-  }
-  if (isCddpAdm(last)) {
-    if (date <= endOf(last)) return { pauta: 'cddp', tramo: 'perfusion48' }
-    if (d >= 7 && d <= 14) return { pauta: 'cddp', tramo: 'nadir' }
-    if (d < 7) return { pauta: 'cddp', tramo: 'alta' }
-    return { pauta: 'cddp', tramo: null }
-  }
-  return null
+/** Qué pauta toca un día y en qué tramo está (regla de Montserrate, 28/09/2026), a partir de las sesiones
+ *  del tratamiento (la fecha definitiva de Tratamiento o, si aún no está, la del protocolo):
+ *  - 7 días desde el inicio del metotrexato (D0-D6) → semana de metotrexato. La víspera de un metotrexato, también.
+ *  - 7 días desde el inicio del cisplatino y/o adriamicina (D0-D6) → semana de cisplatino + adriamicina.
+ *  - Desde el 8.º día (D7) hasta la siguiente sesión → semana nadir.
+ *  Sin quimio antes de ese día (o tras la cirugía, hasta la siguiente sesión) → null (pauta general). */
+export function pautaDelDia(start: string | null | undefined, cycles: Cycle[], date: string): { pauta: PautaKey; tramo: TramoKey | null; dia: number } | null {
+  const f = faseDelDia(start, cycles, date)
+  if (!f) return null
+  return { pauta: f.fase, tramo: f.tramo, dia: f.dia }
 }

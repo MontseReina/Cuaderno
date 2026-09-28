@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { currentPatientId, remove, save, useRows } from '../store'
 import type { Cycle, Drug, MedRow } from '../store/types'
-import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, ROUTE_LABELS } from '../domain/catalogs'
+import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, PROTOCOL_34, ROUTE_LABELS } from '../domain/catalogs'
 import { cumulativeDoses, DOSE_THRESHOLDS } from '../domain/cycle'
-import { fmtDate, fmtWall, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
+import { addDays, fmtDate, fmtWall, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
+import { sesionesTratamiento, type Sesion } from '../domain/fases'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
@@ -28,6 +29,27 @@ export default function Ciclos() {
   const cycles = useRows('cycles').sort((a, b) => b.planned_date.localeCompare(a.planned_date))
   const [editing, setEditing] = useState<Partial<Cycle> | null>(null)
   const acc = cumulativeDoses(cycles)
+  const patient = useRows('patients')[0]
+  // Sesiones del protocolo que aún no están en Tratamiento: fecha de la hoja (miércoles). Al registrarlas se pone la fecha definitiva.
+  const pendientes = sesionesTratamiento(patient?.protocol_start, cycles).filter((x) => x.delProtocolo && x.date >= addDays(todayStr(), -7))
+  const DRUGS_OF: Record<string, Drug[]> = { mtx: ['MTX'], cddp: ['CDDP', 'ADM'] }
+
+  const filaSesion = (x: Sesion) => {
+      const plan = PROTOCOL_34.find((p) => p.week === x.week)?.label ?? ''
+      const nombre = plan === 'CDP + ADM' ? 'Cisplatino y Adriamicina' : plan === 'CDP' ? 'Cisplatino' : plan === 'ADM*' ? 'Adriamicina (tras la cirugía)' : plan === 'Cirugía' ? 'Cirugía (posible)' : 'Metotrexato'
+      const drugs: Drug[] = plan === 'CDP' ? ['CDDP'] : plan === 'ADM*' ? ['ADM'] : DRUGS_OF[x.kind] ?? []
+      return (
+        <div className="item" key={x.week}>
+          <div className="main">
+            <div><strong>{nombre}</strong></div>
+            <div className="meta">Semana {x.week} · {fmtDate(x.date)}</div>
+          </div>
+          {x.kind !== 'cirugia' && (
+            <button className="btn sm secondary" onClick={() => setEditing({ drugs, planned_date: x.date, protocol_week: x.week, corticoid_iv: false })}>Poner fecha definitiva</button>
+          )}
+        </div>
+      )
+  }
 
   if (editing) return <CycleForm initial={editing} cycles={cycles} onClose={() => setEditing(null)} />
 
@@ -50,6 +72,18 @@ export default function Ciclos() {
             )
           })}
         </div>
+      )}
+      {pendientes.length > 0 && (
+        <Section title={`Próximas sesiones del protocolo (${pendientes.length})`} open>
+          <p className="muted small">Fechas de la hoja de tratamiento (siempre en miércoles). Son las que usan el calendario y las pautas de alimentación hasta que se registra la fecha definitiva.</p>
+          {pendientes.slice(0, 5).map(filaSesion)}
+          {pendientes.length > 5 && (
+            <details style={{ marginTop: '.3rem' }}>
+              <summary className="small muted">Ver las {pendientes.length - 5} siguientes</summary>
+              {pendientes.slice(5).map(filaSesion)}
+            </details>
+          )}
+        </Section>
       )}
       {cycles.length === 0 && <div className="empty">Aún no hay ciclos. Añade el primero con la fecha prevista; el resto se completa durante el ingreso.</div>}
       {cycles.map((c) => (

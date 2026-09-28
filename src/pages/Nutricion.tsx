@@ -36,7 +36,8 @@ export default function Nutricion() {
   const mode = weekMode(draft, ctx)
   const autoMode = weekMode({ ...draft, extra: { ...draft.extra, mode: undefined } }, ctx)
   const cisplatin = isCisplatinDay(ctx)
-  const pauta = pautaDelDia(cycles, date)
+  const patient = useRows('patients')[0]
+  const pauta = pautaDelDia(patient?.protocol_start, cycles, date)
   const slots = slotsForMode(mode)
   const day = dayNutrition(draft, mode, { cisplatin })
   const fast = fastingHours(draft, yesterday)

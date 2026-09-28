@@ -26,10 +26,11 @@ export function PautaCard({ auto, tramo }: { auto: PautaKey; tramo: TramoKey | n
             </div>
           )
         })}
-        <div className="row" style={{ gap: '.4rem', marginTop: '.4rem' }}>
+        <div className="row" style={{ gap: '.4rem', marginTop: '.4rem', flexWrap: 'wrap' }}>
           <span className="muted small">Ver:</span>
           <button type="button" className={'btn sm ' + (ver === 'mtx' ? '' : 'secondary')} onClick={() => setVer('mtx')}>Metotrexato</button>
           <button type="button" className={'btn sm ' + (ver === 'cddp' ? '' : 'secondary')} onClick={() => setVer('cddp')}>Cisplatino + adriamicina</button>
+          <button type="button" className={'btn sm ' + (ver === 'nadir' ? '' : 'secondary')} onClick={() => setVer('nadir')}>Nadir</button>
         </div>
       </div>
     </details>

@@ -5,6 +5,7 @@ import { EVENT_TYPES, PROFESSIONALS } from '../domain/catalogs'
 import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { Check, Field, Segmented } from '../components/ui'
 import { calendarioTratamiento, protocolPoint } from '../domain/protocol'
+import { faseDelDia, sesionesTratamiento } from '../domain/fases'
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -43,6 +44,8 @@ export default function Calendario() {
   const label = (t: string) => EVENT_TYPES.find((x) => x.key === t)?.label ?? t
   const start = patient?.protocol_start ?? null
   const trat = calendarioTratamiento(start, cycles)
+  const ses = sesionesTratamiento(start, cycles)
+  const faseDe = (d: string) => faseDelDia(start, cycles, d, ses)?.fase ?? ''
   const pp = (d: string) => protocolPoint(start, d)
   const dias = diasDelMes(mes)
   const [y, m] = mes.split('-').map(Number)
@@ -51,7 +54,9 @@ export default function Calendario() {
   const lineaTrat = (d: string) => {
     const t = trat.get(d)
     const p = pp(d)
-    return [p ? `Sem ${p.week} · Día ${p.day}` : null, t ? t.largo : null].filter(Boolean).join(' · ')
+    const f = faseDe(d)
+    const nombreFase = f === 'mtx' ? 'semana de metotrexato' : f === 'cddp' ? 'semana de cisplatino' : f === 'nadir' ? 'semana nadir' : null
+    return [p ? `Sem ${p.week} · Día ${p.day}` : null, t ? t.largo : null, !t ? nombreFase : null].filter(Boolean).join(' · ')
   }
   const delMes = dias.filter((d) => d && (trat.has(d) || evDe(d).length))
 
@@ -97,7 +102,7 @@ export default function Calendario() {
               const p = pp(d)
               const evs = evDe(d)
               return (
-                <button type="button" key={d} className={'cal-dia' + (d === today ? ' hoy' : '') + (d === diaSel ? ' sel' : '')} onClick={() => setDiaSel(d === diaSel ? null : d)}>
+                <button type="button" key={d} className={'cal-dia f-' + faseDe(d) + (d === today ? ' hoy' : '') + (d === diaSel ? ' sel' : '')} onClick={() => setDiaSel(d === diaSel ? null : d)}>
                   <span className="cal-num">{Number(d.slice(8))}</span>
                   {p && <span className="cal-sd">S{p.week}·D{p.day}</span>}
                   {t && <span className={'cal-trat ' + t.tipo}>{t.corto}</span>}
@@ -113,6 +118,11 @@ export default function Calendario() {
             <span><i className="cal-trat adm">ADM</i> Adriamicina</span>
             <span><i className="cal-trat cirugia">Cirugía</i> posible</span>
             <span>S = semana · D = día del tratamiento</span>
+          </div>
+          <div className="cal-leyenda small muted">
+            <span><i className="cal-fase f-mtx" /> Semana de metotrexato</span>
+            <span><i className="cal-fase f-cddp" /> Semana de cisplatino</span>
+            <span><i className="cal-fase f-nadir" /> Semana nadir</span>
           </div>
 
           {diaSel && (
