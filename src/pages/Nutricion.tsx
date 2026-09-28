@@ -205,7 +205,7 @@ function Weights({ open }: { open: boolean }) {
         </div>
       )}
       {!adding && !open && <button className="btn sm secondary" onClick={() => setAdding(true)}>+ Nueva pesada</button>}
-      {weights.length > 0 && (() => {
+      {(() => {
         // Una columna por día de medición, de la más antigua a la más reciente.
         const asc = [...weights].reverse()
         const serie = (f: (x: WeightEntry) => number | null | undefined) => asc.filter((x) => f(x) != null).map((x) => ({ x: fmtDate(x.at.slice(0, 10)).replace(/^\S+,\s*/, ''), y: f(x)! }))

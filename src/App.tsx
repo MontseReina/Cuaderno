@@ -25,6 +25,7 @@ import Setup from './pages/Setup'
 import Datos from './pages/Datos'
 import Reto from './pages/Reto'
 import Informes from './pages/Informes'
+import { AvisoVersion } from './components/AvisoVersion'
 import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
@@ -108,6 +109,7 @@ function Shell() {
         <Tab to="/mas" ico="🧭" label="Pilares" />
       </nav>
       <main className="content">
+        <AvisoVersion />
         <Routes>
           <Route path="/" element={<Reto />} />
           <Route path="/inicio" element={<Home />} />

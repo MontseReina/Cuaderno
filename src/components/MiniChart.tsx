@@ -18,7 +18,17 @@ export function MiniChart({ title, unit, points, kind, decimals = 1, color = 'va
   color?: string
 }) {
   const [sel, setSel] = useState<number | null>(null)
-  if (!points.length) return null
+  if (!points.length) {
+    return (
+      <div className="minichart vacio">
+        <div className="row between"><span className="small"><strong>{title}</strong></span><span className="small muted">sin datos todavía</span></div>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: sin datos todavía`}>
+          <line x1={PAD.l} x2={W - PAD.r} y1={PAD.t + (H - PAD.t - PAD.b)} y2={PAD.t + (H - PAD.t - PAD.b)} stroke="var(--line)" />
+          <text x={W / 2} y={H / 2} textAnchor="middle" fontSize="12" fill="var(--muted)">Se dibuja con la primera medida</text>
+        </svg>
+      </div>
+    )
+  }
   const fmt = (v: number) => v.toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
   const ys = points.map((p) => p.y)
   let lo = Math.min(...ys)

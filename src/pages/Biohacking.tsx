@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { currentPatientId, remove, save, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
 import type { Practice, PracticeLog, Safety, SyncEntry } from '../store/types'
@@ -132,25 +132,8 @@ export default function Biohacking() {
         })}
       </Section>
 
-      <Section title="Sueño y ritmo circadiano · 14 días">
-        {withSleep.length === 0 ? <div className="muted">Sin registros de sueño.</div> : (
-          <>
-            <div className="grid3">
-              <div><div className="muted small">Horas dormidas</div><strong>{avg(sleepH) ?? '—'} h</strong></div>
-              <div><div className="muted small">Despertares / noche</div><strong>{avg(withSleep.map((l) => l.wakeups ?? 0))}</strong></div>
-              <div><div className="muted small">Causa más frecuente</div><strong>{Object.entries(causes).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—'}</strong></div>
-            </div>
-            <h3>Cumplimiento de los sincronizadores</h3>
-            <div className="table-wrap"><table className="table"><tbody>
-              {SYNC_ITEMS.map(({ key: k, label }) => (
-                <tr key={k}><td>{label}</td><td>{adherence(k)} %</td><td><span style={{ display: 'inline-block', width: 80, height: 8, background: 'var(--line)', borderRadius: 4 }}><span style={{ display: 'block', width: `${adherence(k)}%`, height: 8, background: 'var(--primary)', borderRadius: 4 }} /></span></td></tr>
-              ))}
-            </tbody></table></div>
-            <div className="spark" style={{ marginTop: '.5rem' }}>{days.map((d) => { const l = byDate.get(d); const h = l ? hours(l.sleep_start, l.sleep_end) : null; return <span key={d} style={{ height: `${h ? Math.min(40, (h / 12) * 40) : 2}px` }} title={`${fmtDate(d)}: ${h ?? '—'} h`} /> })}</div>
-            <div className="muted small">Horas dormidas por noche (últimos 14 días)</div>
-          </>
-        )}
-      </Section>
+      <p className="muted small">El resumen del sueño de la semana está en <Link to="/informes">📊 Evaluaciones</Link>.</p>
+
 
       <Section title={`Carga tóxica y exposiciones · semana del ${fmtDate(ws)}`} open={!thisWeek}>
         <p className="muted small">Una vez a la semana. Marca lo que se cumple; anota cambios (nuevo producto, obra en el edificio…).</p>

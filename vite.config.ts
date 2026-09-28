@@ -3,6 +3,20 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
+
+/** Publica version.json con la versión de la app (APP_VERSION de exporter.ts). La app lo consulta
+ *  sin caché para avisar de que hay una versión nueva cuando el móvil sigue con una antigua. */
+function versionJson() {
+  return {
+    name: 'version-json',
+    generateBundle(this: { emitFile: (f: { type: 'asset'; fileName: string; source: string }) => void }) {
+      const src = readFileSync(fileURLToPath(new URL('./src/domain/exporter.ts', import.meta.url)), 'utf8')
+      const version = /APP_VERSION = '([^']+)'/.exec(src)?.[1] ?? '0'
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version }) })
+    },
+  }
+}
 
 const demo = !!process.env.DEMO_SINGLEFILE
 const base = demo ? './' : (process.env.VITE_BASE || '/')
@@ -12,6 +26,7 @@ export default defineConfig({
     ? [react(), viteSingleFile()]
     : [
         react(),
+        versionJson(),
         VitePWA({
           registerType: 'autoUpdate',
           injectRegister: false, // el registro lo hace src/main.tsx (con recarga automática al actualizar)

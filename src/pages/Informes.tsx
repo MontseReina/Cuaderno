@@ -5,17 +5,40 @@ import { addDays, fmtDate, todayStr, weekStart } from '../domain/dates'
 import { buildWeekly, dayLabel, type Bloque, type Light, type WeeklyData } from '../domain/weekly'
 import { initials } from '../domain/exporter'
 import { RegistroCard } from '../components/RegistroCard'
+import { CuadroMandos } from '../components/CuadroMandos'
+import { SuenoSemana } from '../components/SuenoSemana'
+import { Section } from '../components/ui'
 
 /** Pilar 📊 Evaluaciones (antes «Informes», renombrado el 28/09/2026): cómo se rellena el registro,
  *  el informe semanal y, en espera, el diario y el mensual. La ruta sigue siendo /informes. */
 export default function Informes() {
   const { kind } = useParams()
   if (kind === 'semanal') return <Semanal />
+  return <Portada />
+}
+
+/** Portada de Evaluaciones: registro, cuadro de mandos y sueño de la semana, e informes. */
+function Portada() {
+  const logs = useRows('daily_logs')
+  const cycles = useRows('cycles')
+  const [lunes, setLunes] = useState(weekStart(todayStr()))
+  const esEsta = lunes === weekStart(todayStr())
   return (
     <div>
       <h1>📊 Evaluaciones</h1>
       <p className="muted small">Se calculan solos con lo que se apunta cada día. No hay que rellenar nada más.</p>
       <RegistroCard />
+      <div className="eval-semana">
+        <button type="button" className="btn sm secondary" aria-label="Semana anterior" onClick={() => setLunes(addDays(lunes, -7))}>‹</button>
+        <strong>{esEsta ? 'Esta semana' : `Semana del ${fmtDate(lunes)}`}</strong>
+        <button type="button" className="btn sm secondary" aria-label="Semana siguiente" disabled={esEsta} onClick={() => setLunes(addDays(lunes, 7))}>›</button>
+      </div>
+      <Section title="Cuadro de mandos de la semana" open>
+        <CuadroMandos lunes={lunes} logs={logs} cycles={cycles} />
+      </Section>
+      <Section title="Sueño y ritmo circadiano de la semana" open>
+        <SuenoSemana lunes={lunes} logs={logs} />
+      </Section>
       <Link to="/informes/semanal" className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
         <span style={{ fontSize: '1.5rem' }}>🗓️</span>
         <span><strong>Informe semanal</strong><div className="muted small">De lunes a domingo: cómo ha ido cada bloque, alertas, qué mejorar y qué mantener. Se descarga en PDF.</div></span>
