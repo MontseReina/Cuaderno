@@ -36,19 +36,23 @@ export interface DiaTratamiento {
   tipo: 'mtx' | 'cddp' | 'adm' | 'cirugia'
   /** Hay una sesión registrada en Tratamiento para esa semana (la fecha es la registrada). */
   registrada: boolean
+  /** Nº de ciclo: el de Tratamiento si está registrada; si no, el de la hoja antes de la cirugía (sem. 0-1 = 1, 4-5 = 2). Después de la cirugía, pendiente. */
+  ciclo: number | null
 }
 
 /** Días de quimio y cirugía del protocolo, por fecha. La quimio es siempre en miércoles
  *  (día 1 = inicio del tratamiento + 7 × semana). Si en Tratamiento hay una sesión con esa semana
  *  del protocolo, manda su fecha real (por si hubo retraso). */
-export function calendarioTratamiento(start: string | null | undefined, cycles: { protocol_week?: number | null; planned_date: string; start_at?: string | null }[]): Map<string, DiaTratamiento> {
+export function calendarioTratamiento(start: string | null | undefined, cycles: { protocol_week?: number | null; planned_date: string; start_at?: string | null; number?: number | null }[]): Map<string, DiaTratamiento> {
   const out = new Map<string, DiaTratamiento>()
   if (!start) return out
   for (const p of PROTOCOL_34) {
     const n = PLAN_NOMBRE[p.label] ?? { corto: p.label, largo: p.label, tipo: 'mtx' as const }
     const reg = cycles.find((c) => c.protocol_week === p.week)
     const date = reg ? (reg.start_at ?? reg.planned_date).slice(0, 10) : addDays(start, p.week * 7)
-    out.set(date, { week: p.week, ...n, registrada: !!reg })
+    const cicloHoja: Record<number, number> = { 0: 1, 1: 1, 4: 2, 5: 2 }
+    const ciclo = n.tipo === 'cirugia' ? null : reg?.number ?? cicloHoja[p.week] ?? null
+    out.set(date, { week: p.week, ...n, registrada: !!reg, ciclo })
   }
   return out
 }

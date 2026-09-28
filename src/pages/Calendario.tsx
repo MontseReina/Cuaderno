@@ -56,7 +56,7 @@ export default function Calendario() {
     const p = pp(d)
     const f = faseDe(d)
     const nombreFase = f === 'mtx' ? 'semana de metotrexato' : f === 'cddp' ? 'semana de cisplatino' : f === 'nadir' ? 'semana nadir' : null
-    return [p ? `Sem ${p.week} · Día ${p.day}` : null, t ? t.largo : null, !t ? nombreFase : null].filter(Boolean).join(' · ')
+    return [p ? `Sem ${p.week} · Día ${p.day}` : null, t?.ciclo ? `Ciclo ${t.ciclo}` : null, t ? t.largo : null, !t ? nombreFase : null].filter(Boolean).join(' · ')
   }
   const delMes = dias.filter((d) => d && (trat.has(d) || evDe(d).length))
 
@@ -105,7 +105,7 @@ export default function Calendario() {
                 <button type="button" key={d} className={'cal-dia f-' + faseDe(d) + (d === today ? ' hoy' : '') + (d === diaSel ? ' sel' : '')} onClick={() => setDiaSel(d === diaSel ? null : d)}>
                   <span className="cal-num">{Number(d.slice(8))}</span>
                   {p && <span className="cal-sd">S{p.week}·D{p.day}</span>}
-                  {t && <span className={'cal-trat ' + t.tipo}>{t.corto}</span>}
+                  {t && <span className={'cal-trat ' + t.tipo}>{t.ciclo ? `C${t.ciclo} · ` : ''}{t.corto}</span>}
                   {evs.slice(0, 2).map((e) => <span key={e.id} className="cal-ev">• {e.title}</span>)}
                   {evs.length > 2 && <span className="cal-ev muted">+{evs.length - 2}</span>}
                 </button>
@@ -117,7 +117,7 @@ export default function Calendario() {
             <span><i className="cal-trat cddp">CDDP</i> Cisplatino</span>
             <span><i className="cal-trat adm">ADM</i> Adriamicina</span>
             <span><i className="cal-trat cirugia">Cirugía</i> posible</span>
-            <span>S = semana · D = día del tratamiento</span>
+            <span>C = ciclo · S = semana · D = día del tratamiento</span>
           </div>
           <div className="cal-leyenda small muted">
             <span><i className="cal-fase f-mtx" /> Semana de metotrexato</span>
