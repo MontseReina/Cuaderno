@@ -6,8 +6,7 @@ import { dayCompleteness } from '../domain/completeness'
 import { protocolPoint } from '../domain/protocol'
 import { medicationProgress } from '../domain/medication'
 import { knownUsers } from '../domain/users'
-import { dayNutrition, weekMode } from '../domain/nutrition'
-import { LOCATIONS, MODE_LABELS } from '../domain/catalogs'
+import { LOCATIONS } from '../domain/catalogs'
 import { DRUG_LABELS } from '../domain/catalogs'
 import { useEffect } from 'react'
 
@@ -43,8 +42,6 @@ export default function Home() {
   const unlocked = products
     .map((p) => ({ p, g: afterChemoGate(p, cycles, today) }))
     .filter((x) => x.g && !x.g.waiting && !!x.g.from && today <= addDays(x.g.from, 2))
-  const mode = weekMode(todayLog, ctx)
-  const nut = dayNutrition(todayLog, mode, { cisplatin: !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP') })
 
   // Si el semáforo está en rojo, crear un pendiente (una vez por día).
   useEffect(() => {
@@ -186,15 +183,6 @@ export default function Home() {
           <strong>{p.name}</strong>: desde el {fmtDate(g!.from!)} ({p.after_chemo_days} días tras {g!.basis === 'fin_ciclo' ? 'el cisplatino + adriamicina, al terminar el ciclo' : 'la última quimio'}) se puede dar{p.condition ? <> <strong>si {p.condition}</strong></> : ''}. Pauta en <Link to="/medicacion">Medicación</Link>.
         </div>
       ))}
-      {todayLog && (
-        <div className="card tight">
-          <div className="row between">
-            <div><span className={'dot ' + nut.level} /><strong>Alimentación de hoy</strong> <span className="muted small">· {MODE_LABELS[mode]}</span></div>
-            <Link className="btn sm secondary" to="/nutricion">Nutrición</Link>
-          </div>
-          <div className="muted small">{nut.meals}/{nut.target} comidas{nut.fatTarget ? ` · ${nut.fatSnacks}/${nut.fatTarget} snacks de grasa` : ''}{nut.fluids != null ? ` · ${nut.fluids} ml` : ''}{nut.reasons.length ? ` · ${nut.reasons.join(', ')}` : ' · objetivos cumplidos'}</div>
-        </div>
-      )}
       {dressingDue && dressingDue <= today && (
         <div className="notice">Cura del catéter: tocaba el {fmtDate(dressingDue)} (última {fmtDate(patient!.catheter_last_dressing)}). Actualízala en <Link to="/ajustes">Ajustes</Link> cuando se haga.</div>
       )}
