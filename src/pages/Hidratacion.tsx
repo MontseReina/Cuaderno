@@ -1,14 +1,13 @@
 import { Link, useParams } from 'react-router-dom'
 import { useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { WeekMode } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
 import { totalFluids, weekMode } from '../domain/nutrition'
 import { CUP_ML, FLUID_TARGET, HYDRATION_TIPS, MODE_LABELS, SEAWATER_PERFUSION, SEAWATER_TARGET_ML, URINE_COLORS } from '../domain/catalogs'
 import { faseDelDia } from '../domain/fases'
 import { DateNav } from '../components/DateNav'
-import { Field, Section, Segmented, Stepper } from '../components/ui'
+import { Field, Section, Stepper } from '../components/ui'
 
 /** Hidratación por modo de semana (quimio / nadir): objetivo, desglose y color de orina. */
 export default function Hidratacion() {
@@ -22,7 +21,6 @@ export default function Hidratacion() {
   const tramo = faseDelDia(patient?.protocol_start, cycles, date)?.tramo
   const perfusion = tramo === 'perfusion' || tramo === 'perfusion48'
   const mode = weekMode(draft, ctx)
-  const autoMode = weekMode({ ...draft, extra: { ...draft.extra, mode: undefined } }, ctx)
   const target = FLUID_TARGET[mode]
   const total = totalFluids(draft)
   const pct = total != null ? Math.min(100, Math.round((total / target) * 100)) : 0
@@ -45,15 +43,6 @@ export default function Hidratacion() {
 
       <Section title={`Consejos · ${MODE_LABELS[mode].toLowerCase()}`} open>
         {HYDRATION_TIPS[mode].map((t) => <div key={t} className="small" style={{ margin: '.25rem 0' }}>• {t}</div>)}
-      </Section>
-
-      <Section title="Modo de la semana" open={false}>
-        <Segmented
-          options={(['quimio', 'nadir'] as WeekMode[]).map((m) => ({ value: m, label: `${MODE_LABELS[m]} · ${FLUID_TARGET[m]} ml` }))}
-          value={mode}
-          onChange={(v) => setExtra({ mode: v && v !== autoMode ? v : undefined })}
-        />
-        <p className="muted small">El modo es el mismo que en Nutrición. Objetivos orientativos, pendientes de validar con la nutricionista.</p>
       </Section>
 
       <Section title="Qué ha bebido hoy" open>
