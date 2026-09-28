@@ -88,14 +88,15 @@ export const MEAL_SLOTS: { key: string; label: string; fat?: boolean }[] = [
   { key: 'comida', label: 'Comida' },
   { key: 'merienda', label: 'Merienda' },
   { key: 'cena', label: 'Cena' },
-  { key: 'snack_grasa_1', label: '5ª · Snack de grasas', fat: true },
-  { key: 'snack_grasa_2', label: '6ª · Snack de grasas', fat: true },
+  { key: 'snack_grasa_1', label: 'Snack de grasa (media mañana)', fat: true },
+  { key: 'snack_grasa_2', label: 'Snack de grasa', fat: true },
   { key: 'otra', label: 'Otra' },
 ]
 /** Comidas que se muestran según el modo de la semana (pauta de la nutricionista, 10-sept-2026). */
 export const MEAL_SLOTS_BY_MODE: Record<'quimio' | 'nadir', string[]> = {
   quimio: ['desayuno', 'comida', 'merienda', 'cena'], // 3-4 comidas, lo que tolere
-  nadir: ['desayuno', 'media_manana', 'comida', 'merienda', 'cena', 'snack_grasa_1', 'snack_grasa_2'], // 6 comidas; 5ª y 6ª = snacks de grasa
+  // 6 comidas; la media mañana es el 1.er snack de grasa (decisión 28/09/2026) y el 2.º va al final del día.
+  nadir: ['desayuno', 'snack_grasa_1', 'comida', 'merienda', 'cena', 'snack_grasa_2'],
 }
 export const MEALS_TARGET: Record<'quimio' | 'nadir', { min: number; fatSnacks: number }> = {
   quimio: { min: 3, fatSnacks: 0 },
@@ -107,6 +108,8 @@ export const MACRO_OPTS = {
   prot: [{ value: 0, label: 'Nada' }, { value: 1, label: 'Poca' }, { value: 2, label: '≈ ⅓ plato' }],
   starch: [{ value: 0, label: 'Nada' }, { value: 1, label: 'Poco' }, { value: 2, label: '≈ ¼ plato' }, { value: 3, label: 'Más de ¼' }],
 } as const
+/** Unidades para la cantidad comida (0.21.0). */
+export const MEAL_UNITS = ['unidades', 'g', 'ml', 'cucharadas', 'raciones']
 export const FAT_EXAMPLES = 'AOVE o sésamo crudo por encima, ghee, tahine, semillas, aceite de coco, huevo, caldo de huesos, proteína de guisante'
 /** Objetivos de líquidos orientativos por modo (ml/día). Pendiente de validar con la nutricionista. */
 export const FLUID_TARGET: Record<'quimio' | 'nadir', number> = { quimio: 1500, nadir: 1200 }

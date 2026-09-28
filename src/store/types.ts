@@ -140,6 +140,9 @@ export interface Meal {
   carb?: Carb
   texture?: Texture
   note?: string
+  /** Cantidad comida (desde la 0.21.0, en lugar de la fracción del plato): número + unidad. */
+  amount?: number | null
+  unit?: string
   macros?: MealMacros
 }
 export type WeekMode = 'quimio' | 'nadir'

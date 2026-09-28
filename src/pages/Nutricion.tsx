@@ -6,7 +6,7 @@ import type { Meal, MealMacros, MealSlot, WeekMode, WeightEntry } from '../store
 import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from '../domain/dates'
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { breakfastTime, carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, overnightFastDetail, slotsForMode, totalFluids, weekMode, isFatSlot, fatCount } from '../domain/nutrition'
-import { FAT_EXAMPLES, FRACTION_LABELS, MACRO_OPTS, MEAL_SLOTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
+import { FAT_EXAMPLES, MEAL_UNITS, MEAL_SLOTS, MEALS_TARGET, MODE_LABELS, WEIGHT_SOURCES } from '../domain/catalogs'
 import { DateNav } from '../components/DateNav'
 import { Plato } from '../components/Plato'
 import { MiniChart } from '../components/MiniChart'
@@ -53,7 +53,7 @@ export default function Nutricion() {
     const i = meals.findIndex((m) => m.slot === slot)
     const base: Meal = i >= 0 ? meals[i] : { slot }
     const next = { ...base, ...patch }
-    if (!next.time && (patch.fraction != null || patch.carb || patch.macros)) next.time = new Date().toTimeString().slice(0, 5)
+    if (!next.time && (patch.fraction != null || patch.carb || patch.macros || patch.note || patch.amount != null)) next.time = new Date().toTimeString().slice(0, 5)
     if (i >= 0) meals[i] = next
     else meals.push(next)
     set('meals', meals)
@@ -126,11 +126,17 @@ export default function Nutricion() {
                 <div className="mealhead">{check && <span className={'dot ' + check.level} />}<strong>{s.label}</strong></div>
                 <input type="time" style={{ width: 'auto' }} value={m?.time ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { time: e.target.value })} />
               </div>
-              <Segmented
-                options={([0, 0.25, 0.5, 0.75, 1] as const).map((f) => ({ value: f, label: FRACTION_LABELS[String(f)] }))}
-                value={m?.fraction}
-                onChange={(v) => setMeal(s.key as MealSlot, { fraction: v ?? undefined })}
-              />
+              {/* 28/09: en lugar de ¼ · ½ · ¾, qué ha comido (escrito) y cuánto (número y unidad). */}
+              <div className="meal-cant">
+                <input type="text" placeholder="¿Qué ha comido?" aria-label="Qué ha comido" value={m?.note ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { note: e.target.value, fraction: m?.fraction === 0 ? undefined : m?.fraction })} />
+                <input type="number" inputMode="decimal" min={0} step="any" placeholder="Cant." aria-label="Cantidad" value={m?.amount ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { amount: e.target.value === '' ? null : Number(e.target.value), unit: m?.unit ?? 'unidades', fraction: m?.fraction === 0 ? undefined : m?.fraction })} />
+                <select aria-label="Unidad" value={m?.unit ?? 'unidades'} onChange={(e) => setMeal(s.key as MealSlot, { unit: e.target.value })}>
+                  {MEAL_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+              <label className="small" style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem', margin: '.2rem 0 .1rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={m?.fraction === 0} onChange={(e) => setMeal(s.key as MealSlot, { fraction: e.target.checked ? 0 : undefined })} /> No ha comido nada
+              </label>
               {fat ? (
                 <div className="macros">
                   <Field label="¿Ha sido pura grasa?" hint="Batido con aceite de coco, macadamias, puré con ghee… Si llevaba fruta, pan u otro hidrato: No.">
@@ -143,30 +149,19 @@ export default function Nutricion() {
                   <Field label="Grasas añadidas (objetivo: 2)" hint={FAT_EXAMPLES}>
                     <Segmented options={[{ value: 0, label: 'Ninguna' }, { value: 1, label: '🫒 1' }, { value: 2, label: '🫒🫒 2 o más' }]} value={fatCount(m?.macros)} onChange={(v) => setMacro(s.key as MealSlot, { fat_n: v == null ? undefined : (v as 0 | 1 | 2), fat: v == null ? undefined : v > 0 })} />
                   </Field>
-                  {(s.key === 'comida' || s.key === 'cena') && (
-                    <Field label="Almidón resistente (cocido y enfriado: quinoa, patata, boniato, arroz)">
-                      <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]} value={m?.macros?.resistant == null ? null : m.macros.resistant ? 'si' : 'no'} onChange={(v) => setMacro(s.key as MealSlot, { resistant: v == null ? undefined : v === 'si' })} />
-                    </Field>
-                  )}
+                  <Field label="Almidón resistente (cocido y enfriado: quinoa, patata, boniato, arroz)">
+                    <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]} value={m?.macros?.resistant == null ? null : m.macros.resistant ? 'si' : 'no'} onChange={(v) => setMacro(s.key as MealSlot, { resistant: v == null ? undefined : v === 'si' })} />
+                  </Field>
                 </div>
               )}
               {check && check.level !== 'verde' && <div className="muted small" style={{ marginTop: '.3rem' }}>Falta: {check.missing.join(', ')}</div>}
-              <details style={{ marginTop: '.4rem' }}>
-                <summary className="small muted">{fat ? 'Textura y qué comió' : 'Hidratos, textura y qué comió'}</summary>
-                {!fat && (
-                  <Field label={cisplatin ? 'Hidratos (hoy, cisplatino: poco)' : 'Hidratos (arroz, pasta, patata, pan, fruta, legumbre)'}>
-                    <Segmented options={[...MACRO_OPTS.starch]} value={m?.macros?.starch} onChange={(v) => setMacro(s.key as MealSlot, { starch: v ?? undefined })} />
-                  </Field>
-                )}
-                <Field label="Textura">
-                  <Segmented options={TEXTURES} value={m?.texture ?? null} onChange={(v) => setMeal(s.key as MealSlot, { texture: (v ?? undefined) as Meal['texture'] })} />
-                </Field>
-                <input type="text" placeholder="Qué comió (opcional)" value={m?.note ?? ''} onChange={(e) => setMeal(s.key as MealSlot, { note: e.target.value })} />
-              </details>
+              <Field label="Textura">
+                <Segmented options={TEXTURES} value={m?.texture ?? null} onChange={(v) => setMeal(s.key as MealSlot, { texture: (v ?? undefined) as Meal['texture'] })} />
+              </Field>
             </div>
           )
         })}
-        <div className="muted small">Ingesta media: {meanIntake(draft.meals) != null ? Math.round(meanIntake(draft.meals)! * 100) + ' %' : '—'} · Líquidos: {totalFluids(draft) ?? '—'} ml → <Link to={`/hidratacion/${date}`}>Hidratación</Link></div>
+        <div className="muted small">{meanIntake(draft.meals) != null ? `Ingesta media: ${Math.round(meanIntake(draft.meals)! * 100)} % · ` : ''}Líquidos: {totalFluids(draft) ?? '—'} ml → <Link to={`/hidratacion/${date}`}>Hidratación</Link></div>
       </Section>
 
       {tallaPendiente && <div className="notice small">📏 Toca medir la talla{ultimaTalla ? ` (última: ${fmtWall(ultimaTalla.at)}, ${ultimaTalla.height_cm} cm)` : ''}. Se apunta con la pesada, una vez al mes.</div>}

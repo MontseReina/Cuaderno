@@ -517,3 +517,8 @@ details.pauta > summary { letter-spacing: .03em; }
 .cal-lista h3 { margin: .3rem 0; }
 .cal-fila { display: grid; grid-template-columns: 7.5rem 1fr; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid var(--line); cursor: pointer; font-size: .9rem; }
 .cal-fecha { color: var(--muted); text-transform: capitalize; }
+
+/* 0.21.0 · Qué ha comido y cuánto */
+.meal-cant { display: grid; grid-template-columns: 5.5rem auto; justify-content: start; gap: .4rem; margin-top: .4rem; }
+.meal-cant input[type="text"] { grid-column: 1 / -1; }
+.meal-cant select { width: auto; }

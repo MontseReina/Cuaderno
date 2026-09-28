@@ -20,7 +20,7 @@ function comio(m: Meal) {
   if (m.fraction != null && m.fraction > 0) return true
   const mc = m.macros
   if (mc && (mc.veg || mc.prot || mc.starch || mc.fat)) return true
-  if (m.carb || m.texture || m.note) return true
+  if (m.carb || m.texture || m.note || m.amount) return true
   // Solo hay hora: se da por bueno.
   return m.fraction == null && !mc
 }
@@ -77,7 +77,8 @@ export function weekMode(log: DailyLog | undefined, ctx: CycleContext): WeekMode
   return 'nadir'
 }
 export function slotsForMode(mode: WeekMode) {
-  return MEAL_SLOTS.filter((s) => MEAL_SLOTS_BY_MODE[mode].includes(s.key))
+  // En el orden del día que marca cada modo (el snack de media mañana va entre el desayuno y la comida).
+  return MEAL_SLOTS_BY_MODE[mode].map((k) => MEAL_SLOTS.find((s) => s.key === k)!).filter(Boolean)
 }
 /** Nº de grasas añadidas de una comida (registros antiguos: sí = 1). */
 export function fatCount(m: MealMacros | undefined): number | null {
@@ -136,7 +137,7 @@ export interface DayNutrition {
 export function dayNutrition(log: DailyLog | undefined, mode: WeekMode, opts: { cisplatin?: boolean } = {}): DayNutrition {
   const t = MEALS_TARGET[mode]
   const fluidTarget = FLUID_TARGET[mode]
-  const meals = (log?.meals ?? []).filter((m) => m.fraction != null || m.macros || m.time)
+  const meals = (log?.meals ?? []).filter((m) => m.fraction != null || m.macros || m.time || m.note || m.amount)
   const eatenMeals = meals.filter((m) => (m.fraction ?? 1) > 0)
   const fatSnacks = eatenMeals.filter((m) => isFatSlot(m.slot) && (m.macros?.fat ?? true)).length
   const checks = meals.map((m) => mealTraffic(m, opts)).filter((c): c is MealCheck => !!c)
