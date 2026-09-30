@@ -7,6 +7,7 @@ import { cycleContext } from '../domain/cycle'
 import { meanIntake } from '../domain/nutrition'
 import { Field, Section } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
+import { diaTratamiento } from '../domain/diaTratamiento'
 
 export default function Equipo() {
   const questions = useRows('questions')
@@ -57,6 +58,12 @@ export default function Equipo() {
 function QuestionItem({ q }: { q: Question }) {
   const [answer, setAnswer] = useState(q.answer ?? '')
   const [open, setOpen] = useState(false)
+  // Modificar la pregunta ya guardada (0.28.0): texto, pilar y profesional.
+  const [editando, setEditando] = useState(false)
+  const [texto, setTexto] = useState(q.question)
+  const [pilar, setPilar] = useState(q.pillar ?? '')
+  const [profesional, setProfesional] = useState<Professional>(q.professional)
+  const empezarEdicion = () => { setTexto(q.question); setPilar(q.pillar ?? ''); setProfesional(q.professional); setEditando(true) }
   return (
     <div className="card tight" style={{ marginBottom: '.4rem' }}>
       <div onClick={() => setOpen(!open)} style={{ cursor: 'pointer' }}>
@@ -64,11 +71,30 @@ function QuestionItem({ q }: { q: Question }) {
         {q.question}
         {q.status === 'respondida' && <div className="small" style={{ marginTop: '.3rem' }}><strong>Respuesta:</strong> {q.answer} <span className="muted">({q.answered_by}, {fmtDate(q.answered_at)})</span></div>}
       </div>
-      {open && (
+      {open && editando && (
+        <div style={{ marginTop: '.5rem' }}>
+          <Field label="Pregunta"><textarea value={texto} onChange={(e) => setTexto(e.target.value)} /></Field>
+          <div className="row" style={{ gap: '.4rem', flexWrap: 'wrap' }}>
+            <select style={{ width: 'auto' }} value={pilar} onChange={(e) => setPilar(e.target.value)}>
+              <option value="">Pilar…</option>
+              {PILLARS.map((p) => <option key={p}>{p}</option>)}
+            </select>
+            <select style={{ width: 'auto' }} value={profesional} onChange={(e) => setProfesional(e.target.value as Professional)}>
+              {PROFESSIONALS.map((p) => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div className="row" style={{ marginTop: '.4rem' }}>
+            <button className="btn sm" disabled={!texto.trim()} onClick={async () => { await save('questions', { ...q, question: texto.trim(), pillar: pilar || undefined, professional: profesional }); setEditando(false) }}>Guardar cambios</button>
+            <button className="btn sm ghost" onClick={() => setEditando(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+      {open && !editando && (
         <div style={{ marginTop: '.5rem' }}>
           <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Respuesta recibida" />
           <div className="row" style={{ marginTop: '.3rem' }}>
             <button className="btn sm" disabled={!answer.trim()} onClick={() => save('questions', { ...q, answer: answer.trim(), status: 'respondida', answered_by: backend.currentUserName(), answered_at: todayStr() })}>Guardar respuesta</button>
+            <button className="btn sm secondary" onClick={empezarEdicion}>✏️ Modificar pregunta</button>
             {q.status === 'respondida' && <button className="btn sm ghost" onClick={() => save('questions', { ...q, status: 'pendiente' })}>Reabrir</button>}
             <button className="btn sm danger" onClick={async () => { if (await confirmar('¿Borrar la pregunta?')) remove('questions', q.id) }}>Borrar</button>
           </div>
@@ -120,7 +146,7 @@ function Informe({ onClose }: { onClose: () => void }) {
       </div>
       <div className="card" id="informe">
         <h2 style={{ marginTop: 0 }}>{patient?.name} — {fmtDate(from)} a {fmtDate(to)}</h2>
-        <p className="small">{ctxTo.cycle ? `Ciclo ${ctxTo.cycle.number} (${ctxTo.cycle.drugs.map((d) => DRUG_LABELS[d]).join(' + ')}), D${ctxTo.day} a fecha del informe.` : 'Sin ciclo activo.'} {patient?.protocol} {patient?.arm ? `· brazo ${patient.arm}` : ''}</p>
+        <p className="small">{ctxTo.cycle ? `${diaTratamiento(patient?.protocol_start, cycles, to)?.texto ?? `Ciclo ${ctxTo.cycle.number}`} (${ctxTo.cycle.drugs.map((d) => DRUG_LABELS[d]).join(' + ')}) a fecha del informe.` : 'Sin ciclo activo.'} {patient?.protocol} {patient?.arm ? `· brazo ${patient.arm}` : ''}</p>
         <h3>Peso</h3><p className="small">{weights.length ? weights.join(' · ') : 'Sin pesadas registradas'}</p>
         <h3>Ingesta</h3><p className="small">{intakes.length ? `Media ${Math.round((intakes.reduce((a, b) => a + b, 0) / intakes.length) * 100)} % del plato servido en ${intakes.length} días; días con menos de la mitad: ${intakes.filter((i) => i < 0.5).length}` : 'Sin datos'}</p>
         <h3>Fiebre</h3><p className="small">{fevers.length ? fevers.join(' · ') : 'Ningún día con ≥ 38 °C'}</p>

@@ -55,8 +55,8 @@ p { margin: .3rem 0; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
 @media (max-width: 420px) { .grid3 { grid-template-columns: repeat(2, 1fr); } }
 
-label.field { display: block; margin: .5rem 0; }
-label.field > span { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .2rem; }
+label.field, div.field { display: block; margin: .5rem 0; }
+label.field > span, div.field > span { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .2rem; }
 input[type=text], input[type=number], input[type=date], input[type=time], input[type=datetime-local], input[type=email], select, textarea {
   width: 100%; padding: .55rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: #fff;
 }
@@ -616,3 +616,7 @@ details.pesadas[open] > summary::after { content: '▾'; }
 .vaso-botones .btn { padding: .45rem .4rem; font-size: .82rem; line-height: 1.2; }
 .vaso-nota { grid-column: 1 / -1; }
 @media (max-width: 360px) { .vaso-card { grid-template-columns: 76px 1fr; } .vaso { width: 76px; } }
+
+/* Un tipo de Bristol por deposición (0.28.0) */
+.bristol-fila { margin: .35rem 0 .5rem; }
+.bristol-num { font-weight: 700; margin-bottom: .2rem; }

@@ -17,6 +17,7 @@ import { DateNav } from '../components/DateNav'
 import { Nauseas } from '../components/Nauseas'
 import { controlDelDia, faseNausea, nauseaMax, resumenSesion, severidadDesdeEscala } from '../domain/nausea'
 import { sesionesTratamiento } from '../domain/fases'
+import { bristolRepresentativo } from '../domain/deposiciones'
 import { Bristol, Check, Faces, Field, Section, Segmented, Severity, Stepper, TriButton, type TriState } from '../components/ui'
 import { diaTratamiento } from '../domain/diaTratamiento'
 
@@ -45,6 +46,19 @@ export default function Diario() {
   const resumenN = sesionN ? resumenSesion(sesionN, [...logs.filter((l) => l.date !== date), draft], date) : null
   const aDemanda = products.filter((p) => !p.moments?.length && (!p.end_date || p.end_date >= date)).map((p) => p.name)
   const antiemeticos = aDemanda.filter((n) => /ondansetr|zofran|yatrox|nux|arsenic|metoclopr|primperan|domperid|granisetr|aprepit|emend|antiem/i.test(n))
+  // Deposiciones (0.28.0): un tipo de Bristol por cada deposición; `bristol` guarda el más alejado del 4.
+  const tiposDepos: (number | null)[] = draft.extra?.stools?.map((x) => x.bristol ?? null) ?? (draft.bristol != null ? [draft.bristol] : [])
+  const setTipoDepos = (i: number, v: number | null) => {
+    const lista = [...tiposDepos]
+    while (lista.length <= i) lista.push(null)
+    lista[i] = v
+    setExtra({ stools: lista.map((b) => ({ bristol: b })) })
+    set('bristol', bristolRepresentativo(lista.slice(0, Math.max(1, draft.stools_n ?? 1))))
+  }
+  const setNumDepos = (n: number | null) => {
+    set('stools_n', n)
+    set('bristol', n === 0 ? null : bristolRepresentativo(tiposDepos.slice(0, Math.max(1, n ?? 1))))
+  }
   const setNausea = (n: NauseaDia) => {
     setExtra({ nausea: n })
     const max = nauseaMax(n)
@@ -159,10 +173,18 @@ export default function Diario() {
             {draft.urine_ph == null && <span className="small">pH: <NoMedido k="urine_ph" extra={draft.extra} onChange={(nm) => setExtra({ not_measured: nm })} /></span>}
           </div>
         )}
-        <Field label="Deposiciones (nº)" hint="Si hoy no ha hecho, apunta 0: así se ve el estreñimiento."><Stepper value={draft.stools_n} onChange={(v) => set('stools_n', v)} /></Field>
-        <Field label="Tipo de deposición (escala de Bristol)">
-          <Bristol value={draft.bristol} onChange={(v) => set('bristol', v)} help={BRISTOL_HELP} />
-        </Field>
+        <Field label="Deposiciones (nº)" hint="Si hoy no ha hecho, apunta 0: así se ve el estreñimiento."><Stepper value={draft.stools_n} onChange={setNumDepos} /></Field>
+        {(draft.stools_n ?? 1) > 0 && (
+          <div className="field">
+            <span>{(draft.stools_n ?? 1) > 1 ? 'Tipo de cada deposición (escala de Bristol)' : 'Tipo de deposición (escala de Bristol)'}</span>
+            {Array.from({ length: Math.max(1, draft.stools_n ?? 1) }, (_, i) => (
+              <div key={i} className="bristol-fila">
+                {(draft.stools_n ?? 1) > 1 && <div className="small bristol-num">Deposición {i + 1}</div>}
+                <Bristol value={tiposDepos[i] ?? null} onChange={(v) => setTipoDepos(i, v)} help={BRISTOL_HELP} />
+              </div>
+            ))}
+          </div>
+        )}
         <Field label="Color de las heces">
           <Segmented options={STOOL_COLORS.map((s) => ({ value: s.key, label: s.label }))} value={draft.stool_color ?? null} onChange={(v) => set('stool_color', v as DailyLog['stool_color'])} />
         </Field>

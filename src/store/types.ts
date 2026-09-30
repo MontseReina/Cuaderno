@@ -178,6 +178,8 @@ export interface DailyExtra {
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
   /** Se ha movido después de cada comida («snacks de movimiento», pauta de IMOHE). */
   move_after?: Partial<Record<'desayuno' | 'comida' | 'cena', boolean>>
+  /** Tipo de Bristol de cada deposición del día, en orden (0.28.0). */
+  stools?: { bristol?: number | null }[]
   /** Registro de náuseas (0.25.0): escala de caras 0-10 por momento, impacto, arcadas y rescates. */
   nausea?: NauseaDia
 }

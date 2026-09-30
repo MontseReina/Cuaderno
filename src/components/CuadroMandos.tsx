@@ -7,6 +7,7 @@ import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { FLUID_TARGET, SYMPTOMS, URINE_COLORS } from '../domain/catalogs'
 import type { Cycle } from '../store/types'
 import { controlDelDia, nauseaMax } from '../domain/nausea'
+import { bristolRepresentativo, tiposBristol } from '../domain/deposiciones'
 
 /** Cuadro de mandos de la semana (Evaluaciones, pedido en «New mock up v2»): días en columnas (L-D) y
  *  los datos en filas. Los síntomas que aparecen como leves o más se quedan hasta el domingo; el lunes
@@ -114,10 +115,12 @@ export function CuadroMandos({ lunes, logs, cycles }: { lunes: string; logs: Dai
     celdas: dias.map((d) => {
       const l = logOf(d)
       if (!l || l.stools_n == null) return { txt: '' }
-      const b = l.bristol
+      // Varias deposiciones (0.28.0): se ve el tipo que más avisa y, al tocar, todos.
+      const tipos = tiposBristol(l)
+      const b = bristolRepresentativo(tipos)
       const nivel: Nivel = l.stools_n === 0 ? 'ambar' : b != null && (b <= 2 || b >= 6) ? 'ambar' : 'ok'
       const bb = l.stools_n > 0 && b ? b : null
-      return { txt: `${l.stools_n}${bb ? `·B${bb}` : ''}`, nivel, titulo: `${l.stools_n} deposiciones${bb ? `, Bristol tipo ${bb}` : ''}` }
+      return { txt: `${l.stools_n}${bb ? `·B${bb}` : ''}`, nivel, titulo: `${l.stools_n} deposiciones${tipos.length && l.stools_n > 0 ? `, Bristol ${tipos.join(', ')}` : ''}` }
     }),
   })
 

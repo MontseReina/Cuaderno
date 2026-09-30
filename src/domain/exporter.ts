@@ -5,8 +5,9 @@ import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
+import { tiposBristol } from './deposiciones'
 
-export const APP_VERSION = '0.27.1'
+export const APP_VERSION = '0.28.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -189,7 +190,7 @@ export function buildAiReport(from: string, to: string): string {
     if (l.weight != null) c.push(`peso ${l.weight} kg`)
     for (const w of backend.all('weights').filter((w) => w.at.slice(0, 10) === l.date)) c.push(`peso ${w.kg} kg (${w.source}${w.height_cm ? `, ${w.height_cm} cm` : ''})`)
     if (l.urine_color) c.push(`orina color ${l.urine_color}/6${l.urine_amount ? ` ${l.urine_amount}` : ''}${l.urine_ph ? ` pH ${l.urine_ph}` : ''}${l.urine_ml ? ` ${l.urine_ml} ml` : ''}`)
-    if (l.stools_n != null) c.push(`deposiciones ${l.stools_n}${l.bristol ? ` Bristol ${l.bristol}` : ''}${l.stool_color && l.stool_color !== 'normal' ? ` ${l.stool_color}` : ''}`)
+    if (l.stools_n != null) c.push(`deposiciones ${l.stools_n}${tiposBristol(l).length && l.stools_n ? ` Bristol ${tiposBristol(l).join(', ')}` : ''}${l.stool_color && l.stool_color !== 'normal' ? ` ${l.stool_color}` : ''}`)
     if (l.pain_max != null) c.push(`dolor ${l.pain_max}/10${l.pain_location ? ` (${l.pain_location})` : ''}`)
     if (l.fatigue != null) c.push(`fatiga ${l.fatigue}/4`)
     if (l.mood_child) c.push(`ánimo ${l.mood_child}/5`)
