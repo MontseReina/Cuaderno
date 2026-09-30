@@ -1,7 +1,9 @@
 import type { Cycle, DailyLog, Diagnosis } from '../store/types'
 import { addDays, diffDays } from './dates'
 import { DRUG_LABELS, SYMPTOMS, type SymptomDef } from './catalogs'
-import { faseDelDia, type Fase } from './fases'
+import { faseDelDia, sesionesTratamiento, type Fase } from './fases'
+import { calendarioTratamiento } from './protocol'
+import { backend } from '../store'
 
 export interface CycleContext {
   cycle: Cycle | null
@@ -16,11 +18,29 @@ export interface CycleContext {
 
 /** Ventana "en ciclo": desde el inicio hasta 48 h tras el fin de la infusión (CDDP/ADM)
  *  o hasta el fin del rescate con folinato (MTX). Si no hay datos, D0-D4. */
+/** Inicio del protocolo del paciente (para las sesiones de la hoja que aún no están en Tratamiento). */
+function protocolStart(): string | null {
+  try { return backend.all('patients')[0]?.protocol_start ?? null } catch { return null }
+}
+
+/** Sesión del protocolo (aún sin registrar en Tratamiento) posterior al último ciclo registrado: se trata como
+ *  un ciclo provisional con la fecha de la hoja, igual que hacen el calendario y las pautas (30/09/2026: el cisplatino
+ *  del día aún no registrado salía como «nadir» del metotrexato anterior). */
+function sesionProvisional(start: string | null, cycles: Cycle[], date: string, ultimo: Cycle | null): Cycle | null {
+  if (!start) return null
+  const s = sesionesTratamiento(start, cycles).filter((x) => x.delProtocolo && x.kind !== 'cirugia' && x.date <= date).pop()
+  if (!s) return null
+  if (ultimo && (ultimo.start_at ?? ultimo.planned_date).slice(0, 10) >= s.date) return null
+  const ciclo = calendarioTratamiento(start, cycles).get(s.date)?.ciclo ?? null
+  return { id: `protocolo-${s.week}`, patient_id: '', number: ciclo ?? (ultimo?.number ?? 1), protocol_week: s.week, drugs: s.kind === 'mtx' ? ['MTX'] : ['CDDP', 'ADM'], planned_date: s.date, corticoid_iv: false } as unknown as Cycle
+}
+
 export function cycleContext(cycles: Cycle[], date: string): CycleContext {
   const started = cycles
     .filter((c) => (c.start_at ?? c.planned_date) <= date + 'T23:59')
     .sort((a, b) => (b.start_at ?? b.planned_date).localeCompare(a.start_at ?? a.planned_date))
-  const cycle = started[0] ?? null
+  const start = protocolStart()
+  const cycle = sesionProvisional(start, cycles, date, started[0] ?? null) ?? started[0] ?? null
   if (!cycle) return { cycle: null, day: null, inCycle: false, nadir: false, mtxDay: false, phase: 'sin_ciclos', fase: null }
   const d0 = (cycle.start_at ?? cycle.planned_date).slice(0, 10)
   const day = diffDays(date, d0)
@@ -29,10 +49,11 @@ export function cycleContext(cycles: Cycle[], date: string): CycleContext {
   else if (cycle.end_at) windowEnd = diffDays(cycle.end_at.slice(0, 10), d0) + 2
   if (cycle.discharge_at) windowEnd = Math.max(windowEnd, diffDays(cycle.discharge_at.slice(0, 10), d0))
   const inCycle = day >= 0 && day <= windowEnd
-  const nadir = day >= 7 && day <= 14
+  // Nadir solo tras el cisplatino + adriamicina (regla de Montserrate, 28/09/2026): tras el metotrexato no hay valle.
+  const nadir = !cycle.drugs.includes('MTX') && day >= 7 && day <= 14
   const mtxDay = cycle.drugs.includes('MTX') && day >= 0 && (cycle.rescue?.end ? date <= cycle.rescue.end.slice(0, 10) : day <= 4)
   const phase = inCycle ? 'en_ciclo' : nadir ? 'valle' : day < 0 ? 'previo' : 'recuperacion'
-  return { cycle, day, inCycle, nadir, mtxDay, phase, fase: faseDelDia(null, cycles, date)?.fase ?? null }
+  return { cycle, day, inCycle, nadir, mtxDay, phase, fase: faseDelDia(start, cycles, date)?.fase ?? null }
 }
 
 /** Lista de síntomas a mostrar hoy: siempre + (en ciclo | fuera) + signos de diagnósticos activos. */
