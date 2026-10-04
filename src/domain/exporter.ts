@@ -7,7 +7,7 @@ import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekM
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 
-export const APP_VERSION = '0.28.0'
+export const APP_VERSION = '0.28.1'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 

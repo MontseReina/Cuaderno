@@ -6,9 +6,9 @@ import {
   ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, INTAKE_REASONS, MOMENTS,
   OUTCOME_LABELS, PRESCRIBERS, ROUTE_LABELS, TRAFFIC_LABELS, WEEKDAYS,
 } from '../domain/catalogs'
-import { afterChemoGate, countsFromCycleEnd, cycleContext } from '../domain/cycle'
+import { afterChemoGate, countsFromCycleEnd, cycleContext, finVentanaCiclo } from '../domain/cycle'
 import { trafficWindow } from '../domain/medication'
-import { fmtDate, todayStr } from '../domain/dates'
+import { fmtDate, fmtWall, todayStr } from '../domain/dates'
 import { DateNav } from '../components/DateNav'
 import { Avisos } from '../components/Avisos'
 import { Field, Section, Segmented, TriButton, type TriState } from '../components/ui'
@@ -106,7 +106,7 @@ export default function Medicacion() {
         ...(windowKey ? [{
           key: 'ventana', nivel: 'info' as const, icono: '🗓️',
           titulo: <>{esHoy ? 'Hoy' : 'Ese día'}: <strong>{windowLabel[windowKey]}</strong></>,
-          detalle: <>Los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.</>,
+          detalle: <>Los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.{ctx.cycle && finVentanaCiclo(ctx.cycle) ? ` La suplementación de fuera de ciclo vuelve 24 h después del fin de la perfusión: ${fmtWall(finVentanaCiclo(ctx.cycle)!)}.` : ''}</>,
         }] : []),
         ...gated.map((p) => {
           const g = gateOf(p)!
@@ -359,7 +359,7 @@ function ProductForm({ initial, onClose }: { initial: Partial<Product>; onClose:
         <h3>Semáforo por ventana</h3>
         <p className="muted small">Verde: se mantiene · Ámbar: solo con autorización del equipo · Rojo: no se da en esa ventana.</p>
         {(['mtx', 'cddp_adm', 'nadir', 'infusion'] as const).map((k) => (
-          <Field key={k} label={{ mtx: 'Ciclo de metotrexato (hasta fin del rescate)', cddp_adm: 'Ciclo cisplatino + adriamicina (hasta 48 h tras la infusión)', nadir: 'Nadir plaquetario (D7-14)', infusion: 'Día de infusión' }[k]}>
+          <Field key={k} label={{ mtx: 'Ciclo de metotrexato (hasta fin del rescate)', cddp_adm: 'Ciclo cisplatino + adriamicina (hasta 24 h tras la infusión)', nadir: 'Nadir plaquetario (D7-14)', infusion: 'Día de infusión' }[k]}>
             <Segmented className="severity" options={TR} value={p.traffic?.[k]} onChange={(v) => set('traffic', { ...(p.traffic ?? {}), [k]: v ?? undefined })} />
           </Field>
         ))}

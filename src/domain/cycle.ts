@@ -1,5 +1,5 @@
 import type { Cycle, DailyLog, Diagnosis } from '../store/types'
-import { addDays, diffDays } from './dates'
+import { addDays, diffDays, nowLocalInput, todayStr, wallClock } from './dates'
 import { DRUG_LABELS, SYMPTOMS, type SymptomDef } from './catalogs'
 import { faseDelDia, sesionesTratamiento, type Fase } from './fases'
 import { calendarioTratamiento } from './protocol'
@@ -16,7 +16,8 @@ export interface CycleContext {
   fase: Fase | null
 }
 
-/** Ventana "en ciclo": desde el inicio hasta 48 h tras el fin de la infusión (CDDP/ADM)
+/** Ventana "en ciclo": desde el inicio hasta 24 h tras el fin de la infusión, a la hora (CDDP/ADM; decisión de
+ *  Montserrate del 04/10/2026, antes eran 48 h en días completos)
  *  o hasta el fin del rescate con folinato (MTX). Si no hay datos, D0-D4. */
 /** Inicio del protocolo del paciente (para las sesiones de la hoja que aún no están en Tratamiento). */
 function protocolStart(): string | null {
@@ -35,6 +36,15 @@ function sesionProvisional(start: string | null, cycles: Cycle[], date: string, 
   return { id: `protocolo-${s.week}`, patient_id: '', number: ciclo ?? (ultimo?.number ?? 1), protocol_week: s.week, drugs: s.kind === 'mtx' ? ['MTX'] : ['CDDP', 'ADM'], planned_date: s.date, corticoid_iv: false } as unknown as Cycle
 }
 
+/** Horas tras el fin de la perfusión de cisplatino + adriamicina en las que sigue la ventana «en ciclo». */
+export const HORAS_TRAS_FIN = 24
+
+/** Momento (hora de reloj) en que termina la ventana «en ciclo» del cisplatino + adriamicina: fin de la perfusión + 24 h. */
+export function finVentanaCiclo(cycle: Pick<Cycle, 'drugs' | 'end_at'>): string | null {
+  if (cycle.drugs.includes('MTX') || !cycle.end_at) return null
+  return new Date(new Date(wallClock(cycle.end_at) + ':00Z').getTime() + HORAS_TRAS_FIN * 3600000).toISOString().slice(0, 16)
+}
+
 export function cycleContext(cycles: Cycle[], date: string): CycleContext {
   const started = cycles
     .filter((c) => (c.start_at ?? c.planned_date) <= date + 'T23:59')
@@ -44,11 +54,21 @@ export function cycleContext(cycles: Cycle[], date: string): CycleContext {
   if (!cycle) return { cycle: null, day: null, inCycle: false, nadir: false, mtxDay: false, phase: 'sin_ciclos', fase: null }
   const d0 = (cycle.start_at ?? cycle.planned_date).slice(0, 10)
   const day = diffDays(date, d0)
-  let windowEnd = 4
-  if (cycle.drugs.includes('MTX') && cycle.rescue?.end) windowEnd = Math.max(0, diffDays(cycle.rescue.end.slice(0, 10), d0))
-  else if (cycle.end_at) windowEnd = diffDays(cycle.end_at.slice(0, 10), d0) + 2
-  if (cycle.discharge_at) windowEnd = Math.max(windowEnd, diffDays(cycle.discharge_at.slice(0, 10), d0))
-  const inCycle = day >= 0 && day <= windowEnd
+  const esMtx = cycle.drugs.includes('MTX')
+  let inCycle: boolean
+  if (!esMtx && cycle.end_at) {
+    // Cisplatino + adriamicina con el fin apuntado: la suplementación de fuera de ciclo vuelve 24 h después, a la hora.
+    const libre = finVentanaCiclo(cycle)!
+    const ref = date === todayStr() ? nowLocalInput() : date + 'T23:59'
+    inCycle = day >= 0 && ref < libre
+  } else {
+    // Sin fin apuntado: perfusión de 48 h + 24 h = D0-D3 (cisplatino); metotrexato, hasta el fin del rescate.
+    let windowEnd = esMtx ? 4 : 3
+    if (esMtx && cycle.rescue?.end) windowEnd = Math.max(0, diffDays(cycle.rescue.end.slice(0, 10), d0))
+    else if (cycle.end_at) windowEnd = diffDays(cycle.end_at.slice(0, 10), d0) + 2
+    if (cycle.discharge_at) windowEnd = Math.max(windowEnd, diffDays(cycle.discharge_at.slice(0, 10), d0))
+    inCycle = day >= 0 && day <= windowEnd
+  }
   // Nadir solo tras el cisplatino + adriamicina (regla de Montserrate, 28/09/2026): tras el metotrexato no hay valle.
   const nadir = !cycle.drugs.includes('MTX') && day >= 7 && day <= 14
   const mtxDay = cycle.drugs.includes('MTX') && day >= 0 && (cycle.rescue?.end ? date <= cycle.rescue.end.slice(0, 10) : day <= 4)
