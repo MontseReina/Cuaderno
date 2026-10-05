@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { NavLink, Route, Routes, Link } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Route, Routes, Link, useLocation, useNavigate } from 'react-router-dom'
 import { backend, isDemo, useRows, useStoreVersion } from './store'
 import { todayStr } from './domain/dates'
-import Home from './pages/Home'
+import Hoy from './pages/Hoy'
+import Seguimiento from './pages/Seguimiento'
 import Diario from './pages/Diario'
 import Ciclos from './pages/Ciclos'
 import Diagnosticos from './pages/Diagnosticos'
@@ -32,6 +33,8 @@ import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
 import { Mark } from './components/Logo'
 import { HumaArt } from './components/Huma'
+import { BandaSalud, usePendienteRojo, useSaludHoy } from './components/Salud'
+import { ApartadosNav, esApartado } from './components/Apartados'
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -83,38 +86,58 @@ function Shell() {
     const diff = new Date(e.start_at).getTime() - Date.now()
     return diff > -3600000 && diff < 48 * 3600000
   }).length
+  // Salud de hoy: la banda roja se ve en todas las pantallas de los cuidadores.
+  const salud = useSaludHoy()
+  usePendienteRojo(salud.traffic.level, salud.traffic.reasons)
+  const { pathname } = useLocation()
+  // Modo niño: el Reto ocupa toda la pantalla, sin barras ni accesos a lo clínico.
+  const nino = pathname === '/reto' || pathname.startsWith('/reto/')
+  const rojo = salud.traffic.level === 'rojo'
+  const zona = zonaDe(pathname)
+  if (nino) return (
+    <div className="app modo-nino">
+      <main className="content">
+        <ConfirmarHost />
+        <SalirModoNino />
+        <Routes>
+          <Route path="/reto" element={<Reto />} />
+          <Route path="/reto/:section" element={<Reto />} />
+        </Routes>
+      </main>
+    </div>
+  )
   return (
-    <div className="app">
-      <header className="topbar noprint">
-        <Link to="/" className="title" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-          <Mark size={26} />
-          Huma
-        </Link>
-        <Link to="/pendientes" className={'badge ' + (overdue ? 'alert' : todos.length ? 'warn' : '')} title="Pendientes">
-          ☑ {todos.length}
-        </Link>
-        <Link to="/calendario" className={'badge ' + (soon ? 'warn' : '')} title="Próximas 48 h">
-          📅 {soon}
-        </Link>
-        {isDemo && <Link to="/datos" className="badge" title={`v${APP_VERSION} · los datos se guardan solo en este dispositivo`}>💾</Link>}
-      </header>
+    <div className={'app' + (rojo ? ' con-banda' : '')}>
+      <div className="cabecera noprint">
+        <header className="topbar">
+          <Link to="/" className="title" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+            <Mark size={26} />
+            Huma
+          </Link>
+          <Link to="/pendientes" className={'badge ' + (overdue ? 'alert' : todos.length ? 'warn' : '')} title="Pendientes">
+            ☑ {todos.length}
+          </Link>
+          <Link to="/calendario" className={'badge ' + (soon ? 'warn' : '')} title="Próximas 48 h">
+            📅 {soon}
+          </Link>
+          {isDemo && <Link to="/datos" className="badge" title={`v${APP_VERSION} · los datos se guardan solo en este dispositivo`}>💾</Link>}
+        </header>
+        {rojo && <BandaSalud reasons={salud.traffic.reasons} phone={salud.patient?.phone_oncology} />}
+      </div>
       <nav className="tabbar noprint">
-        <Tab to="/" ico={<HumaArt k="fenix" size={24} className="tab-huma" silueta />} label="Reto" />
-        <Tab to="/inicio" ico="🏠" label="Inicio" />
-        <Tab to="/diario" ico="📝" label="Signos y síntomas" />
-        <Tab to="/medicacion" ico="💊" label="Medicación" />
-        <Tab to="/nutricion" ico="🥣" label="Nutrición" />
-        <Tab to="/hidratacion" ico="💧" label="Hidratación" />
-        <Tab to="/ejercicio" ico="🏃" label="Ejercicio" />
-        <Tab to="/biohacking" ico="🌙" label="Biohacking" />
-        <Tab to="/mas" ico="🧭" label="Pilares" />
+        <Tab to="/" ico="🏠" label="Hoy" active={zona === 'hoy'} />
+        <Tab to="/reto" ico={<HumaArt k="fenix" size={24} className="tab-huma" silueta />} label="Reto" active={false} />
+        <Tab to="/seguimiento" ico="📊" label="Seguimiento" active={zona === 'seguimiento'} />
+        <Tab to="/mas" ico="🧭" label="Más" active={zona === 'mas'} />
       </nav>
       <main className="content">
         <AvisoVersion />
         <ConfirmarHost />
+        {esApartado(pathname) && <ApartadosNav />}
         <Routes>
-          <Route path="/" element={<Reto />} />
-          <Route path="/inicio" element={<Home />} />
+          <Route path="/" element={<Hoy />} />
+          <Route path="/inicio" element={<Hoy />} />
+          <Route path="/seguimiento" element={<Seguimiento />} />
           <Route path="/diario" element={<Diario />} />
           <Route path="/diario/:date" element={<Diario />} />
           <Route path="/ciclos" element={<Ciclos />} />
@@ -143,19 +166,49 @@ function Shell() {
           <Route path="/informes" element={<Informes />} />
           <Route path="/informes/:kind" element={<Informes />} />
           <Route path="/informes/:kind/:date" element={<Informes />} />
-          <Route path="/reto" element={<Reto />} />
-          <Route path="/reto/:section" element={<Reto />} />
         </Routes>
       </main>
     </div>
   )
 }
 
-function Tab({ to, ico, label }: { to: string; ico: ReactNode; label: string }) {
+/** A qué pestaña pertenece cada pantalla (las seis del registro diario cuelgan de «Hoy»). */
+const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo', '/emocional']
+const MAS = ['/mas', '/biblioteca', '/datos', '/ajustes']
+function zonaDe(path: string): 'hoy' | 'seguimiento' | 'mas' {
+  const en = (l: string[]) => l.some((p) => path === p || path.startsWith(p + '/'))
+  return en(SEGUIMIENTO) ? 'seguimiento' : en(MAS) ? 'mas' : 'hoy'
+}
+
+function Tab({ to, ico, label, active }: { to: string; ico: ReactNode; label: string; active: boolean }) {
   return (
-    <NavLink to={to} end={to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
+    <Link to={to} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
       <span className="ico">{ico}</span>
       {label}
-    </NavLink>
+    </Link>
+  )
+}
+
+/** Salida del modo niño: hay que mantener pulsado, para que no se salga sin querer. */
+const PULSACION_MS = 1200
+function SalirModoNino() {
+  const nav = useNavigate()
+  const timer = useRef<number | null>(null)
+  const [pulsando, setPulsando] = useState(false)
+  const soltar = () => { if (timer.current != null) { clearTimeout(timer.current); timer.current = null } setPulsando(false) }
+  const pulsar = () => { soltar(); setPulsando(true); timer.current = window.setTimeout(() => { timer.current = null; nav('/') }, PULSACION_MS) }
+  useEffect(() => soltar, [])
+  return (
+    <div className="nino-salir noprint">
+      <button
+        type="button"
+        className={'nino-salir-btn' + (pulsando ? ' pulsando' : '')}
+        onPointerDown={pulsar} onPointerUp={soltar} onPointerLeave={soltar} onPointerCancel={soltar}
+        onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) pulsar() }} onKeyUp={soltar}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        🔒 Mantén pulsado para salir
+      </button>
+    </div>
   )
 }

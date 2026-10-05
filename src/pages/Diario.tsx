@@ -158,7 +158,7 @@ export default function Diario() {
           <Segmented options={[{ value: 'menos', label: 'Menos de lo habitual' }, { value: 'normal', label: 'Normal' }, { value: 'mas', label: 'Más' }]} value={draft.urine_amount} onChange={(v) => set('urine_amount', v)} />
         </Field>
         {!(ctx.mtxDay || draft.location === 'ingreso') && (
-          <Field label="Micciones (nº)" hint={patientVoids ? `Lo habitual: ${patientVoids} al día` : 'Lo habitual se pone en Pilares → Ajustes'}><Stepper value={draft.urine_count} onChange={(v) => set('urine_count', v)} /></Field>
+          <Field label="Micciones (nº)" hint={patientVoids ? `Lo habitual: ${patientVoids} al día` : 'Lo habitual se pone en Más → Ajustes'}><Stepper value={draft.urine_count} onChange={(v) => set('urine_count', v)} /></Field>
         )}
         {(ctx.mtxDay || draft.location === 'ingreso') && (
           <div className="grid3">

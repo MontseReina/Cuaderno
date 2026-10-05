@@ -18,8 +18,9 @@ export interface MedProgress {
   taken: number
 }
 
-/** Cuántas tomas de medicación y suplementos tocaban ese día y cuántas están marcadas. */
-export function medicationProgress(products: Product[], intakes: Intake[], cycles: Cycle[], date: string): MedProgress {
+/** Cuántas tomas de medicación y suplementos tocaban ese día y cuántas están marcadas.
+ *  Con `soloMomentos` se cuentan solo las tomas de esos momentos del día (para la pantalla «Hoy»). */
+export function medicationProgress(products: Product[], intakes: Intake[], cycles: Cycle[], date: string, soloMomentos?: string[]): MedProgress {
   const ctx = cycleContext(cycles, date)
   const wk = trafficWindow(ctx, date)
   const dow = new Date(date + 'T12:00').getDay()
@@ -34,6 +35,7 @@ export function medicationProgress(products: Product[], intakes: Intake[], cycle
     if (afterChemoGate(p, cycles, date)?.waiting) continue
     if (wk && p.traffic?.[wk] === 'rojo') continue
     for (const m of p.moments) {
+      if (soloMomentos && !soloMomentos.includes(m)) continue
       const it = intakes.find((i) => i.product_id === p.id && i.date === date && i.moment === m)
       if (it?.status === 'no_precisa') continue // no cuenta ni como prevista ni como pendiente
       planned++

@@ -150,12 +150,12 @@ export default function Reto() {
             const esHoy = date === hoyStr
             const llamas = dp ? (dp.total >= 80 ? 3 : dp.total >= 50 ? 2 : dp.total > 0 ? 1 : 0) : 0
             return (
-              <Link key={d} to={dp ? `/diario/${date}` : '#'} className={'r2-dia ' + (esHoy ? 'hoy ' : '') + (dp ? '' : 'futuro')} onClick={(e) => { if (!dp) e.preventDefault() }}>
+              <div key={d} className={'r2-dia ' + (esHoy ? 'hoy ' : '') + (dp ? '' : 'futuro')}>
                 <span className="r2-dia-l">{d}</span>
                 <span className="r2-dia-ico">{dp?.shield ? '🛡️' : llamas ? '🔥' : '·'}</span>
                 <span className="r2-dia-pts">{dp ? dp.total : ''}</span>
                 {llamas > 1 && <span className="r2-dia-extra">{'★'.repeat(llamas - 1)}</span>}
-              </Link>
+              </div>
             )
           })}
         </div>
@@ -236,7 +236,7 @@ function Mision({ date, name, inp, shieldMin }: { date: string; name: string; in
         <div className="r2-eyebrow">🎯 Misión de hoy</div>
         {p
           ? <><div className="r2-mision-tit">{name} necesita {p.largo}</div><p className="r2-mision-txt">{FRASE_MISION[ev.necesita!]}</p>
-            <Link to={p.ruta} className="r2-mision-link">¿Está apuntado? Pide a mamá o a la tía que lo miren ›</Link></>
+            <div className="r2-mision-link">¿Está apuntado? Pide a mamá o a la tía que lo miren</div></>
           : <><div className="r2-mision-tit">{ev.dias ? '¡Todos los poderes van fenomenal!' : 'Primera misión: ganar poderes'}</div>
             <p className="r2-mision-txt">{ev.dias ? 'La misión de hoy es mantener el fuego encendido, igual que hasta ahora.' : `Apunta todo lo que puedas hoy y ${name} empezará a brillar.`}</p></>}
         {ev.dias > 0 && (
@@ -249,7 +249,8 @@ function Mision({ date, name, inp, shieldMin }: { date: string; name: string; in
   )
 }
 
-/** Los poderes de hoy, como las estadísticas de una criatura. */
+/** Los poderes de hoy, como las estadísticas de una criatura.
+ *  Desde la 0.29.0 (modo niño) las filas no enlazan a las pantallas del registro. */
 function PoderesHoy({ hoy, shieldMin, name }: { hoy: WeekPoints['days'][number]; shieldMin: number; name: string }) {
   return (
     <section className="card">
@@ -259,7 +260,7 @@ function PoderesHoy({ hoy, shieldMin, name }: { hoy: WeekPoints['days'][number];
         const p = PODERES[c.key]
         const lleno = c.pts >= c.max
         return (
-          <Link key={c.key} to={p.ruta} className="r2-stat" style={{ ['--c' as string]: p.color }}>
+          <div key={c.key} className="r2-stat" style={{ ['--c' as string]: p.color }}>
             <div className="r2-stat-ico">{p.emoji}</div>
             <div className="r2-stat-body">
               <div className="r2-stat-top"><strong>{p.poder}</strong><span className="muted small">{c.label} · {c.detail}</span></div>
@@ -267,7 +268,7 @@ function PoderesHoy({ hoy, shieldMin, name }: { hoy: WeekPoints['days'][number];
               {c.pts === 0 && <div className="r2-stat-pide">¡Pide que lo apunten para que {name} gane este poder!</div>}
             </div>
             <div className="r2-stat-pts">{lleno ? '✓' : c.pts}<span>/{c.max}</span></div>
-          </Link>
+          </div>
         )
       })}
     </section>
@@ -310,7 +311,7 @@ function PremioEditor({ ch, start, onClose }: { ch: ReturnType<typeof challengeF
         <button className="btn" onClick={guardar}>Guardar</button>
         <button className="btn ghost" onClick={onClose}>Cancelar</button>
       </div>
-      <p className="muted small">La meta ({ch.goal} puntos), el nombre de la criatura y el del entrenador se cambian en Pilares → Ajustes.</p>
+      <p className="muted small">La meta ({ch.goal} puntos), el nombre de la criatura y el del entrenador se cambian en Más → Ajustes.</p>
     </div>
   )
 }

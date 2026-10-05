@@ -34,16 +34,17 @@ p { margin: .3rem 0; }
 .topbar .badge { display: inline-flex; align-items: center; gap: .3rem; background: rgba(36,42,28,.10); border-radius: 999px; padding: .2rem .6rem; font-size: .85rem; text-decoration: none; color: var(--ink-deep); }
 .topbar .badge.alert { background: var(--red); color: #fff; }
 .topbar .badge.warn { background: var(--amber); color: #1c2430; }
-.content { flex: 1; padding: .9rem .9rem 9.5rem; max-width: 900px; width: 100%; margin: 0 auto; }
+.content { flex: 1; padding: .9rem .9rem 6rem; max-width: 900px; width: 100%; margin: 0 auto; }
 @media (min-width: 900px) { .content { padding-bottom: 2rem; } }
 
 .tabbar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-around; padding: .3rem 0 calc(.3rem + env(safe-area-inset-bottom)); z-index: 10; }
-.tabbar a { flex: 0 0 33.333%; min-width: 0; text-align: center; text-decoration: none; color: var(--muted); font-size: .68rem; line-height: 1.2; padding: .25rem .1rem; }
+.tabbar a { flex: 1 1 0; min-width: 0; min-height: 3.1rem; text-align: center; text-decoration: none; color: var(--muted); font-size: .85rem; line-height: 1.2; padding: .3rem .1rem; border-top: 3px solid transparent; margin-top: -1px; }
 .tabbar a .ico { display: block; font-size: 1.15rem; line-height: 1.25; }
-.tabbar a.active { color: var(--primary); font-weight: 600; }
+.tabbar a.active { color: var(--primary); font-weight: 800; border-top-color: var(--primary); }
 @media (min-width: 900px) {
   .tabbar { position: sticky; top: 52px; bottom: auto; border-top: none; border-bottom: 1px solid var(--line); }
-  .tabbar a { flex: 1; font-size: .8rem; }
+  .tabbar a { flex: 1; font-size: .9rem; min-height: 0; border-top: none; margin-top: 0; }
+  .app.con-banda .tabbar { position: static; }
   .tabbar a .ico { display: inline; margin-right: .3rem; font-size: 1rem; }
 }
 
@@ -620,3 +621,49 @@ details.pesadas[open] > summary::after { content: '▾'; }
 /* Un tipo de Bristol por deposición (0.28.0) */
 .bristol-fila { margin: .35rem 0 .5rem; }
 .bristol-num { font-weight: 700; margin-bottom: .2rem; }
+
+/* ===== 0.29.0 · Cuatro pestañas, pantalla «Hoy», banda de salud y modo niño ===== */
+.cabecera { position: sticky; top: 0; z-index: 10; }
+.cabecera .topbar { position: static; }
+.banda-salud { display: flex; align-items: center; gap: .7rem; background: var(--red); color: #fff; padding: .55rem .9rem; }
+.banda-salud-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: .9rem; line-height: 1.3; }
+.banda-salud-txt strong { font-size: 1.05rem; }
+.banda-salud-txt span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.banda-salud-txt .banda-salud-nota { font-weight: 700; white-space: normal; overflow: visible; }
+.banda-salud-btn { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; min-height: 2.9rem; padding: 0 .9rem; border-radius: 10px; background: #fff; color: #8c2a20; font-weight: 800; text-decoration: none; }
+
+.hoy-titulo { margin-bottom: .1rem; }
+.hoy-titulo::first-letter { text-transform: uppercase; }
+.traffic.inline.hoy-salud { margin: .7rem 0 .8rem; }
+.hoy-ahora { padding: 0; overflow: hidden; }
+.hoy-ahora-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; padding: .7rem .9rem .5rem; }
+.hoy-ahora-head h2 { margin: 0; }
+.hoy-franja { background: var(--primary-soft); color: var(--primary); font-weight: 700; font-size: .85rem; border-radius: 999px; padding: .15rem .65rem; }
+.hoy-hecho { background: #f6f3ec; color: var(--muted); font-size: .9rem; padding: .45rem .9rem; border-top: 1px solid var(--line); }
+.hoy-vacio { color: var(--muted); padding: .8rem .9rem; border-top: 1px solid var(--line); }
+.hoy-fila { display: flex; align-items: center; gap: .7rem; min-height: 3.4rem; padding: .5rem .9rem; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+.hoy-fila-ico { width: 2.5rem; height: 2.5rem; border-radius: 10px; background: #f6f3ec; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+.hoy-fila-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hoy-fila-ir { color: var(--muted); font-size: 1.4rem; line-height: 1; }
+.hoy-registro-n { color: var(--primary); }
+.hoy-barra { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: .45rem; }
+.hoy-barra > div { height: 100%; border-radius: 999px; background: var(--primary); transition: width .4s; }
+.hoy-rotulo { text-transform: uppercase; letter-spacing: .04em; font-size: .85rem; font-weight: 800; margin-top: 1.1rem; }
+.hoy-luego > summary { min-height: 3rem; }
+.hoy-luego-lista .hoy-fila:first-child { border-top: 1px solid var(--line); }
+.hoy-apartados .btn { min-height: 2.9rem; padding: .5rem .4rem; }
+
+.apartados { display: flex; gap: .4rem; overflow-x: auto; margin: -.3rem -.9rem .7rem; padding: .1rem .9rem .4rem; scrollbar-width: none; }
+.apartados::-webkit-scrollbar { display: none; }
+.apartados a { flex-shrink: 0; display: inline-flex; align-items: center; gap: .3rem; min-height: 2.6rem; padding: 0 .8rem; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--text); text-decoration: none; font-size: .9rem; white-space: nowrap; }
+.apartados a.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+.apartados a.apartados-volver { border-color: var(--primary); color: var(--primary); font-weight: 700; }
+
+.seg-tarjeta { display: flex; flex-direction: column; gap: .1rem; text-decoration: none; color: inherit; }
+.strip.alta span { height: 30px; border-radius: 4px; }
+
+.app.modo-nino .content { padding-bottom: 2rem; padding-top: calc(.9rem + env(safe-area-inset-top)); }
+.nino-salir { display: flex; justify-content: flex-end; margin-bottom: .6rem; position: relative; z-index: 2; }
+.nino-salir-btn { min-height: 2.75rem; padding: 0 .9rem; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.85); color: var(--muted); font-size: .85rem; font-weight: 700; cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; background-image: linear-gradient(var(--primary-soft), var(--primary-soft)); background-repeat: no-repeat; background-size: 0% 100%; }
+.nino-salir-btn.pulsando { background-size: 100% 100%; transition: background-size 1.2s linear; color: var(--primary); }
+.reto2 .r2-mision-link { color: #5a3a10; }
