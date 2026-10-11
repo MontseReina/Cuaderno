@@ -3,16 +3,16 @@ import { backend, useRows } from '../store'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 
-const EVOLUCION = [
-  { to: '/informes', ico: '📊', label: 'Evaluaciones e informe semanal', desc: 'Cómo se rellena el registro y el informe de la semana en PDF' },
+/** 0.30.0 · Una sola lista, en el orden en que la familia lo consulta. «Emocional y familiar» pasa a «Más». */
+const LISTA = [
+  { to: '/diagnosticos', ico: '🩺', label: 'Diagnósticos y evolución', desc: 'Línea de tiempo clínica, signos a vigilar, datos del protocolo' },
   { to: '/ciclos', ico: '💉', label: 'Tratamiento y ciclos', desc: 'Quimio, rescate, dosis acumulada, vigilancia por fármaco' },
   { to: '/analiticas', ico: '🧪', label: 'Analíticas y marcadores', desc: 'Fuera de rango, tendencias, pruebas de órgano' },
-  { to: '/diagnosticos', ico: '🩺', label: 'Diagnósticos y evolución', desc: 'Línea de tiempo clínica, signos a vigilar, datos del protocolo' },
   { to: '/microbiota', ico: '🦠', label: 'Microbiota', desc: 'Tests de heces y comparativa' },
-]
-const FAMILIA = [
   { to: '/equipo', ico: '💬', label: 'Preguntas al equipo', desc: 'Por profesional · informe de consulta' },
-  { to: '/emocional', ico: '💛', label: 'Emocional y familiar', desc: 'El niño (semanal) y el cuidador' },
+  { to: '/pendientes', ico: '☑️', label: 'Pendientes', desc: '' },
+  { to: '/informes', ico: '📊', label: 'Evaluaciones e informe semanal', desc: 'Cómo se rellena el registro y el informe de la semana en PDF' },
+  { to: '/calendario', ico: '📅', label: 'Calendario', desc: '' },
 ]
 
 /** Pestaña «Seguimiento» (0.29.0): lo que se consulta, no lo que se apunta cada día. */
@@ -39,21 +39,16 @@ export default function Seguimiento() {
     return { d, level: l ? dailyTraffic(l, p, c, symptomsForToday(c, diagnoses)).level : '' }
   })
 
+  const txtPendientes = todos.length ? `${todos.length} tarea${todos.length > 1 ? 's' : ''}${atrasados ? `, ${atrasados} atrasada${atrasados > 1 ? 's' : ''}` : ''}` : 'Nada pendiente'
+  const txtCitas = proximas ? `${proximas} cita${proximas > 1 ? 's' : ''} en 48 h` : 'Sin citas en 48 h'
+  const desc = (l: { to: string; desc: string }) => (l.to === '/pendientes' ? txtPendientes : l.to === '/calendario' ? txtCitas : l.desc)
+
   return (
     <div>
       <h1>Seguimiento</h1>
-      <div className="grid2">
-        <Link to="/calendario" className="card tight seg-tarjeta">
-          <strong>📅 Calendario</strong>
-          <span className="muted small">{proximas ? `${proximas} cita${proximas > 1 ? 's' : ''} en 48 h` : 'Sin citas en 48 h'}</span>
-        </Link>
-        <Link to="/pendientes" className="card tight seg-tarjeta">
-          <strong>☑️ Pendientes</strong>
-          <span className="muted small">{todos.length ? `${todos.length} tarea${todos.length > 1 ? 's' : ''}${atrasados ? `, ${atrasados} atrasada${atrasados > 1 ? 's' : ''}` : ''}` : 'Nada pendiente'}</span>
-        </Link>
-      </div>
+      {LISTA.map((l) => <Fila key={l.to} {...l} desc={desc(l)} />)}
 
-      <div className="card tight">
+      <div className="card tight" style={{ marginTop: '1rem' }}>
         <h3 style={{ margin: '0 0 .4rem' }}>Cómo ha estado {patient?.name ?? 'el niño'} estos días</h3>
         <div className="strip alta">
           {strip.map((s) => (
@@ -66,11 +61,6 @@ export default function Seguimiento() {
           Hoy a la izquierda · <span className="dot verde" />sin alarmas <span className="dot amarillo" />vigilar <span className="dot rojo" />alarma · gris: sin registro
         </div>
       </div>
-
-      <h3>Evolución</h3>
-      {EVOLUCION.map((l) => <Fila key={l.to} {...l} />)}
-      <h3>Familia y equipo</h3>
-      {FAMILIA.map((l) => <Fila key={l.to} {...l} />)}
     </div>
   )
 }

@@ -34,7 +34,7 @@ import { APP_VERSION } from './domain/exporter'
 import { Mark } from './components/Logo'
 import { HumaArt } from './components/Huma'
 import { BandaSalud, usePendienteRojo, useSaludHoy } from './components/Salud'
-import { ApartadosNav, esApartado } from './components/Apartados'
+import { ApartadosNav, SiguienteApartado, conApartados, esApartado } from './components/Apartados'
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -94,6 +94,10 @@ function Shell() {
   const nino = pathname === '/reto' || pathname.startsWith('/reto/')
   const rojo = salud.traffic.level === 'rojo'
   const zona = zonaDe(pathname)
+  // Al cambiar de pantalla se empieza arriba: si no, al entrar en un apartado desde la lista de «Hoy»
+  // la página se queda a media altura y no se ven los apartados ni lo que falta. Cambiar de día no mueve la página.
+  const pantalla = pathname.split('/')[1] ?? ''
+  useEffect(() => { window.scrollTo(0, 0) }, [pantalla])
   if (nino) return (
     <div className="app modo-nino">
       <main className="content">
@@ -133,7 +137,7 @@ function Shell() {
       <main className="content">
         <AvisoVersion />
         <ConfirmarHost />
-        {esApartado(pathname) && <ApartadosNav />}
+        {conApartados(pathname) && <ApartadosNav />}
         <Routes>
           <Route path="/" element={<Hoy />} />
           <Route path="/inicio" element={<Hoy />} />
@@ -167,14 +171,15 @@ function Shell() {
           <Route path="/informes/:kind" element={<Informes />} />
           <Route path="/informes/:kind/:date" element={<Informes />} />
         </Routes>
+        {esApartado(pathname) && <SiguienteApartado />}
       </main>
     </div>
   )
 }
 
 /** A qué pestaña pertenece cada pantalla (las seis del registro diario cuelgan de «Hoy»). */
-const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo', '/emocional']
-const MAS = ['/mas', '/biblioteca', '/datos', '/ajustes']
+const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo']
+const MAS = ['/mas', '/emocional', '/biblioteca', '/datos', '/ajustes']
 function zonaDe(path: string): 'hoy' | 'seguimiento' | 'mas' {
   const en = (l: string[]) => l.some((p) => path === p || path.startsWith(p + '/'))
   return en(SEGUIMIENTO) ? 'seguimiento' : en(MAS) ? 'mas' : 'hoy'

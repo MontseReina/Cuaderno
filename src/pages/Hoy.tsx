@@ -2,36 +2,28 @@ import { Link } from 'react-router-dom'
 import { backend, useRows, save } from '../store'
 import { addDays, fmtDate, fmtWall } from '../domain/dates'
 import { afterChemoGate, corticoidAlert } from '../domain/cycle'
-import { dayCompleteness } from '../domain/completeness'
 import { protocolPoint } from '../domain/protocol'
-import { medicationProgress } from '../domain/medication'
 import { knownUsers } from '../domain/users'
 import { LOCATIONS } from '../domain/catalogs'
 import { diaTratamiento } from '../domain/diaTratamiento'
-import { FRANJAS, franjaDeHora, tareasDelDia, type Tarea } from '../domain/momentos'
 import { useSaludHoy } from '../components/Salud'
-import { APARTADOS } from '../components/Apartados'
+import { Marca, useResumenDia } from '../components/Apartados'
+import type { EstadoApartado } from '../domain/apartados'
 
-/** Pantalla de entrada (0.29.0). Sustituye a Inicio: primero la salud, luego lo que toca apuntar
- *  ahora (por momento del día), el progreso del registro en tono neutro y lo de más tarde. */
+/** Pantalla de entrada. Primero la salud y después una sola lista con lo que queda por rellenar,
+ *  apartado por apartado (0.30.0: sin franjas de mañana, tarde y noche). Lo completo baja a «Hecho». */
 export default function Hoy() {
   const { today, patient, todayLog, traffic, ctx } = useSaludHoy()
   const cycles = useRows('cycles')
   const todos = useRows('todos', (t) => t.status === 'pendiente')
   const events = useRows('calendar_events', (e) => e.status === 'previsto')
   const allProducts = useRows('products')
-  const intakes = useRows('intakes')
   const me = backend.currentUserId()
   const nameOf = (id: string) => knownUsers().find((u) => u.id === id)?.name ?? 'alguien'
 
-  const reg = dayCompleteness(todayLog, today, medicationProgress(allProducts, intakes, cycles, today))
-  const tareas = tareasDelDia(reg, todayLog, today, allProducts, intakes, cycles)
-  const ahora = franjaDeHora(new Date().getHours())
-  const iAhora = FRANJAS.findIndex((f) => f.key === ahora)
-  const orden = (t: Tarea) => FRANJAS.findIndex((f) => f.key === t.franja)
-  const tocan = tareas.filter((t) => !t.done && orden(t) <= iAhora)
-  const hechas = tareas.filter((t) => t.done)
-  const luego = FRANJAS.slice(iAhora + 1).map((f) => ({ f, lista: tareas.filter((t) => t.franja === f.key && !t.done) })).filter((x) => x.lista.length)
+  const { comp: reg, apartados } = useResumenDia(today)
+  const quedan = apartados.filter((a) => !a.completo)
+  const hechos = apartados.filter((a) => a.completo)
   const pct = Math.round((reg.done / reg.total) * 100)
 
   const cortico = corticoidAlert(cycles, today)
@@ -80,38 +72,22 @@ export default function Hoy() {
         {/* El teléfono y el aviso del antitérmico van en la banda roja fija de arriba. */}
       </div>
 
-      <section className="card hoy-ahora">
+      <section className="card hoy-ahora" aria-label="Lo que queda por rellenar hoy">
         <div className="hoy-ahora-head">
-          <h2>Ahora toca</h2>
-          <span className="hoy-franja">{FRANJAS[iAhora].label}</span>
-        </div>
-        {hechas.length > 0 && (
-          <div className="hoy-hecho">✓ Ya apuntado: {hechas.length} {hechas.length === 1 ? 'cosa' : 'cosas'}</div>
-        )}
-        {tocan.length === 0 && <div className="hoy-vacio">Todo apuntado por ahora.</div>}
-        {tocan.map((t) => <FilaTarea key={t.key} t={t} atrasada={orden(t) < iAhora} />)}
-      </section>
-
-      <section className="card tight hoy-registro" aria-label="Registro de hoy">
-        <div className="row between">
-          <strong>Registro de hoy</strong>
+          <h2>{quedan.length ? 'Te queda por rellenar' : 'Registro de hoy'}</h2>
           <strong className="hoy-registro-n">{reg.done} de {reg.total}</strong>
         </div>
         <div className="hoy-barra" role="img" aria-label={`${reg.done} de ${reg.total} apartados`}><div style={{ width: `${pct}%` }} /></div>
+        {quedan.length === 0 && <div className="hoy-vacio">✓ Todo apuntado por hoy.</div>}
+        {quedan.map((a) => <FilaApartado key={a.to} a={a} />)}
       </section>
 
-      {luego.length > 0 && <h3 className="hoy-rotulo">Más tarde</h3>}
-      {luego.map(({ f, lista }) => (
-        <details key={f.key} className="section hoy-luego">
-          <summary><span><strong>{f.label}</strong><span className="muted small"> · {lista.map((t) => t.label.toLowerCase()).join(', ')}</span></span></summary>
-          <div className="hoy-luego-lista">{lista.map((t) => <FilaTarea key={t.key} t={t} />)}</div>
-        </details>
-      ))}
-
-      <h3 className="hoy-rotulo">Ver por apartado</h3>
-      <div className="grid3 hoy-apartados">
-        {APARTADOS.map((a) => <Link key={a.to} className="btn secondary" to={a.to}>{a.ico} {a.label}</Link>)}
-      </div>
+      {hechos.length > 0 && (
+        <section className="card hoy-hechos" aria-label="Apartados completos">
+          <div className="hoy-hechos-head">Hecho</div>
+          {hechos.map((a) => <FilaApartado key={a.to} a={a} />)}
+        </section>
+      )}
 
       {cortico && (
         <div className="notice" style={{ marginTop: '.8rem' }}>
@@ -168,15 +144,16 @@ export default function Hoy() {
   )
 }
 
-/** Una cosa por apuntar: toda la fila lleva a la pantalla donde se apunta. */
-function FilaTarea({ t, atrasada }: { t: Tarea; atrasada?: boolean }) {
+/** Un apartado del registro: qué le falta (o que está completo). Toda la fila lleva a su pantalla. */
+function FilaApartado({ a }: { a: EstadoApartado }) {
   return (
-    <Link to={t.to} className="hoy-fila">
-      <span className="hoy-fila-ico" aria-hidden="true">{t.ico}</span>
+    <Link to={a.to} className={'hoy-fila' + (a.completo ? ' hecha' : '')}>
+      <span className="hoy-fila-ico" aria-hidden="true">{a.ico}</span>
       <span className="hoy-fila-txt">
-        <strong>{t.label}</strong>
-        {(t.detalle || atrasada) && <span className="muted small">{atrasada ? 'De antes · ' : ''}{t.detalle ?? 'Sin apuntar'}</span>}
+        <strong>{a.nombre}</strong>
+        {!a.completo && <span className="muted small">{a.falta}</span>}
       </span>
+      <Marca a={a} />
       <span className="hoy-fila-ir" aria-hidden="true">›</span>
     </Link>
   )
