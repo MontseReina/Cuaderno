@@ -677,7 +677,7 @@ details.pesadas[open] > summary::after { content: '▾'; }
 .nino-salir-btn.pulsando { background-size: 100% 100%; transition: background-size 1.2s linear; color: var(--primary); }
 .reto2 .r2-mision-link { color: #5a3a10; }
 
-/* 0.31.0 · Pautas y aprendizajes: cada especialista es una hoja de documento que va creciendo */
+/* 0.31.0 · Pautas: cada especialista es una hoja de documento que va creciendo */
 .hoja { background: #fff; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 2px 10px rgba(36, 42, 28, .08); padding: 1.3rem 1.2rem 1.1rem; }
 .hoja-cabecera { border-bottom: 2px solid var(--ink-deep); padding-bottom: .5rem; margin-bottom: .4rem; }
 .hoja-cabecera h2 { margin: 0 0 .15rem; font-size: 1.6rem; }

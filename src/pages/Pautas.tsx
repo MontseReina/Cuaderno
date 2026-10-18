@@ -5,7 +5,7 @@ import { GUIDELINE_SOURCES, PROFESSIONALS, type Guideline, type GuidelineSource,
 import { todayStr } from '../domain/dates'
 import { confirmar } from '../components/Confirmar'
 
-/** 0.31.0 · Pautas y aprendizajes: arriba los especialistas (como en «Preguntas al equipo») y debajo,
+/** 0.31.0 · Pautas: arriba los especialistas (como en «Preguntas al equipo») y debajo,
  *  para cada uno, un documento que va creciendo, como una hoja de Word:
  *  - las respuestas a nuestras preguntas entran solas desde «Preguntas al equipo» (no se apuntan dos veces);
  *  - lo que escribimos nosotros (email, sesión privada, consulta, mensaje…) se añade al final. */
@@ -103,7 +103,7 @@ export default function Pautas() {
   return (
     <div>
       <div className="row between noprint">
-        <h1>Pautas y aprendizajes</h1>
+        <h1>Pautas</h1>
         {doc.length > 0 && !buscando && <button className="btn sm secondary" onClick={() => window.print()}>🖨 Imprimir / PDF</button>}
       </div>
       <div className="buscador noprint">

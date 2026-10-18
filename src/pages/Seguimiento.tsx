@@ -4,7 +4,7 @@ import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
 import { entradasVigentes, fmtCorta } from './Pautas'
 
-/** 0.31.0 · «Pautas y aprendizajes» va justo después de «Preguntas al equipo».
+/** 0.31.0 · «Pautas» va justo después de «Preguntas al equipo».
  *  0.30.0 · Una sola lista, en el orden en que la familia lo consulta. «Emocional y familiar» pasa a «Más». */
 const LISTA = [
   { to: '/diagnosticos', ico: '🩺', label: 'Diagnósticos y evolución', desc: 'Línea de tiempo clínica, signos a vigilar, datos del protocolo' },
@@ -12,7 +12,7 @@ const LISTA = [
   { to: '/analiticas', ico: '🧪', label: 'Analíticas y marcadores', desc: 'Fuera de rango, tendencias, pruebas de órgano' },
   { to: '/microbiota', ico: '🦠', label: 'Microbiota', desc: 'Tests de heces y comparativa' },
   { to: '/equipo', ico: '💬', label: 'Preguntas al equipo', desc: 'Por profesional · informe de consulta' },
-  { to: '/pautas', ico: '🌱', label: 'Pautas y aprendizajes', desc: '' },
+  { to: '/pautas', ico: '🌱', label: 'Pautas', desc: '' },
   { to: '/pendientes', ico: '☑️', label: 'Pendientes', desc: '' },
   { to: '/informes', ico: '📊', label: 'Evaluaciones e informe semanal', desc: 'Cómo se rellena el registro y el informe de la semana en PDF' },
   { to: '/calendario', ico: '📅', label: 'Calendario', desc: '' },

@@ -49,7 +49,7 @@ export default function Equipo() {
       {pending.map((q) => <QuestionItem key={q.id} q={q} />)}
       {answered.length > 0 && (
         <Section title={`Respondidas (${answered.length})`}>
-          <p className="muted small" style={{ marginTop: 0 }}>Las respuestas se ven también en <Link to="/pautas">🌱 Pautas y aprendizajes</Link>, junto a lo que llega por email y en las sesiones.</p>
+          <p className="muted small" style={{ marginTop: 0 }}>Las respuestas se ven también en <Link to="/pautas">🌱 Pautas</Link>, junto a lo que llega por email y en las sesiones.</p>
           {answered.map((q) => <QuestionItem key={q.id} q={q} />)}
         </Section>
       )}

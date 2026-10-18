@@ -391,7 +391,7 @@ export interface Question extends BaseRow {
   answered_at?: string | null
 }
 
-/** 0.31.0 · Pautas y aprendizajes: lo que nos dicen los profesionales fuera de las preguntas
+/** 0.31.0 · Pautas: lo que nos dicen los profesionales fuera de las preguntas
  *  (un email, una sesión privada, una consulta…). Las respuestas a las preguntas siguen en `questions`
  *  y se ven también en este apartado, sin apuntarlas dos veces. */
 export const GUIDELINE_SOURCES = [

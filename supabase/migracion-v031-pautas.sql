@@ -1,5 +1,5 @@
 -- =====================================================================
---  Huma — migración v0.31 (18/10/2026): apartado «Pautas y aprendizajes»
+--  Huma — migración v0.31 (18/10/2026): apartado «Pautas»
 --  Ejecutar UNA VEZ en: Supabase → SQL Editor → New query → pegar → Run
 --  Se puede ejecutar varias veces sin romper nada.
 --
