@@ -45,6 +45,42 @@ function partir(texto: string): { title: string; detail?: string } {
   return { title: t.slice(0, i).trim(), detail: t.slice(i + 1).trim() || undefined }
 }
 
+/** Para buscar sin que importen mayúsculas ni tildes («Nutrición» = «nutricion»). */
+const sinTildes = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+const palabrasDe = (b: string) => sinTildes(b).split(/\s+/).filter((w) => w.length > 0)
+function textoBuscable(e: Entrada): string {
+  if (e.tipo === 'respuesta') return sinTildes(`${e.q.question} ${e.q.answer ?? ''} ${e.q.pillar ?? ''}`)
+  const src = GUIDELINE_SOURCES.find((s) => s.key === e.g.source)?.label ?? ''
+  return sinTildes(`${textoDe(e.g)} ${e.g.who ?? ''} ${src} ${e.g.pillar ?? ''}`)
+}
+
+/** Pinta el texto con las palabras buscadas resaltadas (sin importar tildes ni mayúsculas). */
+function Resaltado({ texto, palabras }: { texto: string; palabras?: string[] }) {
+  if (!palabras?.length || !texto) return <>{texto}</>
+  // Versión sin tildes letra a letra, para que las posiciones coincidan con el texto original.
+  const letras = [...texto]
+  const norm = letras.map((c) => sinTildes(c) || c)
+  const plano = norm.join('')
+  const inicio: number[] = []
+  let pos = 0
+  for (const n of norm) { inicio.push(pos); pos += n.length }
+  const marca = new Array(letras.length).fill(false)
+  for (const w of palabras) {
+    let i = plano.indexOf(w)
+    while (i >= 0) {
+      for (let k = 0; k < letras.length; k++) if (inicio[k] >= i && inicio[k] < i + w.length) marca[k] = true
+      i = plano.indexOf(w, i + w.length)
+    }
+  }
+  const trozos: { t: string; m: boolean }[] = []
+  letras.forEach((c, k) => {
+    const ult = trozos[trozos.length - 1]
+    if (ult && ult.m === marca[k]) ult.t += c
+    else trozos.push({ t: c, m: marca[k] })
+  })
+  return <>{trozos.map((x, i) => (x.m ? <mark key={i}>{x.t}</mark> : <span key={i}>{x.t}</span>))}</>
+}
+
 export default function Pautas() {
   const guidelines = useRows('guidelines')
   const questions = useRows('questions', (q) => q.status === 'respondida')
@@ -52,6 +88,13 @@ export default function Pautas() {
   // Se abre en el especialista con lo último apuntado; si no hay nada, en el primero, como en Preguntas.
   const [prof, setProf] = useState<Professional>(() => todo[todo.length - 1]?.professional ?? PROFESSIONALS[0])
   const falta = faltaTabla('guidelines')
+  const [buscar, setBuscar] = useState('')
+  const palabras = palabrasDe(buscar)
+  const buscando = palabras.length > 0
+  // Al buscar se mira en los documentos de todos los especialistas: muchas veces no se recuerda quién lo dijo.
+  const encontrados = buscando ? todo.filter((e) => { const t = textoBuscable(e); return palabras.every((w) => t.includes(w)) }) : []
+  const nEsp = new Set(encontrados.map((e) => e.professional)).size
+  const abrir = (p: Professional) => { setProf(p); setBuscar(''); window.scrollTo(0, 0) }
   const doc = todo.filter((e) => e.professional === prof)
   const ultima = doc[doc.length - 1]
   // Para no tener que escribir cada vez quién lo dijo: se propone el último nombre usado con este especialista.
@@ -61,8 +104,26 @@ export default function Pautas() {
     <div>
       <div className="row between noprint">
         <h1>Pautas y aprendizajes</h1>
-        {doc.length > 0 && <button className="btn sm secondary" onClick={() => window.print()}>🖨 Imprimir / PDF</button>}
+        {doc.length > 0 && !buscando && <button className="btn sm secondary" onClick={() => window.print()}>🖨 Imprimir / PDF</button>}
       </div>
+      <div className="buscador noprint">
+        <input type="search" placeholder="🔍 Buscar una palabra (ayuno, batido…)" value={buscar} onChange={(e) => setBuscar(e.target.value)} aria-label="Buscar en todos los documentos" />
+        {buscar && <button type="button" className="buscador-borrar" onClick={() => setBuscar('')} aria-label="Borrar la búsqueda">✕</button>}
+      </div>
+
+      {buscando ? (
+        <article className="hoja">
+          <header className="hoja-cabecera">
+            <h2>Buscando «{buscar.trim()}»</h2>
+            <div className="muted small">
+              {encontrados.length
+                ? `${encontrados.length} resultado${encontrados.length > 1 ? 's' : ''} en ${nEsp} especialista${nEsp > 1 ? 's' : ''} · toca uno para abrir su documento`
+                : 'No aparece en ningún documento. Prueba con otra palabra o con una parte de ella (p. ej. «vitam»).'}
+            </div>
+          </header>
+          {encontrados.map((e) => <Parrafo key={e.tipo + e.id} e={e} palabras={palabras} onAbrir={() => abrir(e.professional)} />)}
+        </article>
+      ) : (<>
       <div className="chips noprint" style={{ marginBottom: '.8rem' }}>
         {PROFESSIONALS.map((p) => {
           const n = todo.filter((e) => e.professional === p).length
@@ -86,12 +147,14 @@ export default function Pautas() {
           ? <div className="notice noprint" style={{ marginTop: '1rem' }}><strong>Falta un paso para poder escribir aquí.</strong> Hay que ejecutar una vez el archivo «migracion-v031-pautas.sql» en Supabase (SQL Editor). Mientras tanto se ven las respuestas de «Preguntas al equipo».</div>
           : <Escribir key={prof} prof={prof} ultimoNombre={ultimoNombre} />}
       </article>
+      </>)}
       <style>{`@media print { .topbar, .tabbar, .noprint, .apartados { display: none !important } .content { padding: 0 } .hoja { box-shadow: none; border: none; padding: 0 } }`}</style>
     </div>
   )
 }
 
-function Parrafo({ e }: { e: Entrada }) {
+/** Un párrafo del documento. En la búsqueda (`onAbrir`) lleva el especialista delante y las palabras resaltadas. */
+function Parrafo({ e, palabras, onAbrir }: { e: Entrada; palabras?: string[]; onAbrir?: () => void }) {
   const [open, setOpen] = useState(false)
   const [editando, setEditando] = useState(false)
 
@@ -99,12 +162,17 @@ function Parrafo({ e }: { e: Entrada }) {
     const q = e.q
     return (
       <section className="hoja-entrada">
-        <div className="hoja-fecha" onClick={() => setOpen(!open)}>{fmtLarga(e.date)} · 💬 Respuesta a nuestra pregunta</div>
+        <div className="hoja-fecha" onClick={() => setOpen(!open)}>{onAbrir && <span className="hoja-esp">{q.professional} · </span>}{fmtLarga(e.date)} · 💬 Respuesta a nuestra pregunta</div>
         <div onClick={() => setOpen(!open)}>
-          <p className="hoja-pregunta">«{q.question}»</p>
-          <p className="hoja-texto">{q.answer}</p>
+          <p className="hoja-pregunta">«<Resaltado texto={q.question} palabras={palabras} />»</p>
+          <p className="hoja-texto"><Resaltado texto={q.answer ?? ''} palabras={palabras} /></p>
         </div>
-        {open && <div className="row noprint" style={{ marginTop: '.3rem' }}><Link className="btn sm secondary" to="/equipo">Modificar en Preguntas al equipo</Link></div>}
+        {open && (
+          <div className="row noprint" style={{ marginTop: '.3rem', gap: '.4rem', flexWrap: 'wrap' }}>
+            {onAbrir && <button className="btn sm" onClick={onAbrir}>Abrir el documento de {q.professional}</button>}
+            <Link className="btn sm secondary" to="/equipo">Modificar en Preguntas al equipo</Link>
+          </div>
+        )}
       </section>
     )
   }
@@ -116,11 +184,12 @@ function Parrafo({ e }: { e: Entrada }) {
   return (
     <section className={'hoja-entrada' + (archivada ? ' archivada' : '')}>
       <div className="hoja-fecha" onClick={() => setOpen(!open)}>
-        {fmtLarga(g.date)} · {src?.ico} {src?.label ?? g.source}{g.who ? ` · ${g.who}` : ''}{archivada ? ' · ya no se aplica' : ''}
+        {onAbrir && <span className="hoja-esp">{g.professional} · </span>}{fmtLarga(g.date)} · {src?.ico} {src?.label ?? g.source}{g.who ? ` · ${g.who}` : ''}{archivada ? ' · ya no se aplica' : ''}
       </div>
-      <p className="hoja-texto" onClick={() => setOpen(!open)}>{textoDe(g)}</p>
+      <p className="hoja-texto" onClick={() => setOpen(!open)}><Resaltado texto={textoDe(g)} palabras={palabras} /></p>
       {open && (
         <div className="row noprint" style={{ marginTop: '.3rem', gap: '.4rem', flexWrap: 'wrap' }}>
+          {onAbrir && <button className="btn sm" onClick={onAbrir}>Abrir el documento de {g.professional}</button>}
           <button className="btn sm secondary" onClick={() => { setEditando(true); setOpen(false) }}>✏️ Modificar</button>
           {archivada
             ? <button className="btn sm ghost" onClick={() => save('guidelines', { ...g, active: true })}>Vuelve a aplicarse</button>

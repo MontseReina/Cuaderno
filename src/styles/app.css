@@ -58,7 +58,7 @@ p { margin: .3rem 0; }
 
 label.field, div.field { display: block; margin: .5rem 0; }
 label.field > span, div.field > span { display: block; font-size: .85rem; color: var(--muted); margin-bottom: .2rem; }
-input[type=text], input[type=number], input[type=date], input[type=time], input[type=datetime-local], input[type=email], select, textarea {
+input[type=text], input[type=number], input[type=date], input[type=time], input[type=datetime-local], input[type=email], input[type=search], select, textarea {
   width: 100%; padding: .55rem .6rem; border: 1px solid var(--line); border-radius: 8px; background: #fff;
 }
 textarea { min-height: 70px; resize: vertical; }
@@ -690,3 +690,10 @@ details.pesadas[open] > summary::after { content: '▾'; }
 .hoja-escribir { display: block; width: 100%; text-align: left; margin-top: .8rem; padding: .8rem .9rem; border: 1px dashed var(--line); border-radius: 8px; background: var(--bg, #FFFAF2); color: var(--muted); cursor: text; font-size: .95rem; }
 .hoja-escribir:hover { border-color: var(--primary); color: var(--ink-deep); }
 .hoja-textarea { min-height: 10rem; line-height: 1.5; }
+/* Buscador de Pautas: busca en los documentos de todos los especialistas */
+.buscador { position: relative; margin-bottom: .6rem; }
+.buscador input { width: 100%; padding-right: 2.4rem; -webkit-appearance: none; appearance: none; }
+.buscador input::-webkit-search-cancel-button { display: none; }
+.buscador-borrar { position: absolute; right: .4rem; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--muted); font-size: 1rem; padding: .3rem .5rem; cursor: pointer; }
+.hoja mark { background: #f6e3a1; color: inherit; border-radius: 2px; padding: 0 .05em; }
+.hoja-esp { color: var(--ink-deep); }
