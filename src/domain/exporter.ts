@@ -4,6 +4,7 @@ import { addDays, fmtDate, todayStr } from './dates'
 import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './cycle'
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { kcalDia } from './kcal'
+import { menuActivo, menuDelDia } from './menu'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
@@ -214,10 +215,10 @@ export function buildAiReport(from: string, to: string): string {
     }
     const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros || m.note || m.amount || m.time || m.end)
     const mode = weekMode(l, ctx)
-    const kc = kcalDia(l)
+    const kc = kcalDia(l, menuDelDia(menuActivo(backend.all('menus'))?.data, l.date))
     const nut = dayNutrition(l, mode, { cisplatin: isCisplatinDay(ctx) })
     const fh = fastingHours(l, byDate.get(addDays(l.date, -1)))
-    if (meals.length) L.push(`- Comidas (${MODE_LABELS[mode].toLowerCase()}${fh != null ? `, ayuno ${fh} h` : ''}): ${meals.map((m) => { const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx), date: l.date }); const mac = m.macros ? ` [verdura ${m.macros.veg ?? '—'}/2, proteína ${m.macros.prot ?? '—'}/2, almidón ${m.macros.starch ?? '—'}/3, grasa ${m.macros.fat ? 'sí' : 'no'}]` : ''; return `${m.slot}${m.time ? ` ${m.time}` : ''}${m.end ? `–${m.end}` : ''} ${m.fraction != null ? FRACTION_LABELS[String(m.fraction)] : ''}${mac}${t ? ` ${t.level}` : ''}${m.carb ? ` HC ${m.carb}` : ''}${m.texture ? ` ${m.texture}` : ''}${m.note ? ` (${m.note})` : ''}` }).join(' · ')} → ${kc.porToma.length ? `≈ ${kc.total} kcal estimadas${kc.sinDato.length ? ` (sin contar: ${kc.sinDato.join(', ').toLowerCase()})` : ''}, ` : ''}ingesta media ${meanIntake(l.meals) != null ? Math.round(meanIntake(l.meals)! * 100) + ' %' : '—'}, perfil ${carbProfile(l.meals)}, semáforo del día ${nut.level}${nut.reasons.length ? ` (${nut.reasons.join('; ')})` : ''}`)
+    if (meals.length) L.push(`- Comidas (${MODE_LABELS[mode].toLowerCase()}${fh != null ? `, ayuno ${fh} h` : ''}): ${meals.map((m) => { const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx), date: l.date }); const mac = m.macros ? ` [verdura ${m.macros.veg ?? '—'}/2, proteína ${m.macros.prot ?? '—'}/2, almidón ${m.macros.starch ?? '—'}/3, grasa ${m.macros.fat ? 'sí' : 'no'}]` : ''; return `${m.slot}${m.time ? ` ${m.time}` : ''}${m.end ? `–${m.end}` : ''} ${m.fraction != null ? FRACTION_LABELS[String(m.fraction)] : ''}${mac}${t ? ` ${t.level}` : ''}${m.carb ? ` HC ${m.carb}` : ''}${m.texture ? ` ${m.texture}` : ''}${m.note ? ` (${m.note})` : ''}` }).join(' · ')} → ${kc.porToma.length ? `≈ ${kc.total} kcal estimadas${kc.previsto != null ? ` de ${kc.previsto} previstas en el menú` : ''}${kc.sinDato.length ? ` (sin contar: ${kc.sinDato.join(', ').toLowerCase()})` : ''}, ` : ''}ingesta media ${meanIntake(l.meals) != null ? Math.round(meanIntake(l.meals)! * 100) + ' %' : '—'}, perfil ${carbProfile(l.meals)}, semáforo del día ${nut.level}${nut.reasons.length ? ` (${nut.reasons.join('; ')})` : ''}`)
     const fl: string[] = []
     if (l.fluids_total_ml != null) fl.push(`total ${l.fluids_total_ml} ml`)
     if (l.water_ml != null) fl.push(`agua ${l.water_ml}`)

@@ -140,6 +140,10 @@ export interface Meal {
   time?: string // HH:MM · hora de empezar
   /** Hora de terminar (comidas principales, 0.33.0). */
   end?: string
+  /** Lo que tocaba en el menú al marcarla (0.33.0), para que un cambio de menú no reescriba los días pasados. */
+  dishes?: MenuDish[]
+  /** Media mañana y media tarde: el batido de siempre (por defecto) o el snack del menú. */
+  choice?: 'batido' | 'menu'
   fraction?: Fraction
   carb?: Carb
   texture?: Texture
@@ -521,6 +525,7 @@ export interface Tables {
   weights: WeightEntry
   challenges: Challenge
   guidelines: Guideline
+  menus: MenuRow
 }
 /** Reto de la semana: el premio y la meta de cada semana (lunes a domingo).
  *  Los puntos no se guardan: se calculan con lo que ya está apuntado. */
@@ -535,14 +540,45 @@ export interface Challenge extends BaseRow {
   delivered_at?: string | null // cuándo se entregó el premio
 }
 
+/** Menú de la nutricionista (0.33.0). Vive en la base de datos, nunca en el código (el repositorio es público). */
+export interface MenuDish { id: string; n: string; k?: number; p?: { veg?: number; prot?: number; hid?: number } }
+export interface MenuPlato {
+  nombre: string
+  /** Kilocalorías estimadas de una ración. */
+  kcal?: number
+  /** Parte de las kcal que es verdura, proteína e hidratos (0-1); el resto es grasa, salsas, lácteos… */
+  partes?: { veg?: number; prot?: number; hid?: number }
+  favorito?: boolean
+  estimado?: boolean
+}
+/** Un plato del menú: su id o, si se turna por semanas, el id y la semana (1 o 2). */
+export type MenuRef = string | { id: string; semana?: number }
+export interface MenuData {
+  huma_menu: 1
+  nombre: string
+  /** Lunes de la semana 1 (para los platos que se turnan). */
+  desde: string
+  tipo: 'semana'
+  horas?: Partial<Record<MealSlot, string>>
+  /** Siete días, de lunes a domingo. */
+  dias: Partial<Record<MealSlot, MenuRef[]>>[]
+  platos: Record<string, MenuPlato>
+  nota?: string
+}
+export interface MenuRow extends BaseRow {
+  name: string
+  data: MenuData
+  active: boolean
+}
+
 export type TableName = keyof Tables
 export const TABLE_NAMES = [
   'patients', 'profiles', 'diagnoses', 'cycles', 'daily_logs', 'products', 'intakes',
   'lab_panels', 'lab_results', 'organ_tests', 'microbiome_tests', 'calendar_events',
   'todos', 'questions', 'weekly_child', 'weekly_caregiver', 'caregiver_daily',
-  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'challenges', 'guidelines',
+  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'challenges', 'guidelines', 'menus',
 ] as const satisfies readonly TableName[]
 
 /** Tablas nuevas que necesitan un paso en Supabase. Si aún no existen, la app sigue abriendo
  *  (se ven vacías) en vez de mostrar «No se han podido cargar los datos». */
-export const OPTIONAL_TABLES: readonly TableName[] = ['guidelines']
+export const OPTIONAL_TABLES: readonly TableName[] = ['guidelines', 'menus']

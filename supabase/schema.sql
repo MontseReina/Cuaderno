@@ -315,3 +315,9 @@ $c$);
 do $$ begin
   execute 'alter publication supabase_realtime add table guidelines';
 exception when duplicate_object then null; end $$;
+
+-- v0.33 (Huma 0.33.0, 18/10/2026): menú de la nutricionista (platos por día y kcal estimadas)
+select _mk('menus', $c$ name text not null, data jsonb not null, active boolean not null default true $c$);
+do $$ begin
+  execute 'alter publication supabase_realtime add table menus';
+exception when duplicate_object then null; end $$;
