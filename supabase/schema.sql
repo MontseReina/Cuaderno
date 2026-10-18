@@ -306,3 +306,12 @@ alter table patients add column if not exists usual_voids int;
 
 -- v0.13 (27/09/2026): nombre del entrenador para el relato del Reto
 alter table public.challenges add column if not exists trainer_name text;
+
+-- v0.31 (Huma 0.31.0, 18/10/2026): «Pautas y aprendizajes» (lo que dicen los profesionales por email, sesión, consulta…)
+select _mk('guidelines', $c$
+  date date not null, professional text not null, who text, source text not null default 'email',
+  title text not null, detail text, pillar text, active boolean not null default true
+$c$);
+do $$ begin
+  execute 'alter publication supabase_realtime add table guidelines';
+exception when duplicate_object then null; end $$;

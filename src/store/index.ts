@@ -52,3 +52,8 @@ export function currentPatientId(): string {
   const p = backend.all('patients')[0]
   return p?.id ?? ''
 }
+
+/** true si esta tabla todavía no existe en Supabase (falta ejecutar su SQL). En la demo, nunca. */
+export function faltaTabla(t: TableName): boolean {
+  return !!(backend as unknown as { faltan?: Set<TableName> }).faltan?.has(t)
+}

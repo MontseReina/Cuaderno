@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { Cache, type Backend, type Row } from './store'
-import { TABLE_NAMES, type TableName } from './types'
+import { OPTIONAL_TABLES, TABLE_NAMES, type TableName } from './types'
 
 /** Backend real: PostgreSQL en Supabase con tiempo real y acceso por invitación. */
 export class SupabaseBackend implements Backend {
@@ -9,6 +9,8 @@ export class SupabaseBackend implements Backend {
   client: SupabaseClient
   private userId = ''
   private userName = ''
+  /** Tablas opcionales que todavía no existen en la base de datos (falta ejecutar su SQL). */
+  faltan = new Set<TableName>()
 
   constructor(url: string, anonKey: string) {
     this.client = createClient(url, anonKey)
@@ -52,8 +54,10 @@ export class SupabaseBackend implements Backend {
       const { data, error } = table === 'profiles' ? await q : await q.is('deleted_at', null)
       if (error) {
         console.error('Error cargando', table, error.message)
+        if (OPTIONAL_TABLES.includes(table)) { this.faltan.add(table); this.cache.set(table, []); return null }
         return error.message
       }
+      this.faltan.delete(table)
       this.cache.set(table, (data ?? []) as Row<T>[])
       return null
     } catch (e) {

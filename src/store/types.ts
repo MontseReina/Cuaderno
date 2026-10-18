@@ -391,6 +391,28 @@ export interface Question extends BaseRow {
   answered_at?: string | null
 }
 
+/** 0.31.0 · Pautas y aprendizajes: lo que nos dicen los profesionales fuera de las preguntas
+ *  (un email, una sesión privada, una consulta…). Las respuestas a las preguntas siguen en `questions`
+ *  y se ven también en este apartado, sin apuntarlas dos veces. */
+export const GUIDELINE_SOURCES = [
+  { key: 'email', label: 'Email', ico: '✉️' },
+  { key: 'sesion', label: 'Sesión privada', ico: '🧑‍⚕️' },
+  { key: 'consulta', label: 'Consulta en el hospital', ico: '🏥' },
+  { key: 'mensaje', label: 'Mensaje o llamada', ico: '📱' },
+  { key: 'otro', label: 'Otro', ico: '📝' },
+] as const
+export type GuidelineSource = (typeof GUIDELINE_SOURCES)[number]['key']
+export interface Guideline extends BaseRow {
+  date: string // cuándo nos lo dijeron
+  professional: Professional
+  who?: string // nombre de la persona (p. ej. «Sofía»)
+  source: GuidelineSource
+  title: string // la pauta en una línea: qué hay que hacer
+  detail?: string // el texto completo, o lo que se copió del email
+  pillar?: string
+  active: boolean // false = ya no se aplica (la sustituyó otra o terminó)
+}
+
 export interface WeeklyChild extends BaseRow {
   week_start: string
   mood?: number | null
@@ -476,6 +498,7 @@ export interface Tables {
   practice_log: PracticeLog
   weights: WeightEntry
   challenges: Challenge
+  guidelines: Guideline
 }
 /** Reto de la semana: el premio y la meta de cada semana (lunes a domingo).
  *  Los puntos no se guardan: se calculan con lo que ya está apuntado. */
@@ -495,5 +518,9 @@ export const TABLE_NAMES = [
   'patients', 'profiles', 'diagnoses', 'cycles', 'daily_logs', 'products', 'intakes',
   'lab_panels', 'lab_results', 'organ_tests', 'microbiome_tests', 'calendar_events',
   'todos', 'questions', 'weekly_child', 'weekly_caregiver', 'caregiver_daily',
-  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'challenges',
+  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'challenges', 'guidelines',
 ] as const satisfies readonly TableName[]
+
+/** Tablas nuevas que necesitan un paso en Supabase. Si aún no existen, la app sigue abriendo
+ *  (se ven vacías) en vez de mostrar «No se han podido cargar los datos». */
+export const OPTIONAL_TABLES: readonly TableName[] = ['guidelines']

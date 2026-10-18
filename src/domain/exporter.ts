@@ -7,7 +7,7 @@ import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekM
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 
-export const APP_VERSION = '0.30.0'
+export const APP_VERSION = '0.31.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -293,6 +293,14 @@ export function buildAiReport(from: string, to: string): string {
   L.push(`- Síntomas más frecuentes (días): ${Object.entries(symCount).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => `${sym(k)} ${v}`).join(', ') || '—'}`)
   const pend = questions.filter((q) => q.status === 'pendiente')
   if (pend.length) { L.push(''); L.push('## 7. Preguntas pendientes para el equipo'); for (const q of pend) L.push(`- [${q.professional}] ${q.question}`) }
+  // 0.31.0 · Pautas vigentes del equipo (las apuntadas y las respuestas a preguntas), para que la IA no proponga lo contrario.
+  const pautas = backend.all('guidelines').filter((g) => g.active !== false).sort((a, b) => a.date.localeCompare(b.date))
+  const resp = questions.filter((q) => q.status === 'respondida')
+  if (pautas.length || resp.length) {
+    L.push(''); L.push('## 8. Pautas vigentes del equipo')
+    for (const g of pautas) L.push(`- ${g.date} · [${g.professional}] (${g.source}) ${g.title}${g.detail ? ` — ${g.detail.replace(/\s+/g, ' ')}` : ''}`)
+    for (const q of resp) L.push(`- ${q.answered_at ?? ''} · [${q.professional}] Respuesta a «${q.question}»: ${(q.answer ?? '').replace(/\s+/g, ' ')}`)
+  }
   return L.join('\n')
 }
 export function exportAiReport(from: string, to: string) {

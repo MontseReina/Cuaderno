@@ -12,6 +12,7 @@ import Analiticas from './pages/Analiticas'
 import Calendario from './pages/Calendario'
 import Pendientes from './pages/Pendientes'
 import Equipo from './pages/Equipo'
+import Pautas from './pages/Pautas'
 import Emocional from './pages/Emocional'
 import Ejercicio from './pages/Ejercicio'
 import Microbiota from './pages/Microbiota'
@@ -153,6 +154,7 @@ function Shell() {
           <Route path="/pendientes" element={<Pendientes />} />
           <Route path="/pendientes/:id" element={<Pendientes />} />
           <Route path="/equipo" element={<Equipo />} />
+          <Route path="/pautas" element={<Pautas />} />
           <Route path="/emocional" element={<Emocional />} />
           <Route path="/ejercicio" element={<Ejercicio />} />
           <Route path="/ejercicio/:date" element={<Ejercicio />} />
@@ -178,7 +180,7 @@ function Shell() {
 }
 
 /** A qué pestaña pertenece cada pantalla (las seis del registro diario cuelgan de «Hoy»). */
-const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo']
+const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo', '/pautas']
 const MAS = ['/mas', '/emocional', '/biblioteca', '/datos', '/ajustes']
 function zonaDe(path: string): 'hoy' | 'seguimiento' | 'mas' {
   const en = (l: string[]) => l.some((p) => path === p || path.startsWith(p + '/'))

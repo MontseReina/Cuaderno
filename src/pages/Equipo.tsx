@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { backend, currentPatientId, remove, save, useRows } from '../store'
-import type { Professional, Question } from '../store/types'
+import { GUIDELINE_SOURCES, type Professional, type Question } from '../store/types'
 import { PILLARS, PROFESSIONALS, SYMPTOMS, SEVERITY_LABELS, DRUG_LABELS } from '../domain/catalogs'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext } from '../domain/cycle'
@@ -48,6 +49,7 @@ export default function Equipo() {
       {pending.map((q) => <QuestionItem key={q.id} q={q} />)}
       {answered.length > 0 && (
         <Section title={`Respondidas (${answered.length})`}>
+          <p className="muted small" style={{ marginTop: 0 }}>Las respuestas se ven también en <Link to="/pautas">🌱 Pautas y aprendizajes</Link>, junto a lo que llega por email y en las sesiones.</p>
           {answered.map((q) => <QuestionItem key={q.id} q={q} />)}
         </Section>
       )}
@@ -114,6 +116,7 @@ function Informe({ onClose }: { onClose: () => void }) {
   const cycles = backend.all('cycles')
   const products = backend.all('products').filter((p) => !p.end_date || p.end_date >= from)
   const questions = backend.all('questions').filter((q) => q.status === 'pendiente' && (!prof || q.professional === prof))
+  const pautas = backend.all('guidelines').filter((g) => g.active !== false && g.date >= from && g.date <= to && (!prof || g.professional === prof)).sort((a, b) => a.date.localeCompare(b.date))
   const weights = [
     ...logs.filter((l) => l.weight != null).map((l) => `${l.date.slice(5)}: ${l.weight} kg`),
     ...backend.all('weights').filter((w) => w.at.slice(0, 10) >= from && w.at.slice(0, 10) <= to).sort((a, b) => a.at.localeCompare(b.at)).map((w) => `${w.at.slice(5, 10)}: ${w.kg} kg (${w.source === 'inbody' ? 'InBody' : w.source === 'hospital' ? 'hospital' : 'casa'})`),
@@ -168,6 +171,10 @@ function Informe({ onClose }: { onClose: () => void }) {
         <table className="table"><tbody>
           {products.map((p) => <tr key={p.id}><td>{p.name}</td><td className="small">{p.dose} · {p.moments.join(', ')}{p.prescribed_by ? ` · ${p.prescribed_by}` : ''}{p.end_date ? ` · retirado ${p.end_date}` : ''}</td></tr>)}
         </tbody></table>
+        <h3>Pautas recibidas en este periodo{prof ? ` (${prof})` : ''}</h3>
+        {pautas.length ? (
+          <ul className="small">{pautas.map((p) => <li key={p.id}><strong>{fmtDate(p.date)}</strong> · {p.professional}{p.who ? ` (${p.who})` : ''} · {GUIDELINE_SOURCES.find((s) => s.key === p.source)?.label}: {p.title}</li>)}</ul>
+        ) : <p className="small muted">Ninguna apuntada.</p>}
         <h3>Preguntas pendientes{prof ? ` para ${prof}` : ''}</h3>
         <ol className="small">{questions.map((q) => <li key={q.id}>{q.question} <span className="muted">({q.professional})</span></li>)}</ol>
         {questions.length === 0 && <p className="small muted">Ninguna.</p>}

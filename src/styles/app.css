@@ -676,3 +676,13 @@ details.pesadas[open] > summary::after { content: '▾'; }
 .nino-salir-btn { min-height: 2.75rem; padding: 0 .9rem; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.85); color: var(--muted); font-size: .85rem; font-weight: 700; cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; background-image: linear-gradient(var(--primary-soft), var(--primary-soft)); background-repeat: no-repeat; background-size: 0% 100%; }
 .nino-salir-btn.pulsando { background-size: 100% 100%; transition: background-size 1.2s linear; color: var(--primary); }
 .reto2 .r2-mision-link { color: #5a3a10; }
+
+/* 0.31.0 · Pautas y aprendizajes */
+.pauta-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-bottom: .3rem; }
+.pauta-meta .tag { margin-right: 0; }
+.pauta-titulo { display: block; line-height: 1.3; }
+.pauta-pregunta { font-style: italic; color: var(--ink-deep); line-height: 1.3; }
+.pauta-texto { white-space: pre-wrap; margin-top: .3rem; font-size: .93rem; line-height: 1.4; }
+.pauta-texto.corto { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pauta-item.archivada { opacity: .7; }
+.pauta-item.archivada .pauta-titulo { text-decoration: line-through; text-decoration-thickness: 1px; }

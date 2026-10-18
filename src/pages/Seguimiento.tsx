@@ -2,14 +2,17 @@ import { Link } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, symptomsForToday } from '../domain/cycle'
+import { entradasVigentes, fmtCorta } from './Pautas'
 
-/** 0.30.0 · Una sola lista, en el orden en que la familia lo consulta. «Emocional y familiar» pasa a «Más». */
+/** 0.31.0 · «Pautas y aprendizajes» va justo después de «Preguntas al equipo».
+ *  0.30.0 · Una sola lista, en el orden en que la familia lo consulta. «Emocional y familiar» pasa a «Más». */
 const LISTA = [
   { to: '/diagnosticos', ico: '🩺', label: 'Diagnósticos y evolución', desc: 'Línea de tiempo clínica, signos a vigilar, datos del protocolo' },
   { to: '/ciclos', ico: '💉', label: 'Tratamiento y ciclos', desc: 'Quimio, rescate, dosis acumulada, vigilancia por fármaco' },
   { to: '/analiticas', ico: '🧪', label: 'Analíticas y marcadores', desc: 'Fuera de rango, tendencias, pruebas de órgano' },
   { to: '/microbiota', ico: '🦠', label: 'Microbiota', desc: 'Tests de heces y comparativa' },
   { to: '/equipo', ico: '💬', label: 'Preguntas al equipo', desc: 'Por profesional · informe de consulta' },
+  { to: '/pautas', ico: '🌱', label: 'Pautas y aprendizajes', desc: '' },
   { to: '/pendientes', ico: '☑️', label: 'Pendientes', desc: '' },
   { to: '/informes', ico: '📊', label: 'Evaluaciones e informe semanal', desc: 'Cómo se rellena el registro y el informe de la semana en PDF' },
   { to: '/calendario', ico: '📅', label: 'Calendario', desc: '' },
@@ -24,6 +27,7 @@ export default function Seguimiento() {
   const logs = useRows('daily_logs')
   const todos = useRows('todos', (t) => t.status === 'pendiente')
   const events = useRows('calendar_events', (e) => e.status === 'previsto')
+  const pautas = entradasVigentes(useRows('guidelines'), useRows('questions'))
   const byDate = new Map(logs.map((l) => [l.date, l]))
   const atrasados = todos.filter((t) => { const d = t.do_date ?? t.due_date; return !!d && d < today }).length
   const proximas = events.filter((e) => {
@@ -41,7 +45,8 @@ export default function Seguimiento() {
 
   const txtPendientes = todos.length ? `${todos.length} tarea${todos.length > 1 ? 's' : ''}${atrasados ? `, ${atrasados} atrasada${atrasados > 1 ? 's' : ''}` : ''}` : 'Nada pendiente'
   const txtCitas = proximas ? `${proximas} cita${proximas > 1 ? 's' : ''} en 48 h` : 'Sin citas en 48 h'
-  const desc = (l: { to: string; desc: string }) => (l.to === '/pendientes' ? txtPendientes : l.to === '/calendario' ? txtCitas : l.desc)
+  const txtPautas = pautas.length ? `${pautas.length} vigente${pautas.length > 1 ? 's' : ''} · la última del ${fmtCorta(pautas[0].date)}` : 'Respuestas, emails y sesiones con los profesionales'
+  const desc = (l: { to: string; desc: string }) => (l.to === '/pendientes' ? txtPendientes : l.to === '/calendario' ? txtCitas : l.to === '/pautas' ? txtPautas : l.desc)
 
   return (
     <div>
