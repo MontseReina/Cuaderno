@@ -73,8 +73,9 @@ export function kcalToma(m: Meal, menu: MenuHoy | null = null): KcalToma {
       const k = Math.round(BATIDO.k * deToma)
       return { ...vacio(), total: k, fuente: 'batido', platos: [{ n: 'Batido de siempre', k }] }
     }
-    if (!platos.length || platos.some((p) => p.k == null)) return vacio()
-    const contados = platos.map((p) => ({ n: p.n, k: Math.round(t?.plato ? kcalConPlato(p, m)! : p.k! * deToma) }))
+    const cuentan = platos.filter((p, i) => i === 0 || m.taken?.[p.id] !== 'no')
+    if (!cuentan.length || cuentan.some((p) => p.k == null)) return vacio()
+    const contados = cuentan.map((p) => ({ n: p.n, k: Math.round(t?.plato ? kcalConPlato(p, m)! : p.k! * deToma) }))
     return { ...vacio(), total: contados.reduce((s, p) => s + p.k, 0), fuente: 'menu', platos: contados }
   }
   const { leidos, sinReconocer } = leerAlimentos(m.note)

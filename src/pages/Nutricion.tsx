@@ -259,17 +259,33 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
       )}
       {!t.batido && tocaba.length > 0 && (
         <ul className={'nutri-platos' + (otro ? ' sustituido' : '')}>
-          {tocaba.map((p) => <li key={p.id}><span>{p.n}{p.k != null && <span className="muted small"> · {fmtKcal(p.k)} kcal</span>}</span></li>)}
+          {tocaba.map((p, i) => {
+            // Como el postre de New Version: el primer plato va con la toma; los demás se marcan aparte (tomado o no).
+            const aparte = i > 0 && !no && !otro
+            const v = m?.taken?.[p.id] ?? null
+            const txt = v === 'si' ? 'tomado' : v === 'no' ? 'no tomado' : 'sin marcar'
+            return (
+              <li key={p.id} className={(i > 0 ? 'aparte' : '') + (v === 'no' ? ' tachado' : '')}>
+                <span>{p.n}{p.k != null && <span className="muted small"> · {fmtKcal(p.k)} kcal</span>}</span>
+                {aparte && (
+                  <button type="button" className={'tri sm ' + (v ?? '')} title={`${txt} · toca para cambiar`} aria-label={`${p.n}: ${txt}`}
+                    onClick={() => poner({ taken: { ...(m?.taken ?? {}), [p.id]: v === null ? 'si' : v === 'si' ? 'no' : null }, dishes: m?.dishes ?? tocaba })}>
+                    {v === 'si' ? '✓' : v === 'no' ? '✗' : '○'}
+                  </button>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
       {!no && (
         <label className="nutri-otro">
           <span className="muted small">{t.batido || tocaba.length ? 'Otro' : 'Qué'}</span>
-          <input type="text" aria-label={`Lo que ha tomado en ${t.label}`} placeholder={t.batido ? 'Si ha sido otra cosa: yogur, nueces, fruta…' : tocaba.length ? 'Si no ha sido lo del menú: dorada, patata…' : PLACEHOLDER[t.key] ?? 'Lo que ha tomado'}
+          <input type="text" aria-label={`Lo que ha tomado en ${t.label}`} placeholder={t.batido ? 'Lo que ha tomado: yogur, nueces, fruta…' : tocaba.length ? 'Lo que ha tomado: salmón, patata, brócoli…' : PLACEHOLDER[t.key] ?? 'Lo que ha tomado'}
             value={m?.note ?? ''} onChange={(e) => poner({ note: e.target.value })} />
         </label>
       )}
-      {!no && otro && k && <OtroKcal o={k} conPlato={conPlato} />}
+      {!no && otro && k && <OtroKcal o={k} />}
       {!no && !otro && k?.fuente && (
         <p className="small nutri-otro-kcal muted">
           {k.fuente === 'batido' ? <>Cuenta el batido: unas {fmtKcal(k.total)} kcal.</>
@@ -315,9 +331,9 @@ const FRACCION: { [k: number]: string } = { 0: 'nada', 0.5: '½', 0.75: '¾', 1.
 const fraccion = (n: number) => FRACCION[n] ?? String(n).replace('.', ',')
 
 /** Lo que se cuenta de lo escrito: cada alimento con su ración y la parte que se toma. */
-function OtroKcal({ o, conPlato }: { o: KcalToma; conPlato: boolean }) {
+function OtroKcal({ o }: { o: KcalToma }) {
   if (!o.items.length) {
-    return <p className="small nutri-otro-kcal"><span className="dot amarillo" />No reconozco ningún alimento: esta toma no cuenta en las kilocalorías. Escríbelo con otras palabras, separando con comas.</p>
+    return <p className="small nutri-otro-kcal muted"><span className="dot amarillo" />Esto no suma kilocalorías.</p>
   }
   return (
     <div className="small nutri-otro-kcal">
@@ -334,8 +350,6 @@ function OtroKcal({ o, conPlato }: { o: KcalToma; conPlato: boolean }) {
         ))}
       </ul>
       <div><strong>Cuenta unas {fmtKcal(o.total)} kcal</strong></div>
-      {o.sinReconocer.length > 0 && <div className="muted">No reconozco: {o.sinReconocer.map((w) => `«${w}»`).join(', ')}. No suma; prueba con otra palabra.</div>}
-      {conPlato && <div className="muted">Verdura, proteína e hidratos cuentan la cantidad que marques en el plato.</div>}
     </div>
   )
 }

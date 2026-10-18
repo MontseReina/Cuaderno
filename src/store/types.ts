@@ -144,6 +144,8 @@ export interface Meal {
   dishes?: MenuDish[]
   /** Media mañana y media tarde: el batido de siempre (por defecto) o el snack del menú. */
   choice?: 'batido' | 'menu'
+  /** Platos del menú después del primero: tomado (`si`) o no tomado (`no`). Sin marcar cuenta como tomado. */
+  taken?: Record<string, 'si' | 'no' | null>
   fraction?: Fraction
   carb?: Carb
   texture?: Texture
