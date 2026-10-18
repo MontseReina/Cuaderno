@@ -3,12 +3,12 @@ import { PAUTAS, type PautaKey, type TramoKey } from '../domain/pautas'
 
 /** Pauta de alimentación de la semana (MTX o cisplatino + adriamicina), con el tramo de hoy marcado.
  *  Se puede ver la otra pauta con los botones de abajo. */
-export function PautaCard({ auto, tramo }: { auto: PautaKey; tramo: TramoKey | null }) {
+export function PautaCard({ auto, tramo, abierta = true }: { auto: PautaKey; tramo: TramoKey | null; abierta?: boolean }) {
   const [ver, setVer] = useState<PautaKey>(auto)
   const p = PAUTAS[ver]
   const esHoy = ver === auto
   return (
-    <details className="section pauta" open>
+    <details className="section pauta" open={abierta}>
       <summary><span>{p.titulo}</span></summary>
       <div className="body">
         <h3 className="pauta-semana">{p.semana}</h3>

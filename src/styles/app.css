@@ -788,6 +788,8 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .nutri-hora { display: flex; align-items: center; gap: .4rem; }
 .nutri-hora input { width: 8rem; }
 .nutri-mas { margin-top: .6rem; }
-.nutri-mas summary { cursor: pointer; color: var(--muted); }
 .table.nutri-sem td:first-child { min-width: 0; white-space: nowrap; }
 @media (max-width: 420px) { .reloj-num { font-size: 40px; } .reloj { gap: .4rem; } }
+.nutri-mas { margin-top: .7rem; padding-top: .5rem; border-top: 1px dashed var(--line); }
+.pauta-nueva { border-color: var(--primary); }
+.pauta-nueva ul { margin: .3rem 0 0; padding-left: 1.1rem; }

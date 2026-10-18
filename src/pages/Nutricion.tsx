@@ -119,8 +119,18 @@ export default function Nutricion() {
         </div>
       </div>
 
+      {nueva && (
+        <div className="card pauta-nueva">
+          <strong>Pauta del 18/10/2026 · objetivo: subir de peso</strong>
+          <ul className="small">
+            <li>5 tomas: desayuno, media mañana (batido), comida, media tarde (batido) y cena.</li>
+            <li>Plato: ½ hidratos · ⅓ verdura · el resto proteína.</li>
+            <li>Las kilocalorías del día ayudan a ver si come lo suficiente.</li>
+          </ul>
+        </div>
+      )}
       {pauta
-        ? <PautaCard key={pauta.pauta} auto={pauta.pauta} tramo={pauta.tramo} />
+        ? <PautaCard key={pauta.pauta} auto={pauta.pauta} tramo={pauta.tramo} abierta={!nueva} />
         : (
         <Section title="Pauta de la nutricionista">
           <p className="small"><strong>Plato:</strong> {nueva ? '½ hidratos · ⅓ verdura · el resto proteína (pauta del 18/10/2026).' : '½ verdura cocida · ⅓ proteína · ¼ almidón resistente (menos en cisplatino) · grasas por encima.'}</p>
@@ -240,23 +250,18 @@ function Ficha({ t, m, nueva, cisplatin, date, esHoy, marcar, poner, macro }: {
           {t.principal && <Hora label="Termino" nombre={t.label} value={m?.end} esHoy={esHoy} onChange={(v) => poner({ end: v ?? undefined })} />}
         </div>
       )}
-      {!no && (t.plato || m?.texture || m?.macros?.fat_n != null || m?.macros?.resistant != null) && (
-        <details className="nutri-mas">
-          <summary className="small">Más detalles{t.plato ? ' (grasas, almidón resistente, textura)' : ' (textura)'}</summary>
-          {t.plato && (
-            <>
-              <Field label="Grasas añadidas" hint={FAT_EXAMPLES}>
-                <Segmented options={[{ value: 0, label: 'Ninguna' }, { value: 1, label: '🫒 1' }, { value: 2, label: '🫒🫒 2 o más' }]} value={fatCount(m?.macros)} onChange={(v) => macro({ fat_n: v == null ? undefined : (v as 0 | 1 | 2), fat: v == null ? undefined : v > 0 })} />
-              </Field>
-              <Field label="Almidón resistente (cocido y enfriado: quinoa, patata, boniato, arroz)">
-                <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]} value={m?.macros?.resistant == null ? null : m.macros.resistant ? 'si' : 'no'} onChange={(v) => macro({ resistant: v == null ? undefined : v === 'si' })} />
-              </Field>
-            </>
-          )}
+      {!no && t.plato && (
+        <div className="nutri-mas">
+          <Field label="Grasas añadidas" hint={FAT_EXAMPLES}>
+            <Segmented options={[{ value: 0, label: 'Ninguna' }, { value: 1, label: '🫒 1' }, { value: 2, label: '🫒🫒 2 o más' }]} value={fatCount(m?.macros)} onChange={(v) => macro({ fat_n: v == null ? undefined : (v as 0 | 1 | 2), fat: v == null ? undefined : v > 0 })} />
+          </Field>
+          <Field label="Almidón resistente (cocido y enfriado: quinoa, patata, boniato, arroz)">
+            <Segmented options={[{ value: 'si', label: 'Sí' }, { value: 'no', label: 'No' }]} value={m?.macros?.resistant == null ? null : m.macros.resistant ? 'si' : 'no'} onChange={(v) => macro({ resistant: v == null ? undefined : v === 'si' })} />
+          </Field>
           <Field label="Textura">
             <Segmented options={TEXTURES} value={m?.texture ?? null} onChange={(v) => poner({ texture: (v ?? undefined) as Meal['texture'] })} />
           </Field>
-        </details>
+        </div>
       )}
     </div>
   )
