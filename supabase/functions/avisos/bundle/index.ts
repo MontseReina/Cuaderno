@@ -1590,6 +1590,9 @@ const TEMPS_A_LA_HORA = {
 	"12": 1,
 	"19": 2
 };
+/** Cena terminada como tarde a las 19:30 y a la cama 2 h después de terminarla (Montserrate, 18/10/2026: dormir bien
+*  a las 21:30). El aviso de la cena va 30 min antes del límite, en el de las 19 h. */
+const CENA_LIMITE = "19:30";
 const min = (hhmm) => {
 	const [h, m] = hhmm.split(":").map(Number);
 	return h * 60 + (m || 0);
@@ -1749,6 +1752,17 @@ function controlesDelMomento(m, d) {
 		});
 	}
 	if (m === "19") {
+		const cena = (log?.meals ?? []).find((x) => x.slot === "cena");
+		const ok = tomada(cena);
+		out.push({
+			area: "cena",
+			valor: ok ? 1 : 0,
+			meta: 1,
+			ok,
+			linea: ok ? void 0 : `🌙 La cena, como tarde a las ${hora(CENA_LIMITE)}, para que a las 21:30 pueda dormir bien.`
+		});
+	}
+	if (m === "19") {
 		const dias = diasSinDeposicion(d.date, d.logs);
 		const ok = dias < 2;
 		out.push({
@@ -1767,6 +1781,7 @@ const TITULOS = {
 	"19": "Huma · Recta final 🌿",
 	"21": "Huma · Cierre del día",
 	"2130": "Huma · Para mañana",
+	cama: "Huma · A dormir 🌙",
 	ayuno11: "Huma · Buenos días 🌅",
 	ayuno12: "Huma · Buenos días 🌅",
 	prueba: "Huma · Aviso de prueba"
@@ -1847,6 +1862,21 @@ function avisoParaManana(d) {
 		body: `🌅 ${que} a las ${hora(u.at)}. Mañana, desayuno antes de las ${limite}.`
 	};
 }
+/** Aviso de ir a la cama: 2 h después de terminar la cena. Con `conDesayuno`, añade la hora límite del desayuno
+*  (así no llegan dos avisos seguidos cuando la cena terminó a las 19:30). */
+function avisoCama(d, ahora, conDesayuno) {
+	const cena = (d.log?.meals ?? []).find((m) => m.slot === "cena");
+	if (!tomada(cena)) return null;
+	const at = (cena.end || cena.time)?.slice(0, 5);
+	if (!at || at < "17:00") return null;
+	if (min(ahora) < min(at) + 120) return null;
+	const lineas = [`🌙 Han pasado 2 horas desde la cena: buen momento para irse a la cama.`];
+	if (conDesayuno) lineas.push(`🌅 Mañana, desayuno antes de las ${hora(hhmmDe(min(at) + 720))}.`);
+	return {
+		title: TITULOS.cama,
+		body: lineas.join("\n")
+	};
+}
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
 function ayunoAhora(d, ahora) {
 	if ((d.log?.meals ?? []).some((m) => tomada(m))) return null;
@@ -1900,6 +1930,7 @@ function tareasALaHora(ahora) {
 		momento: "19"
 	});
 	if (entre("21:00", "21:25")) out.push({ tipo: "21" });
+	if (entre("19:30", "23:30")) out.push({ tipo: "cama" });
 	if (entre("21:30", "22:15")) out.push({ tipo: "2130" });
 	if (entre("07:00", "13:00")) out.push({ tipo: "ayuno" });
 	if (entre("00:00", "02:00")) out.push({ tipo: "cierre" });
@@ -2174,6 +2205,18 @@ async function tick(env, fetchFn, date, hhmm, dry = false) {
 			momento: "21",
 			aviso,
 			envio: await mandar(date, "21", aviso)
+		});
+	} else if (t.tipo === "cama") {
+		if (ya.has(`${date}|cama`)) continue;
+		const conDesayuno = !ya.has(`${date}|2130`);
+		const aviso = avisoCama(datos(date), hhmm, conDesayuno);
+		if (!aviso) continue;
+		if (!await candado(date, "cama", aviso)) continue;
+		if (conDesayuno) await candado(date, "2130", null, { texto: "Incluido en el aviso de la cama" });
+		hecho.push({
+			momento: "cama",
+			aviso,
+			envio: await mandar(date, "cama", aviso)
 		});
 	} else if (t.tipo === "2130") {
 		const aviso = avisoParaManana(datos(date));

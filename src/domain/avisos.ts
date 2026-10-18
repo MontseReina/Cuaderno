@@ -20,11 +20,11 @@ import { tomada } from './kcal'
 /** Momentos del día en que se revisa el ritmo. */
 export type Momento = '12' | '16' | '19'
 export const MOMENTOS: Momento[] = ['12', '16', '19']
-export type Area = 'agua' | 'comidas' | 'temperatura' | 'peso' | 'deposiciones'
+export type Area = 'agua' | 'comidas' | 'temperatura' | 'peso' | 'deposiciones' | 'cena'
 export const AREA_LABEL: Record<Area, string> = {
-  agua: 'Agua', comidas: 'Tomas', temperatura: 'Temperatura', peso: 'Peso', deposiciones: 'Deposiciones',
+  agua: 'Agua', comidas: 'Tomas', temperatura: 'Temperatura', peso: 'Peso', deposiciones: 'Deposiciones', cena: 'Cena',
 }
-export const AREA_ICO: Record<Area, string> = { agua: '💧', comidas: '🍽', temperatura: '🌡', peso: '⚖️', deposiciones: '🚽' }
+export const AREA_ICO: Record<Area, string> = { agua: '💧', comidas: '🍽', temperatura: '🌡', peso: '⚖️', deposiciones: '🚽', cena: '🌙' }
 
 /** Meta de líquidos del día (ml): 1.500 (Montserrate, 18/10/2026). */
 export const AGUA_DIA_ML = 1500
@@ -42,6 +42,10 @@ export const TEMPS_DIA = 2
 export const DIAS_SIN_PESO = 3
 /** Días sin deposición a partir de los que se avisa (a las 19). */
 export const DIAS_SIN_DEPOSICION = 2
+/** Cena terminada como tarde a las 19:30 y a la cama 2 h después de terminarla (Montserrate, 18/10/2026: dormir bien
+ *  a las 21:30). El aviso de la cena va 30 min antes del límite, en el de las 19 h. */
+export const CENA_LIMITE = '19:30'
+export const HORAS_CENA_CAMA = 2
 export const AYUNO_AVISO_H = 11
 export const AYUNO_MAX_AVISO_H = 12
 /** Hora a partir de la que se pueden mandar los avisos de ayuno (para no despertar a nadie). */
@@ -242,6 +246,16 @@ export function controlesDelMomento(m: Momento, d: DatosDia): Control[] {
     })
   }
 
+  // Cena (a las 19, media hora antes del límite de las 19:30)
+  if (m === '19') {
+    const cena = (log?.meals ?? []).find((x) => x.slot === 'cena')
+    const ok = tomada(cena)
+    out.push({
+      area: 'cena', valor: ok ? 1 : 0, meta: 1, ok,
+      linea: ok ? undefined : `🌙 La cena, como tarde a las ${hora(CENA_LIMITE)}, para que a las 21:30 pueda dormir bien.`,
+    })
+  }
+
   // Deposiciones (a las 19)
   if (m === '19') {
     const dias = diasSinDeposicion(d.date, d.logs)
@@ -260,6 +274,7 @@ export const TITULOS: Record<string, string> = {
   '19': 'Huma · Recta final 🌿',
   '21': 'Huma · Cierre del día',
   '2130': 'Huma · Para mañana',
+  cama: 'Huma · A dormir 🌙',
   ayuno11: 'Huma · Buenos días 🌅',
   ayuno12: 'Huma · Buenos días 🌅',
   prueba: 'Huma · Aviso de prueba',
@@ -323,6 +338,19 @@ export function avisoParaManana(d: DatosDia): Aviso {
   return { title: TITULOS['2130'], body: `🌅 ${que} a las ${hora(u.at)}. Mañana, desayuno antes de las ${limite}.` }
 }
 
+/** Aviso de ir a la cama: 2 h después de terminar la cena. Con `conDesayuno`, añade la hora límite del desayuno
+ *  (así no llegan dos avisos seguidos cuando la cena terminó a las 19:30). */
+export function avisoCama(d: DatosDia, ahora: string, conDesayuno: boolean): Aviso | null {
+  const cena = (d.log?.meals ?? []).find((m) => m.slot === 'cena')
+  if (!tomada(cena)) return null
+  const at = (cena!.end || cena!.time)?.slice(0, 5)
+  if (!at || at < '17:00') return null
+  if (min(ahora) < min(at) + HORAS_CENA_CAMA * 60) return null
+  const lineas = [`🌙 Han pasado ${HORAS_CENA_CAMA} horas desde la cena: buen momento para irse a la cama.`]
+  if (conDesayuno) lineas.push(`🌅 Mañana, desayuno antes de las ${hora(hhmmDe(min(at) + AYUNO_MAX_AVISO_H * 60))}.`)
+  return { title: TITULOS.cama, body: lineas.join('\n') }
+}
+
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
 export function ayunoAhora(d: DatosDia, ahora: string): { horas: number; desde: string; limite: string } | null {
   if ((d.log?.meals ?? []).some((m) => tomada(m))) return null
@@ -349,7 +377,7 @@ export function avisoAyuno(d: DatosDia, ahora: string, yaMandados: Set<string>):
 
 /** Qué toca hacer en este minuto (hora de Madrid). El servidor lo llama cada 5 minutos; cada momento se hace una
  *  sola vez al día (se guarda en la tabla `avisos`). */
-export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' }
+export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' }
 export function tareasALaHora(ahora: string): Tarea[] {
   const out: Tarea[] = []
   const entre = (a: string, b: string) => ahora >= a && ahora < b
@@ -357,6 +385,8 @@ export function tareasALaHora(ahora: string): Tarea[] {
   if (entre('16:00', '16:45')) out.push({ tipo: 'momento', momento: '16' })
   if (entre('19:00', '19:45')) out.push({ tipo: 'momento', momento: '19' })
   if (entre('21:00', '21:25')) out.push({ tipo: '21' })
+  // La cama va antes que el de las 21:30: si coinciden, el de la cama lleva también la hora del desayuno.
+  if (entre('19:30', '23:30')) out.push({ tipo: 'cama' })
   if (entre('21:30', '22:15')) out.push({ tipo: '2130' })
   if (entre(AYUNO_DESDE, AYUNO_HASTA)) out.push({ tipo: 'ayuno' })
   if (entre('00:00', '02:00')) out.push({ tipo: 'cierre' })
@@ -414,7 +444,7 @@ export function desviaciones(rows: AvisoRow[], desde: string, hasta: string): De
     return d
   })
   // Peso y deposiciones: días con aviso.
-  for (const area of ['peso', 'deposiciones'] as const) {
+  for (const area of ['peso', 'deposiciones', 'cena'] as const) {
     const d: Desviacion = { area, dias: 0, aTiempo: 0, alFinal: 0, noLlega: 0, porMomento: { '12': 0, '16': 0, '19': 0 }, porModo: {} }
     for (const f of fechas) {
       const c = rows.find((r) => r.date === f && r.area === area)

@@ -151,9 +151,10 @@ export default function Avisos() {
           <tbody>
             <tr><td><strong>12:00</strong></td><td>Agua (unos 500 ml), tomas, temperatura de la mañana y peso si lleva {DIAS_SIN_PESO} días sin pesarle</td></tr>
             <tr><td><strong>16:00</strong></td><td>Agua (unos 900 ml) y tomas</td></tr>
-            <tr><td><strong>19:00</strong></td><td>Agua (unos 1.250 ml), tomas, temperatura de la tarde y deposiciones si lleva {DIAS_SIN_DEPOSICION} días sin ninguna</td></tr>
+            <tr><td><strong>19:00</strong></td><td>Agua (unos 1.250 ml), tomas, temperatura de la tarde, la cena si aún no está (como tarde a las 19:30) y deposiciones si lleva {DIAS_SIN_DEPOSICION} días sin ninguna</td></tr>
             <tr><td><strong>21:00</strong></td><td>Lo que queda por rellenar. A las 00:00 el día se cierra</td></tr>
-            <tr><td><strong>21:30</strong></td><td>Hora límite del desayuno de mañana</td></tr>
+            <tr><td><strong>Tras la cena</strong></td><td>A las 2 h de terminar de cenar: a la cama</td></tr>
+            <tr><td><strong>21:30</strong></td><td>Hora límite del desayuno de mañana (va en el aviso de la cama si coinciden)</td></tr>
             <tr><td><strong>Mañana</strong></td><td>Ayuno: a las 11 h y a las 12 h desde la última toma</td></tr>
           </tbody>
         </table>
