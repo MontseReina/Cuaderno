@@ -28,13 +28,15 @@ export interface KcalToma {
   fuente: 'escrito' | 'menu' | 'batido' | null
   /** Platos del menú contados (fuente = menu), con sus kcal. */
   platos: { n: string; k: number }[]
+  /** Postre escrito (comida y cena): lo que se reconoce y sus kcal, ya sumadas en `total`. */
+  postre: { items: LeidoContado[]; total: number } | null
 }
 
 const tomaDe = (slot: string) => TOMAS.find((t) => t.key === slot)
 const nombre = (slot: string) => tomaDe(slot)?.label ?? MEAL_SLOTS.find((s) => s.key === slot)?.label ?? slot
 
 /** ¿Cuenta esta toma como tomada? Marcada con algo distinto de «No», o con algo escrito o una hora. */
-export const tomada = (m?: Meal) => !!m && m.fraction !== 0 && (m.fraction != null || !!m.note?.trim() || !!m.time || !!m.end)
+export const tomada = (m?: Meal) => !!m && m.fraction !== 0 && (m.fraction != null || !!m.note?.trim() || !!m.dessert?.trim() || !!m.time || !!m.end)
 
 /** Parte que se tomó de cada zona del plato dibujado (1 si no se ha marcado) y la media para el resto (aceite, salsas). */
 export function factoresPlato(m?: Meal) {
@@ -60,10 +62,24 @@ export function platosDeToma(m: Meal, menu: MenuHoy | null): MenuDish[] {
   return menu?.platos(m.slot) ?? []
 }
 
-const vacio = (): KcalToma => ({ items: [], sinReconocer: [], total: 0, fuente: null, platos: [] })
+const vacio = (): KcalToma => ({ items: [], sinReconocer: [], total: 0, fuente: null, platos: [], postre: null })
 
-/** Kilocalorías de una toma. */
+/** Kilocalorías del postre escrito: cada alimento por su ración (o por el número escrito), entero. */
+function kcalPostre(texto?: string): KcalToma['postre'] {
+  if (!texto?.trim()) return null
+  const items = leerAlimentos(texto).leidos.map((l): LeidoContado => ({ ...l, factor: 1, segun: l.conNumero ? 'numero' : null, kcalContadas: l.kcal }))
+  return { items, total: items.reduce((s, i) => s + i.kcalContadas, 0) }
+}
+
+/** Kilocalorías de una toma, con el postre escrito sumado. */
 export function kcalToma(m: Meal, menu: MenuHoy | null = null): KcalToma {
+  const base = kcalTomaSinPostre(m, menu)
+  const postre = tomada(m) ? kcalPostre(m.dessert) : null
+  if (!postre?.items.length) return { ...base, postre }
+  return { ...base, postre, total: base.total + postre.total, fuente: base.fuente ?? 'escrito' }
+}
+
+function kcalTomaSinPostre(m: Meal, menu: MenuHoy | null): KcalToma {
   const t = tomaDe(m.slot)
   const deToma = m.fraction != null && m.fraction > 0 ? m.fraction : 1
   if (!tomada(m)) return vacio()
@@ -87,7 +103,7 @@ export function kcalToma(m: Meal, menu: MenuHoy | null = null): KcalToma {
     const segun = parte && nivel != null ? 'plato' : deToma !== 1 ? 'toma' : null
     return { ...l, factor, segun, kcalContadas: Math.round(l.kcal * factor) }
   })
-  return { items, sinReconocer, total: items.reduce((s, i) => s + i.kcalContadas, 0), fuente: items.length ? 'escrito' : null, platos: [] }
+  return { items, sinReconocer, total: items.reduce((s, i) => s + i.kcalContadas, 0), fuente: items.length ? 'escrito' : null, platos: [], postre: null }
 }
 
 export interface KcalDia {

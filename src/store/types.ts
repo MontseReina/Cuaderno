@@ -146,6 +146,8 @@ export interface Meal {
   choice?: 'batido' | 'menu'
   /** Platos del menú después del primero: tomado (`si`) o no tomado (`no`). Sin marcar cuenta como tomado. */
   taken?: Record<string, 'si' | 'no' | null>
+  /** Comida y cena: el postre que ha tomado, escrito por los cuidadores (cuenta sus kcal aparte). */
+  dessert?: string
   fraction?: Fraction
   carb?: Carb
   texture?: Texture

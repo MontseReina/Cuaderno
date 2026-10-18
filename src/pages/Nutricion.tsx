@@ -286,15 +286,24 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
         </label>
       )}
       {!no && otro && k && <OtroKcal o={k} />}
-      {!no && !otro && k?.fuente && (
+      {!no && !otro && k?.fuente && (k.fuente === 'batido' || k.platos.length > 0) && (
         <p className="small nutri-otro-kcal muted">
           {k.fuente === 'batido' ? <>Cuenta el batido: unas {fmtKcal(k.total)} kcal.</>
+            : !k.platos.length ? null
             : t.plato ? (m?.macros && (m.macros.veg != null || m.macros.prot != null || m.macros.starch != null)
-              ? <>Según el plato, cuenta unas <strong>{fmtKcal(k.total)} kcal</strong> de {fmtKcal(tocaba.reduce((s, p) => s + (p.k ?? 0), 0))}.</>
-              : <>Sin marcar el plato, cuenta entero: unas {fmtKcal(k.total)} kcal. Toca cada parte si comió menos o más.</>)
-            : <>Cuenta lo del menú: unas {fmtKcal(k.total)} kcal.</>}
+              ? <>Según el plato, cuenta unas <strong>{fmtKcal(k.total - (k.postre?.total ?? 0))} kcal</strong> de {fmtKcal(tocaba.reduce((s, p) => s + (p.k ?? 0), 0))}.</>
+              : <>Sin marcar el plato, cuenta entero: unas {fmtKcal(k.total - (k.postre?.total ?? 0))} kcal. Toca cada parte si comió menos o más.</>)
+            : <>Cuenta lo del menú: unas {fmtKcal(k.total - (k.postre?.total ?? 0))} kcal.</>}
         </p>
       )}
+      {t.plato && !no && (
+        <label className="nutri-otro nutri-postre">
+          <span className="muted small">Postre</span>
+          <input type="text" aria-label={`Postre en ${t.label}`} placeholder="El postre que ha tomado: kiwi, yogur, frutos rojos…"
+            value={m?.dessert ?? ''} onChange={(e) => poner({ dessert: e.target.value })} />
+        </label>
+      )}
+      {t.plato && !no && k?.postre && <PostreKcal p={k.postre} />}
       <div className="seg" role="group" aria-label={`Cómo ha ido: ${t.label}`}>
         {lista.map(([v, l]) => (
           <button type="button" key={l} className={(f === v ? 'on ' : '') + (v === 0 ? 'e-no' : v === 0.5 ? 'e-media' : '')} aria-pressed={f === v} aria-label={l === '¾' ? 'Tres cuartos' : l} onClick={() => marcar(v)}>{l}</button>
@@ -349,7 +358,25 @@ function OtroKcal({ o }: { o: KcalToma }) {
           </li>
         ))}
       </ul>
-      <div><strong>Cuenta unas {fmtKcal(o.total)} kcal</strong></div>
+      <div><strong>Cuenta unas {fmtKcal(o.total - (o.postre?.total ?? 0))} kcal</strong></div>
+    </div>
+  )
+}
+
+/** Lo que cuenta el postre escrito. */
+function PostreKcal({ p }: { p: NonNullable<KcalToma['postre']> }) {
+  if (!p.items.length) return <p className="small nutri-otro-kcal muted"><span className="dot amarillo" />Este postre no suma kilocalorías.</p>
+  return (
+    <div className="small nutri-otro-kcal">
+      <ul>
+        {p.items.map((i, n) => (
+          <li key={n}>
+            <span>{i.alimento.nombre}<span className="muted"> · {i.unidades !== 1 ? `${fraccion(i.unidades)} × ${i.alimento.u}` : i.alimento.u}</span></span>
+            <span className="nowrap">{fmtKcal(i.kcalContadas)} kcal</span>
+          </li>
+        ))}
+      </ul>
+      <div><strong>Postre: unas {fmtKcal(p.total)} kcal</strong></div>
     </div>
   )
 }
