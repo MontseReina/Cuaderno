@@ -1593,6 +1593,19 @@ const TEMPS_A_LA_HORA = {
 /** Cena terminada como tarde a las 19:30 y a la cama 2 h después de terminarla (Montserrate, 18/10/2026: dormir bien
 *  a las 21:30). El aviso de la cena va 30 min antes del límite, en el de las 19 h. */
 const CENA_LIMITE = "19:30";
+/** Caminar después de cada comida principal (Montserrate, 18/10/2026): aviso al terminar (hora de fin apuntada; si no,
+*  30 min después de empezar). Solo en casa: tras la operación, traumatología puede limitar que camine. */
+const PRINCIPALES = [
+	"desayuno",
+	"comida",
+	"cena"
+];
+const DE_LA = {
+	desayuno: "del desayuno",
+	comida: "de la comida",
+	cena: "de la cena"
+};
+const enCasa = (log) => !log?.location || log.location === "casa";
 const min = (hhmm) => {
 	const [h, m] = hhmm.split(":").map(Number);
 	return h * 60 + (m || 0);
@@ -1782,6 +1795,7 @@ const TITULOS = {
 	"21": "Huma · Cierre del día",
 	"2130": "Huma · Para mañana",
 	cama: "Huma · A dormir 🌙",
+	caminar: "Huma · A caminar 🚶",
 	ayuno11: "Huma · Buenos días 🌅",
 	ayuno12: "Huma · Buenos días 🌅",
 	prueba: "Huma · Aviso de prueba"
@@ -1819,8 +1833,22 @@ function controlesFinales(d) {
 			valor: t,
 			meta: 2,
 			ok: t >= 2
-		}
+		},
+		...paseosFinal(d)
 	];
+}
+/** Paseos tras las comidas principales hechas ese día (solo en casa). */
+function paseosFinal(d) {
+	if (!enCasa(d.log)) return [];
+	const hechas = PRINCIPALES.filter((s) => tomada((d.log?.meals ?? []).find((m) => m.slot === s)));
+	if (!hechas.length) return [];
+	const n = hechas.filter((s) => d.log?.extra?.move_after?.[s]).length;
+	return [{
+		area: "paseos",
+		valor: n,
+		meta: hechas.length,
+		ok: n >= hechas.length
+	}];
 }
 /** Lo que queda por rellenar del día (los apartados del registro). */
 function pendientesDelDia(d) {
@@ -1876,6 +1904,28 @@ function avisoCama(d, ahora, conDesayuno) {
 		title: TITULOS.cama,
 		body: lineas.join("\n")
 	};
+}
+/** Aviso de caminar tras una comida principal que acaba de terminar (una vez por comida; no si ya está marcado que se
+*  movió después de esa comida, ni fuera de casa). */
+function avisoCaminar(d, ahora, yaMandados) {
+	if (!enCasa(d.log)) return null;
+	for (const slot of PRINCIPALES) {
+		const momento = `caminar_${slot}`;
+		if (yaMandados.has(momento) || d.log?.extra?.move_after?.[slot]) continue;
+		const m = (d.log?.meals ?? []).find((x) => x.slot === slot);
+		if (!tomada(m)) continue;
+		const fin = m.end?.slice(0, 5) ?? (m.time ? hhmmDe(min(m.time.slice(0, 5)) + 30) : null);
+		if (!fin) continue;
+		if (min(ahora) < min(fin) || min(ahora) > min(fin) + 90) continue;
+		return {
+			momento,
+			aviso: {
+				title: TITULOS.caminar,
+				body: `🚶 Después ${DE_LA[slot]}, buen momento para caminar un rato: ayuda a desinflamar el hígado. Si lo hacéis, marcadlo en Ejercicio.`
+			}
+		};
+	}
+	return null;
 }
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
 function ayunoAhora(d, ahora) {
@@ -1933,6 +1983,7 @@ function tareasALaHora(ahora) {
 	if (entre("19:30", "23:30")) out.push({ tipo: "cama" });
 	if (entre("21:30", "22:15")) out.push({ tipo: "2130" });
 	if (entre("07:00", "13:00")) out.push({ tipo: "ayuno" });
+	if (entre("06:00", "23:30")) out.push({ tipo: "caminar" });
 	if (entre("00:00", "02:00")) out.push({ tipo: "cierre" });
 	return out;
 }
@@ -2217,6 +2268,16 @@ async function tick(env, fetchFn, date, hhmm, dry = false) {
 			momento: "cama",
 			aviso,
 			envio: await mandar(date, "cama", aviso)
+		});
+	} else if (t.tipo === "caminar") {
+		const enviados = new Set([...ya].filter((k) => k.startsWith(date + "|caminar_")).map((k) => k.split("|")[1]));
+		const a = avisoCaminar(datos(date), hhmm, enviados);
+		if (!a) continue;
+		if (!await candado(date, a.momento, a.aviso)) continue;
+		hecho.push({
+			momento: a.momento,
+			aviso: a.aviso,
+			envio: await mandar(date, a.momento, a.aviso)
 		});
 	} else if (t.tipo === "2130") {
 		const aviso = avisoParaManana(datos(date));

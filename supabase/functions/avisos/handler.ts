@@ -9,7 +9,7 @@
 import { setDatos } from './store-stub'
 import { sendPush, type VapidKeys } from './webpush'
 import {
-  avisoAyuno, avisoCama, avisoCierre, avisoDelMomento, avisoParaManana, controlesDelMomento, controlesFinales, modoDelDia,
+  avisoAyuno, avisoCama, avisoCaminar, avisoCierre, avisoDelMomento, avisoParaManana, controlesDelMomento, controlesFinales, modoDelDia,
   pendientesDelDia, tareasALaHora, TITULOS, type Aviso, type Control, type DatosDia,
 } from '../../../src/domain/avisos'
 import { addDays } from '../../../src/domain/dates'
@@ -178,6 +178,12 @@ export async function tick(env: Env, fetchFn: typeof fetch, date: string, hhmm: 
       // Si ya lleva la hora del desayuno, el de las 21:30 no se manda (queda anotado, sin aviso).
       if (conDesayuno) await candado(date, '2130', null, { texto: 'Incluido en el aviso de la cama' })
       hecho.push({ momento: 'cama', aviso, envio: await mandar(date, 'cama', aviso) })
+    } else if (t.tipo === 'caminar') {
+      const enviados = new Set([...ya].filter((k) => k.startsWith(date + '|caminar_')).map((k) => k.split('|')[1]))
+      const a = avisoCaminar(datos(date), hhmm, enviados)
+      if (!a) continue
+      if (!(await candado(date, a.momento, a.aviso))) continue
+      hecho.push({ momento: a.momento, aviso: a.aviso, envio: await mandar(date, a.momento, a.aviso) })
     } else if (t.tipo === '2130') {
       const aviso = avisoParaManana(datos(date))
       if (!(await candado(date, '2130', aviso))) continue

@@ -52,7 +52,7 @@ function TablaDesviaciones({ d }: { d: Desviacion[] }) {
       })}
       {d.filter((x) => !AREAS_RITMO.includes(x.area)).map((x) => (
         <div key={x.area} className="desv-fila small">
-          <strong>{AREA_ICO[x.area]} {AREA_LABEL[x.area]}</strong>: {x.noLlega ? `${x.noLlega} ${x.noLlega === 1 ? 'día' : 'días'} con aviso (${x.area === 'peso' ? '3 días o más sin pesar' : x.area === 'cena' ? 'cena sin apuntar a las 19 h' : '2 días o más sin deposición'})` : 'ningún aviso'}
+          <strong>{AREA_ICO[x.area]} {AREA_LABEL[x.area]}</strong>: {x.noLlega ? `${x.noLlega} ${x.noLlega === 1 ? 'día' : 'días'} con aviso (${x.area === 'peso' ? '3 días o más sin pesar' : x.area === 'cena' ? 'cena sin apuntar a las 19 h' : x.area === 'paseos' ? 'sin caminar tras alguna comida principal' : '2 días o más sin deposición'})` : 'ningún aviso'}
         </div>
       ))}
     </div>
@@ -86,7 +86,7 @@ function TablaDias({ rows, fechas }: { rows: AvisoRow[]; fechas: string[] }) {
         <tbody>
           {fechas.map((f) => {
             const env = rows.filter((r) => r.date === f && r.area === 'envio' && r.titulo && !r.momento.startsWith('prueba'))
-            const extra = rows.filter((r) => r.date === f && (r.area === 'peso' || r.area === 'deposiciones' || r.area === 'cena') && r.ok === false)
+            const extra = rows.filter((r) => r.date === f && (r.area === 'peso' || r.area === 'deposiciones' || r.area === 'cena' || r.area === 'paseos') && r.ok === false)
             const g = grupoDe(rows.find((r) => r.date === f && r.area === 'agua'))
             return (
               <tr key={f}>
@@ -132,8 +132,8 @@ export function RitmoResumen() {
   )
 }
 
-const MOMENTO_TXT: Record<string, string> = { '12': '12:00', '16': '16:00', '19': '19:00', '21': '21:00', cama: 'A dormir', '2130': '21:30', ayuno11: 'Ayuno 11 h', ayuno12: 'Ayuno 12 h', final: 'Cierre', prueba: 'Prueba' }
-const ORDEN = ['ayuno11', 'ayuno12', '12', '16', '19', '21', 'cama', '2130', 'final']
+const MOMENTO_TXT: Record<string, string> = { '12': '12:00', '16': '16:00', '19': '19:00', '21': '21:00', cama: 'A dormir', caminar_desayuno: 'Caminar (desayuno)', caminar_comida: 'Caminar (comida)', caminar_cena: 'Caminar (cena)', '2130': '21:30', ayuno11: 'Ayuno 11 h', ayuno12: 'Ayuno 12 h', final: 'Cierre', prueba: 'Prueba' }
+const ORDEN = ['ayuno11', 'ayuno12', 'caminar_desayuno', '12', 'caminar_comida', '16', '19', 'caminar_cena', '21', 'cama', '2130', 'final']
 
 /** Evaluaciones → Avisos (para imprimir o guardar en PDF): todos los avisos enviados y los controles, día a día. */
 export function AvisosImprimir() {
@@ -182,7 +182,7 @@ export function AvisosImprimir() {
                                   <span key={c.id} className={c.ok ? 'ok-txt' : 'error-txt'}>
                                     {c.area === 'registro'
                                       ? (c.ok ? '✓ Todo rellenado' : `Sin rellenar: ${c.texto ?? ''}`)
-                                      : <>{AREA_ICO[c.area as Area]} {valorTxt(c.area, c.valor)}{c.area === 'cena' ? (c.ok ? ' cena apuntada' : ' cena sin apuntar') : c.area === 'peso' || c.area === 'deposiciones' ? ' días' : ` de ${valorTxt(c.area, c.meta)}`} {c.ok ? '✓' : '•'}</>}
+                                      : <>{AREA_ICO[c.area as Area]} {c.area === 'cena' ? '' : valorTxt(c.area, c.valor)}{c.area === 'cena' ? (c.ok ? ' cena apuntada' : ' cena sin apuntar') : c.area === 'paseos' ? ` de ${c.meta} paseos tras comer` : c.area === 'peso' || c.area === 'deposiciones' ? ' días' : ` de ${valorTxt(c.area, c.meta)}`} {c.ok ? '✓' : '•'}</>}
                                   </span>
                                 ))}
                               </div>

@@ -20,11 +20,11 @@ import { tomada } from './kcal'
 /** Momentos del día en que se revisa el ritmo. */
 export type Momento = '12' | '16' | '19'
 export const MOMENTOS: Momento[] = ['12', '16', '19']
-export type Area = 'agua' | 'comidas' | 'temperatura' | 'peso' | 'deposiciones' | 'cena'
+export type Area = 'agua' | 'comidas' | 'temperatura' | 'peso' | 'deposiciones' | 'cena' | 'paseos'
 export const AREA_LABEL: Record<Area, string> = {
-  agua: 'Agua', comidas: 'Tomas', temperatura: 'Temperatura', peso: 'Peso', deposiciones: 'Deposiciones', cena: 'Cena',
+  agua: 'Agua', comidas: 'Tomas', temperatura: 'Temperatura', peso: 'Peso', deposiciones: 'Deposiciones', cena: 'Cena', paseos: 'Caminar tras comer',
 }
-export const AREA_ICO: Record<Area, string> = { agua: '💧', comidas: '🍽', temperatura: '🌡', peso: '⚖️', deposiciones: '🚽', cena: '🌙' }
+export const AREA_ICO: Record<Area, string> = { agua: '💧', comidas: '🍽', temperatura: '🌡', peso: '⚖️', deposiciones: '🚽', cena: '🌙', paseos: '🚶' }
 
 /** Meta de líquidos del día (ml): 1.500 (Montserrate, 18/10/2026). */
 export const AGUA_DIA_ML = 1500
@@ -46,6 +46,11 @@ export const DIAS_SIN_DEPOSICION = 2
  *  a las 21:30). El aviso de la cena va 30 min antes del límite, en el de las 19 h. */
 export const CENA_LIMITE = '19:30'
 export const HORAS_CENA_CAMA = 2
+/** Caminar después de cada comida principal (Montserrate, 18/10/2026): aviso al terminar (hora de fin apuntada; si no,
+ *  30 min después de empezar). Solo en casa: tras la operación, traumatología puede limitar que camine. */
+export const PRINCIPALES = ['desayuno', 'comida', 'cena'] as const
+const DE_LA: Record<string, string> = { desayuno: 'del desayuno', comida: 'de la comida', cena: 'de la cena' }
+export const enCasa = (log?: DailyLog) => !log?.location || log.location === 'casa'
 export const AYUNO_AVISO_H = 11
 export const AYUNO_MAX_AVISO_H = 12
 /** Hora a partir de la que se pueden mandar los avisos de ayuno (para no despertar a nadie). */
@@ -275,6 +280,7 @@ export const TITULOS: Record<string, string> = {
   '21': 'Huma · Cierre del día',
   '2130': 'Huma · Para mañana',
   cama: 'Huma · A dormir 🌙',
+  caminar: 'Huma · A caminar 🚶',
   ayuno11: 'Huma · Buenos días 🌅',
   ayuno12: 'Huma · Buenos días 🌅',
   prueba: 'Huma · Aviso de prueba',
@@ -299,7 +305,17 @@ export function controlesFinales(d: DatosDia): Control[] {
     { area: 'agua', valor: agua, meta: AGUA_DIA_ML, ok: agua >= AGUA_DIA_ML },
     { area: 'comidas', valor: n, meta: TOMAS_DIA[modo], ok: n >= TOMAS_DIA[modo] },
     { area: 'temperatura', valor: t, meta: TEMPS_DIA, ok: t >= TEMPS_DIA },
+    ...paseosFinal(d),
   ]
+}
+
+/** Paseos tras las comidas principales hechas ese día (solo en casa). */
+function paseosFinal(d: DatosDia): Control[] {
+  if (!enCasa(d.log)) return []
+  const hechas = PRINCIPALES.filter((s) => tomada((d.log?.meals ?? []).find((m) => m.slot === s)))
+  if (!hechas.length) return []
+  const n = hechas.filter((s) => d.log?.extra?.move_after?.[s]).length
+  return [{ area: 'paseos', valor: n, meta: hechas.length, ok: n >= hechas.length }]
 }
 
 /** Lo que queda por rellenar del día (los apartados del registro). */
@@ -351,6 +367,23 @@ export function avisoCama(d: DatosDia, ahora: string, conDesayuno: boolean): Avi
   return { title: TITULOS.cama, body: lineas.join('\n') }
 }
 
+/** Aviso de caminar tras una comida principal que acaba de terminar (una vez por comida; no si ya está marcado que se
+ *  movió después de esa comida, ni fuera de casa). */
+export function avisoCaminar(d: DatosDia, ahora: string, yaMandados: Set<string>): { momento: string; aviso: Aviso } | null {
+  if (!enCasa(d.log)) return null
+  for (const slot of PRINCIPALES) {
+    const momento = `caminar_${slot}`
+    if (yaMandados.has(momento) || d.log?.extra?.move_after?.[slot]) continue
+    const m = (d.log?.meals ?? []).find((x) => x.slot === slot)
+    if (!tomada(m)) continue
+    const fin = m!.end?.slice(0, 5) ?? (m!.time ? hhmmDe(min(m!.time.slice(0, 5)) + 30) : null)
+    if (!fin) continue
+    if (min(ahora) < min(fin) || min(ahora) > min(fin) + 90) continue
+    return { momento, aviso: { title: TITULOS.caminar, body: `🚶 Después ${DE_LA[slot]}, buen momento para caminar un rato: ayuda a desinflamar el hígado. Si lo hacéis, marcadlo en Ejercicio.` } }
+  }
+  return null
+}
+
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
 export function ayunoAhora(d: DatosDia, ahora: string): { horas: number; desde: string; limite: string } | null {
   if ((d.log?.meals ?? []).some((m) => tomada(m))) return null
@@ -377,7 +410,7 @@ export function avisoAyuno(d: DatosDia, ahora: string, yaMandados: Set<string>):
 
 /** Qué toca hacer en este minuto (hora de Madrid). El servidor lo llama cada 5 minutos; cada momento se hace una
  *  sola vez al día (se guarda en la tabla `avisos`). */
-export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' }
+export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: 'caminar' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' }
 export function tareasALaHora(ahora: string): Tarea[] {
   const out: Tarea[] = []
   const entre = (a: string, b: string) => ahora >= a && ahora < b
@@ -389,6 +422,7 @@ export function tareasALaHora(ahora: string): Tarea[] {
   if (entre('19:30', '23:30')) out.push({ tipo: 'cama' })
   if (entre('21:30', '22:15')) out.push({ tipo: '2130' })
   if (entre(AYUNO_DESDE, AYUNO_HASTA)) out.push({ tipo: 'ayuno' })
+  if (entre('06:00', '23:30')) out.push({ tipo: 'caminar' })
   if (entre('00:00', '02:00')) out.push({ tipo: 'cierre' })
   return out
 }
@@ -444,7 +478,7 @@ export function desviaciones(rows: AvisoRow[], desde: string, hasta: string): De
     return d
   })
   // Peso y deposiciones: días con aviso.
-  for (const area of ['peso', 'deposiciones', 'cena'] as const) {
+  for (const area of ['peso', 'deposiciones', 'cena', 'paseos'] as const) {
     const d: Desviacion = { area, dias: 0, aTiempo: 0, alFinal: 0, noLlega: 0, porMomento: { '12': 0, '16': 0, '19': 0 }, porModo: {} }
     for (const f of fechas) {
       const c = rows.find((r) => r.date === f && r.area === area)
