@@ -841,9 +841,11 @@ function ejercicio(days: string[], logOf: (d: string) => DailyLog | undefined, c
   })
   const total = pct(adequate.length, days.length)
   const grade = gradeOf(total, days.filter((d) => !!logOf(d)).length)
-  const minutes = days.reduce((a, d) => a + (logOf(d)?.activity_min ?? ses.filter((s) => s.date === d).reduce((x, s) => x + (s.minutes ?? 0), 0)), 0)
+  // 0.32.0: activity_min ya no incluye las sesiones (es paseo + otras actividades), así que se suman.
+  const minutes = days.reduce((a, d) => a + (logOf(d)?.activity_min ?? 0) + ses.filter((s) => s.date === d).reduce((x, s) => x + (s.minutes ?? 0), 0), 0)
   const steps = days.map((d) => logOf(d)?.steps).filter((s): s is number => !!s)
   const fz = ses.filter((s) => s.kind === 'fuerza').length, ae = ses.filter((s) => s.kind === 'aerobico').length
+  const noHecho = days.flatMap((d) => Object.entries(logOf(d)?.extra?.ex_no ?? {}).filter(([, m]) => m).map(([k, m]) => `${dayLabel(d)} ${k === 'fuerza' ? 'fuerza' : 'aeróbico'} (${m})`))
   const func = (ds: string[]) => { const f = ds.map((d) => logOf(d)?.extra?.functional).filter(Boolean).pop(); return f }
   const fNow = func(days), fPrev = func(days.map((d) => addDays(d, -7)))
   const worse = !!(fNow && fPrev && ((fPrev.stairs && fNow.stairs === false) || (fPrev.stands_alone && fNow.stands_alone === false) || (fPrev.walk_min != null && fNow.walk_min != null && fNow.walk_min < fPrev.walk_min)))
@@ -855,6 +857,7 @@ function ejercicio(days: string[], logOf: (d: string) => DailyLog | undefined, c
     { label: 'Días con actividad', value: `${days.filter(moved).length} de ${days.length}` },
     { label: 'Minutos', value: `${minutes} en la semana · ${Math.round(minutes / Math.max(1, days.length))} al día` },
     { label: 'Sesiones', value: ses.length ? `${fz} de fuerza · ${ae} de aeróbico${ses.some((s) => s.intensity === 'costo') ? ' · alguna le costó' : ''}` : 'Ninguna' },
+    ...(noHecho.length ? [{ label: 'No se hizo', value: noHecho.join(' · ') }] : []),
     ...(steps.length ? [{ label: 'Pasos', value: `${Math.round(steps.reduce((a, b) => a + b, 0) / steps.length)} al día` }] : []),
     { label: 'Capacidad funcional', value: fNow ? [fNow.stairs ? 'sube escaleras' : fNow.stairs === false ? 'no sube escaleras' : '', fNow.stands_alone ? 'se levanta solo' : '', fNow.walk_min != null ? `paseo de ${fNow.walk_min} min` : ''].filter(Boolean).join(' · ') || 'Sin datos' : 'Sin datos', light: worse ? 'amarillo' : fNow ? 'verde' : 'gris', note: worse ? 'Peor que la semana anterior' : undefined },
     { label: 'Caídas o golpes', value: falls.length ? falls.map((x) => `${dayLabel(x.d)}: ${x.f}`).join(' · ') : 'Ninguno', light: falls.length ? 'rojo' : 'verde' },

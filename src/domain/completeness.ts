@@ -75,8 +75,12 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, med?: M
     },
     {
       key: 'ejercicio',
-      label: 'Actividad y pasos',
-      done: has(log?.steps) || has(log?.activity_min) || Object.values(log?.activity ?? {}).some(Boolean),
+      label: 'Ejercicio',
+      // 0.32.0: cuenta cualquier cosa apuntada en la agenda de Ejercicio, también «hoy no se ha hecho».
+      done: has(log?.steps) || has(log?.activity_min) || Object.values(log?.activity ?? {}).some(Boolean)
+        || Object.values(log?.extra?.move_after ?? {}).some(Boolean)
+        || Object.values(log?.extra?.functional ?? {}).some((v) => v !== undefined && v !== null && v !== '')
+        || Object.values(log?.extra?.ex_no ?? {}).some(Boolean),
       to: `/ejercicio/${date}`,
       group: 'Ejercicio',
     },

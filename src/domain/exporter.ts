@@ -6,8 +6,9 @@ import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MOD
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
+import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.31.0'
+export const APP_VERSION = '0.32.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -246,8 +247,11 @@ export function buildAiReport(from: string, to: string): string {
     if (sl.length) L.push(`- Sueño y luz: ${sl.join(' · ')}`)
     const act = Object.entries(l.activity).filter(([, v]) => v).map(([k]) => k)
     const fu = l.extra?.functional
-    const fuTxt = fu ? [fu.stairs && 'sube escaleras', fu.stands_alone && 'se levanta solo', fu.walk_min != null && `aguanta paseo ${fu.walk_min} min`, fu.falls && `caídas: ${fu.falls}`].filter(Boolean).join(', ') : ''
-    if (act.length || l.activity_min || l.steps || fuTxt) L.push(`- Actividad: ${act.join(', ')}${l.activity_min ? ` · ${l.activity_min} min` : ''}${l.steps ? ` · ${l.steps} pasos` : ''}${fuTxt ? ` · capacidad funcional: ${fuTxt}` : ''}`)
+    const fuTxt = fu ? [fu.stairs ? 'sube escaleras' : fu.stairs === false && 'no sube escaleras', fu.stands_alone ? 'se levanta solo' : fu.stands_alone === false && 'no se levanta solo', fu.walk_min != null && `paseo más largo ${fu.walk_min} min`, fu.falls && `caídas o golpes: ${fu.falls}`].filter(Boolean).join(', ') : ''
+    const mvA = l.extra?.move_after ?? {}
+    const mvN = ['desayuno', 'comida', 'cena'].filter((k) => mvA[k as 'desayuno']).length
+    const noTxt = Object.entries(l.extra?.ex_no ?? {}).filter(([, m]) => m).map(([k, m]) => `${k === 'fuerza' ? 'fuerza' : 'aeróbico'} no se hizo (${m})`).join(', ')
+    if (act.length || l.activity_min || l.steps || fuTxt || mvN || noTxt) L.push(`- Actividad: ${act.join(', ')}${l.activity_min ? ` · ${l.activity_min} min` : ''}${l.steps ? ` · ${l.steps} pasos` : ''}${mvN ? ` · se movió después de ${mvN} de 3 comidas` : ''}${noTxt ? ` · ${noTxt}` : ''}${fuTxt ? ` · capacidad funcional: ${fuTxt}` : ''}`)
     const ev = events.filter((e) => e.start_at.slice(0, 10) === l.date)
     if (ev.length) L.push(`- Agenda: ${ev.map((e) => `${e.title} (${e.type}, ${e.status})`).join('; ')}`)
     const td = todos.filter((t) => t.done_at!.slice(0, 10) === l.date)
@@ -275,7 +279,7 @@ export function buildAiReport(from: string, to: string): string {
   if (micro.length) { L.push(''); L.push('Tests de microbiota: ' + micro.map((m) => `${m.date} (${m.lab_name ?? ''}): ${m.results.map((r) => `${r.name} ${r.value}${r.flag ? ` [${r.flag}]` : ''}`).join(', ')}`).join('; ')) }
   L.push('')
   L.push('## 5. Ejercicio, emocional y cuidadora')
-  for (const s of sessions) L.push(`- ${s.date} ${s.kind}: ${s.exercises.map((e) => `${e.name} ${e.sets ?? ''}×${e.reps ?? ''} ${e.load ?? ''}`).join(', ')}${s.minutes ? ` · ${s.minutes} min` : ''}`)
+  for (const s of sessions) L.push(`- ${s.date} ${s.kind === 'fuerza' ? 'fuerza' : 'aeróbico'}: ${s.exercises.map((e) => s.kind === 'fuerza' ? `${e.name} (${resumenEjercicio(e)})` : `${e.name}${e.hr ? ` · ${e.hr} pulsaciones` : ''}`).join(', ')}${s.minutes ? ` · ${s.minutes} min` : ''}${s.intensity ? ` · ${s.intensity === 'costo' ? 'le costó' : s.intensity}` : ''}`)
   for (const w of weeklyChild) L.push(`- Semana ${w.week_start} (niño): ánimo ${w.mood ?? '—'}/5 · emociones ${Object.entries(w.emotions).filter(([, v]) => v > 0).map(([k, v]) => `${k} ${v}`).join(', ')} · imagen corporal ${w.body_image ?? '—'} · psicóloga ${w.psych_session ? 'sí' : 'no'} · amigos ${w.friends_contact ?? '—'}${w.decided ? ` · decidió: ${w.decided}` : ''}`)
   for (const w of weeklyCg) L.push(`- Semana ${w.week_start} (cuidador/a): Zarit ${w.zarit.reduce((a, b) => a + (b ?? 0), 0)}/28 · relevo ${w.relief ? 'sí' : 'no'} · tiempo propio ${w.self_time ? 'sí' : 'no'}${w.hardest ? ` · lo más difícil: ${w.hardest}` : ''}`)
   L.push('')

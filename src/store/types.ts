@@ -178,6 +178,10 @@ export interface DailyExtra {
   vitals?: Partial<Record<VitalSlot, VitalEntry>>
   /** Se ha movido después de cada comida («snacks de movimiento», pauta de IMOHE). */
   move_after?: Partial<Record<'desayuno' | 'comida' | 'cena', boolean>>
+  /** Minutos de otras actividades (juego, fisio, en cama) (0.32.0). */
+  other_min?: number | null
+  /** «Hoy no se ha hecho» con el motivo, por tipo de sesión (0.32.0). */
+  ex_no?: Partial<Record<'fuerza' | 'aerobico', string>>
   /** Tipo de Bristol de cada deposición del día, en orden (0.28.0). */
   stools?: { bristol?: number | null }[]
   /** Registro de náuseas (0.25.0): escala de caras 0-10 por momento, impacto, arcadas y rescates. */
@@ -438,12 +442,26 @@ export interface CaregiverDaily extends BaseRow {
   ate_ok?: boolean | null
   tired?: number | null // 1-5
 }
+export interface ExerciseSerie { reps?: number | null; kg?: number | null; done?: boolean }
+export interface ExerciseItem {
+  name: string
+  /** Resumen (series hechas, repeticiones y carga de la primera): lo leen los informes antiguos. */
+  sets?: number
+  reps?: number
+  load?: string
+  series?: ExerciseSerie[]
+  note?: string
+  /** Aeróbico: pulsaciones medias. */
+  hr?: number | null
+}
 export interface ExerciseSession extends BaseRow {
   date: string
   kind: 'fuerza' | 'aerobico'
-  exercises: { name: string; sets?: number; reps?: number; load?: string }[]
+  /** Fuerza: un elemento por ejercicio, con sus series (0.32.0). Aeróbico: la actividad (bici, nadar…). */
+  exercises: ExerciseItem[]
   minutes?: number | null
-  intensity?: 'ligera' | 'moderada' | 'costo'
+  /** Aeróbico: ligera / moderada / costo. Fuerza: facil / bien / costo. */
+  intensity?: 'ligera' | 'moderada' | 'costo' | 'facil' | 'bien'
   notes?: string
 }
 export interface FunctionalWeekly extends BaseRow {
