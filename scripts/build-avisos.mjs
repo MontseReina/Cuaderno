@@ -1,5 +1,5 @@
 // Empaqueta la función «avisos» en un solo fichero para pegarlo en Supabase → Edge Functions (editor).
-// Uso: node scripts/build-avisos.mjs  →  supabase/functions/avisos/dist/index.ts
+// Uso: node scripts/build-avisos.mjs  →  supabase/functions/avisos/bundle/index.ts
 import { build } from 'rolldown'
 import { fileURLToPath } from 'node:url'
 import { writeFileSync, readFileSync } from 'node:fs'
@@ -7,7 +7,7 @@ import { writeFileSync, readFileSync } from 'node:fs'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const stub = root + 'supabase/functions/avisos/store-stub.ts'
 const entry = process.argv[2] === 'node' ? 'handler.ts' : 'deno-entry.ts'
-const out = root + `supabase/functions/avisos/dist/${process.argv[2] === 'node' ? 'handler.mjs' : 'index.ts'}`
+const out = root + `supabase/functions/avisos/bundle/${process.argv[2] === 'node' ? 'handler.mjs' : 'index.ts'}`
 
 await build({
   input: root + 'supabase/functions/avisos/' + entry,
