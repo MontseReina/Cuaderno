@@ -10,7 +10,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.33.0'
+export const APP_VERSION = '0.34.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -57,7 +57,8 @@ export interface FullBackup {
 }
 export function buildBackup(): FullBackup {
   const tables: Record<string, unknown[]> = {}
-  for (const t of TABLE_NAMES) tables[t] = backend.all(t)
+  // 0.34.0: los móviles con avisos no van en la copia (son datos de cada teléfono).
+  for (const t of TABLE_NAMES) if (t !== 'push_subscriptions') tables[t] = backend.all(t)
   return { app: 'cuaderno-cuidados', app_version: APP_VERSION, schema_version: SCHEMA_VERSION, exported_at: new Date().toISOString(), exported_by: backend.currentUserName(), tables }
 }
 export function exportBackup() {
@@ -73,6 +74,8 @@ export async function importBackup(text: string): Promise<{ added: number; updat
   const migrated = migrate(b as FullBackup)
   let added = 0, updated = 0, skipped = 0
   for (const t of TABLE_NAMES) {
+    // 0.34.0: los avisos los escribe solo el servidor; los móviles con avisos no se importan.
+    if (t === 'avisos' || t === 'push_subscriptions') continue
     const incoming = (migrated.tables[t] ?? []) as { id: string; updated_at?: string }[]
     const current = new Map(backend.all(t).map((r) => [r.id, r as { id: string; updated_at?: string }]))
     for (const row of incoming) {

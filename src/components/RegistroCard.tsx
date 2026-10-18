@@ -3,6 +3,7 @@ import { useRows } from '../store'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { dayCompleteness } from '../domain/completeness'
 import { medicationProgress } from '../domain/medication'
+import { tomasMetaDelDia } from '../domain/avisos'
 
 /** «Cómo se está rellenando el registro»: tira de los últimos 21 días (hoy a la izquierda) y racha.
  *  Estaba en Inicio; desde la 0.18.0 va en Evaluaciones, entre el título y el informe semanal. */
@@ -13,7 +14,7 @@ export function RegistroCard() {
   const products = useRows('products')
   const intakes = useRows('intakes')
   const byDate = new Map(logs.map((l) => [l.date, l]))
-  const regOf = (d: string) => dayCompleteness(byDate.get(d), d, medicationProgress(products, intakes, cycles, d))
+  const regOf = (d: string) => dayCompleteness(byDate.get(d), d, medicationProgress(products, intakes, cycles, d), tomasMetaDelDia(byDate.get(d), cycles, d))
   const strip = Array.from({ length: 21 }, (_, i) => {
     const d = addDays(today, -i)
     const l = byDate.get(d)

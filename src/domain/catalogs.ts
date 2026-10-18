@@ -127,7 +127,8 @@ export const TOMAS: TomaDef[] = [
 ]
 /** Nº de comidas y de snacks de grasa que se piden ese día, según la pauta en vigor. */
 export function mealsTargetFor(mode: 'quimio' | 'nadir', date?: string | null) {
-  return pautaNueva(date) ? { min: TOMAS.length, fatSnacks: 0 } : MEALS_TARGET[mode]
+  // 0.34.0 (Montserrate, 18/10/2026): en semana de quimio no hace las 5, hace 4 (media mañana o media tarde).
+  return pautaNueva(date) ? { min: mode === 'quimio' ? TOMAS.length - 1 : TOMAS.length, fatSnacks: 0 } : MEALS_TARGET[mode]
 }
 /** Horas máximas de ayuno nocturno (como en New Version): pasadas, el reloj se pone en rojo. */
 export const AYUNO_MAX_H = 12
@@ -141,7 +142,8 @@ export const MACRO_OPTS = {
 export const MEAL_UNITS = ['unidades', 'g', 'ml', 'cucharadas', 'raciones']
 export const FAT_EXAMPLES = 'AOVE o sésamo crudo por encima, ghee, tahine, semillas, aceite de coco, huevo, caldo de huesos, proteína de guisante'
 /** Objetivos de líquidos orientativos por modo (ml/día). Pendiente de validar con la nutricionista. */
-export const FLUID_TARGET: Record<'quimio' | 'nadir', number> = { quimio: 1500, nadir: 1200 }
+/** 0.34.0: 1.500 ml al día en las dos semanas (Montserrate, 18/10/2026). */
+export const FLUID_TARGET: Record<'quimio' | 'nadir', number> = { quimio: 1500, nadir: 1500 }
 /** Agua de mar (decisión de Montserrate, 28/09/2026): los días de perfusión (metotrexato y cisplatino + adriamicina),
  *  chupitos de 10 ml cada 2 horas hasta terminar la perfusión; el resto de días, 20 ml al día. */
 export const SEAWATER_TARGET_ML = 20

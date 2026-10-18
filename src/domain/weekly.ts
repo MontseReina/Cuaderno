@@ -10,6 +10,7 @@ import { FLUID_TARGET, PREVENTIVE, SEAWATER_TARGET_ML, STOOL_COLORS, SYMPTOMS, S
 import { protocolPoint } from './protocol'
 import { controlDelDia, nauseaMax, resumenesRecientes } from './nausea'
 import { sesionesTratamiento } from './fases'
+import { tomasMetaDelDia } from './avisos'
 
 // ---------- Reglas (decididas el 27/09/2026) ----------
 export const RANGOS = {
@@ -136,7 +137,7 @@ export function buildWeekly(ws: string, data: WeeklyData, today = todayStr()): W
   const lastCtx = days.length ? ctx(days[days.length - 1]) : null
   const weekCycles = data.cycles.filter((c) => { const d = (c.start_at ?? c.planned_date).slice(0, 10); return d >= ws && d <= all[6] })
   const farmacos = weekCycles.length ? Array.from(new Set(weekCycles.flatMap((c) => c.drugs))).join(' + ') : null
-  const reg = days.map((d) => { const med = medicationProgress(data.products, data.intakes, data.cycles, d); const c = dayCompleteness(logOf(d), d, med); return (c.done / c.total) * 100 })
+  const reg = days.map((d) => { const med = medicationProgress(data.products, data.intakes, data.cycles, d); const c = dayCompleteness(logOf(d), d, med, tomasMetaDelDia(logOf(d), data.cycles, d)); return (c.done / c.total) * 100 })
   const header = {
     protocolo: pp ? `Semana ${pp.week} de ${pp.total}${pp.plan ? ` (${pp.plan})` : ''}` : null,
     ciclo: lastCtx?.cycle ? `Ciclo ${lastCtx.cycle.number}` : null,

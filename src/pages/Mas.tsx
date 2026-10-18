@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 /** Pestaña «Más» (0.29.0): lo que se toca de vez en cuando. El registro diario está en «Hoy»
  *  y lo clínico en «Seguimiento». */
 const LINKS = [
+  { to: '/avisos', ico: '🔔', label: 'Avisos al móvil', desc: 'Activar los avisos en este móvil y mandar uno de prueba' },
   { to: '/emocional', ico: '💛', label: 'Emocional y familiar', desc: 'El niño (semanal) y el cuidador' },
   { to: '/biblioteca', ico: '📚', label: 'Biblioteca y evidencia', desc: 'Documentación del Drive' },
   { to: '/datos', ico: '💾', label: 'Datos y copias', desc: 'Exportar copia completa, importar y fusionar, informe para IA, CSV, PIN' },

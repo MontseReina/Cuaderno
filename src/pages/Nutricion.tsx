@@ -113,9 +113,9 @@ export default function Nutricion() {
       <div className={'card nutri-resumen ' + day.level}>
         <div className="row between">
           <strong><span className={'dot ' + day.level} />{day.level === 'verde' ? 'Objetivos del día cumplidos' : day.level === 'amarillo' ? 'Casi' : 'Lejos de la pauta'}</strong>
-          <span><strong>{hechas}</strong> de {TOMAS.length} tomas</span>
+          <span><strong>{hechas}</strong> de {day.target} tomas</span>
         </div>
-        <div className="barra"><i className={day.level} style={{ width: Math.round((hechas / TOMAS.length) * 100) + '%' }} /></div>
+        <div className="barra"><i className={day.level} style={{ width: Math.min(100, Math.round((hechas / day.target) * 100)) + '%' }} /></div>
         {day.reasons.length > 0 && <div className="small muted">{day.reasons.join(' · ')}</div>}
         <div className="small nutri-kcal">
           {kc.porToma.length

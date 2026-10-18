@@ -30,7 +30,7 @@ export default defineConfig({
         VitePWA({
           registerType: 'autoUpdate',
           injectRegister: false, // el registro lo hace src/main.tsx (con recarga automática al actualizar)
-          includeAssets: ['icon.svg'],
+          includeAssets: ['icon.svg', 'icon-192.png', 'push-sw.js'],
           manifest: {
             name: 'Huma - Onco Diario',
             short_name: 'Huma',
@@ -45,6 +45,8 @@ export default defineConfig({
             ],
           },
           workbox: {
+            // 0.34.0: avisos al móvil (recibir el aviso y abrir la app al tocarlo).
+            importScripts: ['push-sw.js'],
             globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
             maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
             navigateFallback: base + 'index.html',

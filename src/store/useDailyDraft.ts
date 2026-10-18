@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { currentPatientId, save, useRows } from './index'
+import { currentPatientId, isDemo, save, useRows } from './index'
+import { diaCerrado, MSG_DIA_CERRADO } from '../domain/cierre'
 import type { DailyLog } from './types'
 import { useToast } from '../components/ui'
 
@@ -78,18 +79,21 @@ export function useDailyDraft(date: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft])
 
+  const cerrado = diaCerrado(date) && !isDemo
   const set = useCallback(<K extends keyof DailyLog>(k: K, v: DailyLog[K]) => {
+    if (cerrado) { toast(MSG_DIA_CERRADO); return }
     dirty.current = true
     ver.current++
     touched.current.add(k as string)
     setDraft((d) => ({ ...d, [k]: v }))
-  }, [])
+  }, [cerrado])
   const setExtra = useCallback((patch: Partial<Extra>) => {
+    if (cerrado) { toast(MSG_DIA_CERRADO); return }
     dirty.current = true
     ver.current++
     for (const k of Object.keys(patch)) touchedExtra.current.add(k)
     setDraft((d) => ({ ...d, extra: { ...(d.extra ?? {}), ...patch } }))
-  }, [])
+  }, [cerrado])
 
-  return { draft, set, setExtra, logs, toastNode: node }
+  return { draft, set, setExtra, logs, toastNode: node, cerrado }
 }

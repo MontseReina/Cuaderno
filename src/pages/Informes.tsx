@@ -6,6 +6,7 @@ import { buildWeekly, dayLabel, type Bloque, type Light, type WeeklyData } from 
 import { initials } from '../domain/exporter'
 import { RegistroCard } from '../components/RegistroCard'
 import { CuadroMandos } from '../components/CuadroMandos'
+import { AvisosImprimir, RitmoResumen } from '../components/RitmoDelDia'
 import { SuenoSemana } from '../components/SuenoSemana'
 import { Section } from '../components/ui'
 import { resumenesRecientes } from '../domain/nausea'
@@ -15,6 +16,7 @@ import { resumenesRecientes } from '../domain/nausea'
 export default function Informes() {
   const { kind } = useParams()
   if (kind === 'semanal') return <Semanal />
+  if (kind === 'avisos') return <AvisosImprimir />
   return <Portada />
 }
 
@@ -40,6 +42,9 @@ function Portada() {
       </div>
       <Section title="Cuadro de mandos de la semana" open>
         <CuadroMandos lunes={lunes} logs={logs} cycles={cycles} />
+      </Section>
+      <Section title="Ritmo del día y desviaciones" open>
+        <RitmoResumen />
       </Section>
       <Section title="Náuseas y pauta antiemética" open>
         <p className="muted small">Por cada quimio: días con control completo (sin vómitos, sin arcadas, sin rescate y náusea de 2 o menos) en la fase aguda (perfusión y primeras 24 h) y en la retardada (días 2 a 5 tras terminar). Si la retardada no se controla, es el dato para comentar con oncología.</p>

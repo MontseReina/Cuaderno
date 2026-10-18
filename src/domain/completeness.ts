@@ -1,5 +1,6 @@
 import type { DailyLog } from '../store/types'
 import type { MedProgress } from './medication'
+import { tomada } from './kcal'
 
 export type CheckGroup = 'Signos y síntomas' | 'Medicación' | 'Nutrición' | 'Hidratación' | 'Ejercicio' | 'Biohacking'
 
@@ -37,7 +38,7 @@ export interface Completeness {
 /** ¿Está el registro del día completo? Diario + comidas y líquidos + actividad del día.
  *  Protocolo: menos de la mitad → rojo · de la mitad en adelante → naranja · todo → verde. */
 /** Los síntomas no son un punto obligatorio: si no se marca nada, es que no hay síntomas. */
-export function dayCompleteness(log: DailyLog | undefined, date: string, med?: MedProgress): Completeness {
+export function dayCompleteness(log: DailyLog | undefined, date: string, med?: MedProgress, tomasMeta = 3): Completeness {
   const diario = `/diario/${date}`
   const has = (v: unknown) => v !== undefined && v !== null && v !== ''
   const items: CheckItem[] = [
@@ -56,7 +57,8 @@ export function dayCompleteness(log: DailyLog | undefined, date: string, med?: M
       to: '/medicacion',
       group: 'Medicación',
     },
-    { key: 'comidas', label: 'Comidas', done: (log?.meals?.length ?? 0) >= 3, to: `/nutricion/${date}`, group: 'Nutrición' },
+    // 0.34.0: tantas tomas hechas como pide el día (4 en semana de quimio, 5 en el resto), igual que los avisos.
+    { key: 'comidas', label: 'Comidas', done: (log?.meals ?? []).filter((m) => tomada(m)).length >= tomasMeta, to: `/nutricion/${date}`, group: 'Nutrición' },
     {
       key: 'liquidos',
       label: 'Líquidos',

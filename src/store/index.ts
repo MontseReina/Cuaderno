@@ -3,6 +3,7 @@ import { LocalBackend } from './local'
 import { SupabaseBackend } from './supabase'
 import { nowIso, uid, type Backend, type Row } from './store'
 import type { BaseRow, TableName } from './types'
+import { diaCerrado, MSG_DIA_CERRADO, TABLAS_DEL_DIA } from '../domain/cierre'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -28,6 +29,9 @@ export async function save<T extends TableName>(
   table: T,
   row: Partial<Row<T>> & { id?: string },
 ): Promise<Row<T>> {
+  // 0.34.0: los días anteriores a hoy están cerrados (se cierran a las 00:00).
+  const fecha = (row as { date?: string }).date
+  if ((TABLAS_DEL_DIA as readonly string[]).includes(table) && fecha && diaCerrado(fecha) && !isDemo) throw new Error(MSG_DIA_CERRADO)
   const now = nowIso()
   const me = backend.currentUserId()
   const existing = row.id ? backend.all(table).find((r) => r.id === row.id) : undefined

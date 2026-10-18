@@ -530,6 +530,8 @@ export interface Tables {
   challenges: Challenge
   guidelines: Guideline
   menus: MenuRow
+  push_subscriptions: PushSubscriptionRow
+  avisos: AvisoRow
 }
 /** Reto de la semana: el premio y la meta de cada semana (lunes a domingo).
  *  Los puntos no se guardan: se calculan con lo que ya está apuntado. */
@@ -575,14 +577,43 @@ export interface MenuRow extends BaseRow {
   active: boolean
 }
 
+/** 0.34.0 · Móviles con los avisos activados (uno por móvil y usuario). */
+export interface PushSubscriptionRow extends BaseRow {
+  user_id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  /** «iPhone», «Android»… para reconocerlo en la lista. */
+  device?: string | null
+  last_ok_at?: string | null
+  last_error?: string | null
+}
+/** 0.34.0 · Controles y avisos del día (los escribe el servidor; la app solo los lee en Evaluaciones).
+ *  `area` = agua · comidas · temperatura · peso · deposiciones · registro, o `envio` (el aviso mandado). */
+export interface AvisoRow extends BaseRow {
+  date: string
+  momento: string // '12' | '16' | '19' | 'final' | '21' | '2130' | 'ayuno11' | 'ayuno12' | 'prueba'
+  area: string
+  valor?: number | null
+  meta?: number | null
+  ok?: boolean | null
+  texto?: string | null
+  titulo?: string | null
+  modo?: string | null
+  lugar?: string | null
+  enviados?: number | null
+  errores?: string | null
+}
+
 export type TableName = keyof Tables
 export const TABLE_NAMES = [
   'patients', 'profiles', 'diagnoses', 'cycles', 'daily_logs', 'products', 'intakes',
   'lab_panels', 'lab_results', 'organ_tests', 'microbiome_tests', 'calendar_events',
   'todos', 'questions', 'weekly_child', 'weekly_caregiver', 'caregiver_daily',
   'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'challenges', 'guidelines', 'menus',
+  'push_subscriptions', 'avisos',
 ] as const satisfies readonly TableName[]
 
 /** Tablas nuevas que necesitan un paso en Supabase. Si aún no existen, la app sigue abriendo
  *  (se ven vacías) en vez de mostrar «No se han podido cargar los datos». */
-export const OPTIONAL_TABLES: readonly TableName[] = ['guidelines', 'menus']
+export const OPTIONAL_TABLES: readonly TableName[] = ['guidelines', 'menus', 'push_subscriptions', 'avisos']

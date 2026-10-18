@@ -804,3 +804,47 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .table.nutri-menu .hoy { background: #eef4f4; }
 .nutri-platos li.aparte { list-style: none; margin-left: -1.1rem; display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding-top: .35rem; margin-top: .35rem; border-top: 1px dashed var(--line); }
 .nutri-platos li.aparte.tachado > span { color: var(--muted); text-decoration: line-through; }
+
+/* 0.34.0 · Avisos al móvil, día cerrado y ritmo del día */
+.dia-cerrado { background: #f6f3ec; border-color: #e0d6c2; padding: .5rem .7rem; }
+.ok-txt { color: var(--green); }
+.error-txt { color: var(--red); }
+.aviso-ayuda { background: #fbeccc; border-radius: 8px; padding: .6rem .7rem; }
+.lista-simple { list-style: none; padding: 0; margin: .3rem 0; }
+.lista-simple li { padding: .3rem 0; border-bottom: 1px solid var(--line); }
+.lista-simple li:last-child { border-bottom: 0; }
+.tabla-avisos td { padding: .25rem .4rem .25rem 0; vertical-align: top; }
+.tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabla-ritmo { width: 100%; border-collapse: collapse; margin: .3rem 0 .6rem; }
+.tabla-ritmo th, .tabla-ritmo td { text-align: left; padding: .35rem .4rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tabla-ritmo thead th { font-weight: 600; color: var(--muted); white-space: nowrap; }
+.tabla-ritmo td.ambar { background: #fbeccc; }
+.tabla-ritmo td.rojo { background: #f6d7d2; }
+.ritmo-celda { white-space: nowrap; }
+.ritmo-celda.verde { background: #e3eef0; }
+.ritmo-celda.amarillo { background: #fbeccc; }
+.ritmo-celda.rojo { background: #f6d7d2; }
+.ritmo-puntos { display: inline-flex; gap: .15rem; margin-right: .35rem; }
+.rp { display: inline-block; width: 1.1rem; text-align: center; border-radius: 4px; font-weight: 700; }
+.rp.ok { color: var(--green); }
+.rp.tarde { color: var(--red); }
+.rp.nd { color: var(--muted); }
+.ritmo-fin { color: var(--muted); }
+.ctrl-linea { display: flex; flex-wrap: wrap; gap: .2rem .7rem; }
+.aviso-texto { white-space: pre-line; margin-top: .15rem; }
+.avisos-dia { padding: .6rem .7rem; }
+@media print { .avisos-informe .avisos-dia { break-inside: avoid; } }
+
+.desv-fila { padding: .45rem 0; border-bottom: 1px solid var(--line); }
+.desv-cab { display: flex; justify-content: space-between; align-items: baseline; }
+.ritmo-barra { display: flex; height: 1.35rem; border-radius: 6px; overflow: hidden; margin: .25rem 0; background: var(--line); }
+.ritmo-barra span { display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; min-width: 1.4rem; }
+.ritmo-barra .verde { background: #e3eef0; color: #24505a; }
+.ritmo-barra .amarillo { background: #fbeccc; color: #6d4a00; }
+.ritmo-barra .rojo { background: #f6d7d2; color: #8c2a20; }
+.tabla-dias { font-size: .8rem; }
+.tabla-dias th, .tabla-dias td { padding: .3rem .25rem; }
+.tabla-dias .ritmo-celda { white-space: normal; }
+.tabla-dias .ritmo-puntos { display: flex; margin: 0; }
+.tabla-dias .rp { width: .9rem; }
+.tabla-dias .ritmo-fin { display: block; font-size: .75rem; }

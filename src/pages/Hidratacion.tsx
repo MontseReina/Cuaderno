@@ -7,6 +7,7 @@ import { cycleContext } from '../domain/cycle'
 import { totalFluids, weekMode } from '../domain/nutrition'
 import { CUP_ML, FLUID_TARGET, HYDRATION_TIPS, MODE_LABELS, SEAWATER_PERFUSION, SEAWATER_TARGET_ML, URINE_COLORS } from '../domain/catalogs'
 import { faseDelDia } from '../domain/fases'
+import { batidoMl, liquidosDelDia } from '../domain/avisos'
 import { DateNav } from '../components/DateNav'
 import { Vaso } from '../components/Vaso'
 import { Field, Section, Stepper } from '../components/ui'
@@ -25,7 +26,9 @@ export default function Hidratacion() {
   const perfusion = tramo === 'perfusion' || tramo === 'perfusion48'
   const mode = weekMode(draft, ctx)
   const target = FLUID_TARGET[mode]
-  const total = totalFluids(draft)
+  // 0.34.0: el batido de media mañana y media tarde (apuntado en Nutrición) cuenta como líquido.
+  const batido = draft.fluids_total_ml != null ? 0 : batidoMl(draft)
+  const total = totalFluids(draft) == null && !batido ? null : liquidosDelDia(draft)
   const level = total == null ? 'rojo' : total >= target ? 'verde' : total >= target * 0.7 ? 'amarillo' : 'rojo'
   const byDate = new Map(logs.map((l) => [l.date, l]))
   const days = Array.from({ length: 7 }, (_, i) => addDays(date, i - 6))
@@ -61,6 +64,7 @@ export default function Hidratacion() {
         <div className="vaso-info">
           <div className="vaso-total"><strong>{total ?? 0} ml</strong> de {target} ml</div>
           <div className="muted small">{MODE_LABELS[mode]}{total != null && total < target ? ` · faltan ${target - total} ml` : total != null ? ' · objetivo cumplido' : ''}</div>
+          {batido > 0 && <div className="small">🥤 Batido: <strong>{batido} ml</strong> (se apunta en Nutrición)</div>}
           <div className="vaso-mar small">🌊 Agua de mar: {perfusion ? <><strong>{Math.round(mar / 10)} chupito{Math.round(mar / 10) === 1 ? '' : 's'}</strong> ({mar} ml) · uno de 10 ml cada 2 h hasta terminar la perfusión</> : <><strong>{mar} de {SEAWATER_TARGET_ML} ml</strong></>}</div>
           <div className="vaso-botones">
             <button type="button" className="btn sm secondary" onClick={() => sumar('agua', '½ taza de agua')}>💧 + ½ taza de agua</button>
@@ -100,7 +104,7 @@ export default function Hidratacion() {
               {days.map((d) => {
                 const l = byDate.get(d)
                 const m = weekMode(l, cycleContext(cycles, d))
-                const t = totalFluids(l)
+                const t = l ? (totalFluids(l) == null && !batidoMl(l) ? null : liquidosDelDia(l)) : null
                 const lv = t == null ? '' : t >= FLUID_TARGET[m] ? 'verde' : t >= FLUID_TARGET[m] * 0.7 ? 'amarillo' : 'rojo'
                 return (
                   <tr key={d}>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { currentPatientId, remove, save, useRows } from '../store'
+import { currentPatientId, isDemo, remove, save, useRows } from '../store'
 import type { Intake, IntakeStatus, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
 import {
   ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, INTAKE_REASONS, MOMENTS,
@@ -15,6 +15,7 @@ import { Field, Section, Segmented, TriButton, type TriState } from '../componen
 import { SEED_PRODUCTS } from '../domain/seed'
 import { confirmar } from '../components/Confirmar'
 import { diaTratamiento } from '../domain/diaTratamiento'
+import { diaCerrado } from '../domain/cierre'
 
 const BLOCKS: ProductBlock[] = ['hospital', 'sup_ciclo', 'sup_fuera']
 type Outcome = NonNullable<Product['outcome']>
@@ -67,11 +68,12 @@ export default function Medicacion() {
   // Estado de una toma: ✓ dada · ✗ no dada · NP no precisa · ○ sin marcar (un toque cambia al siguiente).
   const statusOf = (ex?: Intake): TriState => ex?.status === 'dada' || (ex?.taken && !ex?.status) ? 'si' : ex?.status === 'no_dada' ? 'no' : ex?.status === 'no_precisa' ? 'np' : null
   const setStatus = async (p: Product, m: Moment, v: TriState) => {
+    if (diaCerrado(today) && !isDemo) return // 0.34.0: día cerrado (lo explica el aviso bajo la fecha)
     const ex = intakes.find((i) => i.product_id === p.id && i.moment === m)
     const status: IntakeStatus | null = v === 'si' ? 'dada' : v === 'no' ? 'no_dada' : v === 'np' ? 'no_precisa' : null
     await save('intakes', { ...(ex ?? {}), patient_id: currentPatientId(), product_id: p.id, date: today, moment: m, taken: v === 'si', status, reason: v === 'no' ? (ex?.reason ?? null) : null } as Intake)
   }
-  const setReason = async (ex: Intake, reason: string) => save('intakes', { ...ex, reason: reason || null })
+  const setReason = async (ex: Intake, reason: string) => { if (!(diaCerrado(today) && !isDemo)) await save('intakes', { ...ex, reason: reason || null }) }
   const markAll = async (m: Moment) => {
     for (const p of products.filter((x) => x.moments.includes(m) && trafficNow(x) !== 'rojo' && !waiting(x) && !notToday(x) && !x.condition)) {
       const ex = intakes.find((i) => i.product_id === p.id && i.moment === m)

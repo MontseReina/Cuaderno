@@ -18,6 +18,7 @@ import Ejercicio from './pages/Ejercicio'
 import Microbiota from './pages/Microbiota'
 import Ajustes from './pages/Ajustes'
 import Mas from './pages/Mas'
+import Avisos from './pages/Avisos'
 import Nutricion from './pages/Nutricion'
 import Biohacking from './pages/Biohacking'
 import Hidratacion from './pages/Hidratacion'
@@ -161,6 +162,7 @@ function Shell() {
           <Route path="/microbiota" element={<Microbiota />} />
           <Route path="/ajustes" element={<Ajustes />} />
           <Route path="/mas" element={<Mas />} />
+          <Route path="/avisos" element={<Avisos />} />
           <Route path="/nutricion" element={<Nutricion />} />
           <Route path="/nutricion/:date" element={<Nutricion />} />
           <Route path="/hidratacion" element={<Hidratacion />} />
@@ -181,7 +183,7 @@ function Shell() {
 
 /** A qué pestaña pertenece cada pantalla (las seis del registro diario cuelgan de «Hoy»). */
 const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo', '/pautas']
-const MAS = ['/mas', '/emocional', '/biblioteca', '/datos', '/ajustes']
+const MAS = ['/mas', '/emocional', '/biblioteca', '/datos', '/ajustes', '/avisos']
 function zonaDe(path: string): 'hoy' | 'seguimiento' | 'mas' {
   const en = (l: string[]) => l.some((p) => path === p || path.startsWith(p + '/'))
   return en(SEGUIMIENTO) ? 'seguimiento' : en(MAS) ? 'mas' : 'hoy'
