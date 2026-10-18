@@ -3,12 +3,13 @@ import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
 import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './cycle'
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
+import { kcalDia } from './kcal'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
 import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.32.0'
+export const APP_VERSION = '0.33.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -211,11 +212,12 @@ export function buildAiReport(from: string, to: string): string {
       const partes = [sc, fz && fz.fase !== 'vispera' ? `fase ${fz.fase}` : '', nz.impide != null ? `le impide comer: ${['nada', 'algo', 'mucho'][nz.impide]}` : '', nz.anticipatoria ? 'anticipatoria' : '', nz.arcadas ? `${nz.arcadas} arcadas` : '', nz.desencadenantes?.length ? `desencadenante: ${nz.desencadenantes.join(', ').toLowerCase()}` : '', nz.rescates?.length ? `rescates: ${nz.rescates.map((r) => `${r.time} ${r.med || 'antiemético'}${r.efecto ? ` (${r.efecto === 'si' ? 'eficaz' : r.efecto === 'algo' ? 'parcial' : 'no eficaz'})` : ''}`).join('; ')}` : '', ctl ? `control ${ctl.nivel === 'verde' ? 'completo' : ctl.nivel === 'ambar' ? 'parcial' : 'insuficiente'}` : ''].filter(Boolean)
       L.push(`- Náuseas: ${partes.join(' · ')}`)
     }
-    const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros || m.note || m.amount)
+    const meals = l.meals.filter((m) => m.fraction != null || m.carb || m.macros || m.note || m.amount || m.time || m.end)
     const mode = weekMode(l, ctx)
+    const kc = kcalDia(l)
     const nut = dayNutrition(l, mode, { cisplatin: isCisplatinDay(ctx) })
     const fh = fastingHours(l, byDate.get(addDays(l.date, -1)))
-    if (meals.length) L.push(`- Comidas (${MODE_LABELS[mode].toLowerCase()}${fh != null ? `, ayuno ${fh} h` : ''}): ${meals.map((m) => { const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx) }); const mac = m.macros ? ` [verdura ${m.macros.veg ?? '—'}/2, proteína ${m.macros.prot ?? '—'}/2, almidón ${m.macros.starch ?? '—'}/3, grasa ${m.macros.fat ? 'sí' : 'no'}]` : ''; return `${m.slot}${m.time ? ` ${m.time}` : ''} ${m.fraction != null ? FRACTION_LABELS[String(m.fraction)] : ''}${mac}${t ? ` ${t.level}` : ''}${m.carb ? ` HC ${m.carb}` : ''}${m.texture ? ` ${m.texture}` : ''}${m.note ? ` (${m.note})` : ''}` }).join(' · ')} → ingesta media ${meanIntake(l.meals) != null ? Math.round(meanIntake(l.meals)! * 100) + ' %' : '—'}, perfil ${carbProfile(l.meals)}, semáforo del día ${nut.level}${nut.reasons.length ? ` (${nut.reasons.join('; ')})` : ''}`)
+    if (meals.length) L.push(`- Comidas (${MODE_LABELS[mode].toLowerCase()}${fh != null ? `, ayuno ${fh} h` : ''}): ${meals.map((m) => { const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx), date: l.date }); const mac = m.macros ? ` [verdura ${m.macros.veg ?? '—'}/2, proteína ${m.macros.prot ?? '—'}/2, almidón ${m.macros.starch ?? '—'}/3, grasa ${m.macros.fat ? 'sí' : 'no'}]` : ''; return `${m.slot}${m.time ? ` ${m.time}` : ''}${m.end ? `–${m.end}` : ''} ${m.fraction != null ? FRACTION_LABELS[String(m.fraction)] : ''}${mac}${t ? ` ${t.level}` : ''}${m.carb ? ` HC ${m.carb}` : ''}${m.texture ? ` ${m.texture}` : ''}${m.note ? ` (${m.note})` : ''}` }).join(' · ')} → ${kc.porToma.length ? `≈ ${kc.total} kcal estimadas${kc.sinDato.length ? ` (sin contar: ${kc.sinDato.join(', ').toLowerCase()})` : ''}, ` : ''}ingesta media ${meanIntake(l.meals) != null ? Math.round(meanIntake(l.meals)! * 100) + ' %' : '—'}, perfil ${carbProfile(l.meals)}, semáforo del día ${nut.level}${nut.reasons.length ? ` (${nut.reasons.join('; ')})` : ''}`)
     const fl: string[] = []
     if (l.fluids_total_ml != null) fl.push(`total ${l.fluids_total_ml} ml`)
     if (l.water_ml != null) fl.push(`agua ${l.water_ml}`)

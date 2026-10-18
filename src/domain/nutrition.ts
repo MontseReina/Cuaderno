@@ -1,6 +1,6 @@
 import type { DailyLog, Meal, MealMacros, WeekMode } from '../store/types'
 import type { CycleContext } from './cycle'
-import { CUP_ML, FLUID_TARGET, MEAL_SLOTS, MEAL_SLOTS_BY_MODE, MEALS_TARGET } from './catalogs'
+import { CUP_ML, FLUID_TARGET, MEAL_SLOTS, MEAL_SLOTS_BY_MODE, mealsTargetFor, pautaNueva, TOMAS } from './catalogs'
 
 export function eatingWindow(meals: Meal[]) {
   const times = meals.map((m) => m.time).filter((t): t is string => !!t).sort()
@@ -14,8 +14,11 @@ function hoursDiff(a: string, b: string) {
 }
 /** ¿En esta comida comió algo? Si está marcada "Nada" (o todo a cero) no cuenta
  *  para el ayuno: si no cenó, la última ingesta es la merienda o la comida. */
+/** Hora de empezar y de terminar de una toma (si solo hay una, vale para las dos). */
+export const iniDe = (m: Meal) => m.time || m.end || null
+export const finDe = (m: Meal) => m.end || m.time || null
 function comio(m: Meal) {
-  if (!m.time) return false
+  if (!iniDe(m)) return false
   if (m.fraction === 0) return false
   if (m.fraction != null && m.fraction > 0) return true
   const mc = m.macros
@@ -26,15 +29,17 @@ function comio(m: Meal) {
 }
 /** Comidas que cuentan para el ayuno, ordenadas por hora. */
 function ingestas(log: DailyLog | undefined) {
-  return (log?.meals ?? []).filter(comio).sort((x, y) => (x.time ?? '').localeCompare(y.time ?? ''))
+  return (log?.meals ?? []).filter(comio).sort((x, y) => (iniDe(x) ?? '').localeCompare(iniDe(y) ?? ''))
 }
 /** Ayuno nocturno con el detalle de qué comidas se han usado. */
 export function overnightFastDetail(today: DailyLog | undefined, yesterday: DailyLog | undefined) {
-  const last = ingestas(yesterday).pop()
+  // Desde la que termina más tarde ayer (con la hora de fin, si la hay) hasta la primera de hoy.
+  const last = ingestas(yesterday).sort((x, y) => (finDe(x) ?? '').localeCompare(finDe(y) ?? '')).pop()
   const first = ingestas(today)[0]
-  if (!last?.time || !first?.time) return null
-  const hours = Math.round((24 - hoursDiff('00:00', last.time) + hoursDiff('00:00', first.time)) * 10) / 10
-  return { hours, last, first }
+  const lt = last && finDe(last), ft = first && iniDe(first)
+  if (!lt || !ft) return null
+  const hours = Math.round((24 - hoursDiff('00:00', lt) + hoursDiff('00:00', ft)) * 10) / 10
+  return { hours, last: { ...last!, time: lt }, first: { ...first!, time: ft } }
 }
 /** Ayuno nocturno: desde la última ingesta real de ayer hasta la primera de hoy. */
 export function overnightFast(today: DailyLog | undefined, yesterday: DailyLog | undefined) {
@@ -45,6 +50,37 @@ export function fastingHours(today: DailyLog | undefined, yesterday: DailyLog | 
   if (today?.extra?.fasting_h != null) return today.extra.fasting_h
   return overnightFast(today, yesterday)
 }
+const aMin = (h?: string | null) => { const m = /^(\d{1,2}):(\d{2})$/.exec(h ?? ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
+const aHora = (min: number) => { const x = ((Math.round(min) % 1440) + 1440) % 1440; return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0') }
+export { aMin, aHora }
+const nombreToma = (slot: string) => TOMAS.find((t) => t.key === slot)?.label ?? MEAL_SLOTS.find((s) => s.key === slot)?.label ?? slot
+
+export interface Nocturno { desdeNombre: string; desdeHora: string; finNombre: string | null; finHora: string | null; minutos: number; enMarcha: boolean }
+/** Reloj del ayuno de la noche (como New Version): desde la última comida con hora de ayer hasta la primera toma
+ *  de hoy con hora escrita. Mientras hoy no se escriba ninguna hora, sigue en marcha hasta `ahoraMin`. */
+export function ayunoNocturno(yesterday: DailyLog | undefined, today: DailyLog | undefined, ahoraMin: number): Nocturno | null {
+  const last = ingestas(yesterday).sort((x, y) => (finDe(x) ?? '').localeCompare(finDe(y) ?? '')).pop()
+  const desde = last ? aMin(finDe(last)) : null
+  if (!last || desde == null) return null
+  const first = ingestas(today)[0]
+  const ini = first ? aMin(iniDe(first)) : null
+  const hasta = ini ?? ahoraMin
+  return { desdeNombre: nombreToma(last.slot), desdeHora: aHora(desde), finNombre: first && ini != null ? nombreToma(first.slot) : null, finHora: ini != null ? aHora(ini) : null, minutos: hasta + 1440 - desde, enMarcha: ini == null }
+}
+export interface Ultima { nombre: string; hora: string; ayer: boolean; minutos: number }
+/** La última comida con hora: la que termina más tarde hoy sin pasar de ahora; si hoy no hay ninguna, la de ayer. */
+export function ultimaComida(yesterday: DailyLog | undefined, today: DailyLog | undefined, ahoraMin: number): Ultima | null {
+  const mejor = (log: DailyLog | undefined, tope: number) => {
+    let r: { nombre: string; fin: number } | null = null
+    for (const m of ingestas(log)) { const f = aMin(finDe(m)); if (f != null && f <= tope && (!r || f >= r.fin)) r = { nombre: nombreToma(m.slot), fin: f } }
+    return r
+  }
+  const h = mejor(today, ahoraMin)
+  if (h) return { nombre: h.nombre, hora: aHora(h.fin), ayer: false, minutos: ahoraMin - h.fin }
+  const a = mejor(yesterday, 1440)
+  return a ? { nombre: a.nombre, hora: aHora(a.fin), ayer: true, minutos: ahoraMin + 1440 - a.fin } : null
+}
+
 export function breakfastTime(log: DailyLog | undefined) {
   return log?.meals.find((m) => m.slot === 'desayuno')?.time ?? null
 }
@@ -97,13 +133,23 @@ export interface MealCheck { level: Light; missing: string[] }
 /** Semáforo de una comida frente al plato de la nutricionista:
  *  ½ verdura cocida · ⅓ proteína · ¼ almidón resistente · grasa "invisible" añadida.
  *  En días de cisplatino se reduce hidrato y grasa. Snacks de grasa: solo se pide grasa. */
-export function mealTraffic(meal: Meal, opts: { cisplatin?: boolean } = {}): MealCheck | null {
+export function mealTraffic(meal: Meal, opts: { cisplatin?: boolean; date?: string | null } = {}): MealCheck | null {
   const m = meal.macros
   const eaten = meal.fraction
   if (!m && eaten == null) return null
   if (!m) return eaten != null && eaten < 0.5 ? { level: 'rojo', missing: ['comió menos de la mitad', 'plato sin valorar'] } : null
   const missing: string[] = []
-  if (isFatSlot(meal.slot)) {
+  if (pautaNueva(opts.date)) {
+    // Pauta del 18/10/2026: ½ hidratos · ⅓ verdura · el resto proteína. Comer más hidrato no lleva aviso.
+    // Las grasas añadidas solo cuentan si se han marcado (van en «Más detalles»).
+    if (isFatSlot(meal.slot)) { if (m.fat === false) missing.push('grasa') }
+    else {
+      if ((m.starch ?? 0) < 2) missing.push(m.starch ? 'más hidratos' : 'hidratos')
+      if ((m.veg ?? 0) < 2) missing.push(m.veg ? 'más verdura' : 'verdura')
+      if ((m.prot ?? 0) < 2) missing.push(m.prot ? 'más proteína' : 'proteína')
+      if (fatCount(m) === 0) missing.push('grasa añadida')
+    }
+  } else if (isFatSlot(meal.slot)) {
     if (!m?.fat) missing.push('grasa')
   } else {
     if ((m.veg ?? 0) < 2) missing.push(m.veg ? 'más verdura cocida' : 'verdura cocida')
@@ -136,12 +182,12 @@ export interface DayNutrition {
 }
 /** Semáforo del día completo: nº de comidas, snacks de grasa, calidad de los platos y líquidos. */
 export function dayNutrition(log: DailyLog | undefined, mode: WeekMode, opts: { cisplatin?: boolean } = {}): DayNutrition {
-  const t = MEALS_TARGET[mode]
+  const t = mealsTargetFor(mode, log?.date)
   const fluidTarget = FLUID_TARGET[mode]
-  const meals = (log?.meals ?? []).filter((m) => m.fraction != null || m.macros || m.time || m.note || m.amount)
+  const meals = (log?.meals ?? []).filter((m) => m.fraction != null || m.macros || m.time || m.end || m.note || m.amount)
   const eatenMeals = meals.filter((m) => (m.fraction ?? 1) > 0)
   const fatSnacks = eatenMeals.filter((m) => isFatSlot(m.slot) && (m.macros?.fat ?? true)).length
-  const checks = meals.map((m) => mealTraffic(m, opts)).filter((c): c is MealCheck => !!c)
+  const checks = meals.map((m) => mealTraffic(m, { ...opts, date: log?.date })).filter((c): c is MealCheck => !!c)
   const greens = checks.filter((c) => c.level === 'verde').length
   const reds = checks.filter((c) => c.level === 'rojo').length
   const fluids = totalFluids(log)

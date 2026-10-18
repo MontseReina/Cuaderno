@@ -647,7 +647,7 @@ function nutricion(days: string[], logOf: (d: string) => DailyLog | undefined, c
   // Plato (comida y cena)
   const plates: { d: string; m: Meal; missing: string[] }[] = []
   for (const d of logged) for (const m of logOf(d)!.meals.filter((x) => (x.slot === 'comida' || x.slot === 'cena') && x.macros && (x.fraction ?? 1) > 0)) {
-    const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx(d)) })
+    const t = mealTraffic(m, { cisplatin: isCisplatinDay(ctx(d)), date: d })
     plates.push({ d, m, missing: (t?.missing ?? []).filter((x) => !x.includes('mitad')) })
   }
   const okPlates = plates.filter((p) => !p.missing.length).length
@@ -690,7 +690,7 @@ function nutricion(days: string[], logOf: (d: string) => DailyLog | undefined, c
   const fatOk = cc.filter((m) => fatN(m) >= 2).length
   const fatMedia = nPl ? Math.round((cc.reduce((a, m) => a + fatN(m), 0) / nPl) * 10) / 10 : null
   if (nPl) {
-    valoracion.push(`En comida y cena (${nPl} platos apuntados): verdura cocida ≈ ½ plato en ${vegOk}, proteína ≈ ⅓ en ${protOkP}, 2 grasas añadidas en ${fatOk} (media ${fatMedia} por plato)${starchDays.length ? `, almidón resistente ${resDays.length} de ${starchDays.length} días con almidón` : ', sin almidón apuntado'}.`)
+    valoracion.push(`En comida y cena (${nPl} platos apuntados): verdura en su parte del plato en ${vegOk}, proteína en su parte en ${protOkP}, 2 grasas añadidas en ${fatOk} (media ${fatMedia} por plato)${starchDays.length ? `, almidón resistente ${resDays.length} de ${starchDays.length} días con almidón` : ', sin almidón apuntado'}.`)
     const faltan: string[] = []
     if (vegOk / nPl < 0.6) faltan.push('verdura (el aporte es insuficiente)')
     if (fatOk / nPl < 0.6) faltan.push('grasas añadidas')

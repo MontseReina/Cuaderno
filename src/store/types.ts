@@ -124,9 +124,11 @@ export type Texture = 'normal' | 'blando' | 'triturado' | 'liquido'
 export type MealSlot = 'desayuno' | 'media_manana' | 'comida' | 'merienda' | 'cena' | 'otra' | 'snack_grasa_1' | 'snack_grasa_2'
 /** Estimación del plato según la pauta de la nutricionista (½ verdura · ⅓ proteína · ¼ almidón · grasas añadidas). */
 export interface MealMacros {
-  veg?: 0 | 1 | 2 // nada · poca · ≈ medio plato
-  prot?: 0 | 1 | 2 // nada · poca · ≈ un tercio
-  starch?: 0 | 1 | 2 | 3 // nada · poca · ≈ un cuarto · más
+  // Nivel de cada parte: 0 nada · 1 poca · 2 la parte que toca según la pauta del día · 3 (hidratos) más.
+  // Pauta hasta el 17/10: verdura ½ · proteína ⅓ · hidratos ¼. Desde el 18/10: hidratos ½ · verdura ⅓ · proteína ⅙.
+  veg?: 0 | 1 | 2
+  prot?: 0 | 1 | 2
+  starch?: 0 | 1 | 2 | 3
   fat?: boolean // grasa "invisible" añadida (AOVE, ghee, tahine, coco…). Se mantiene: = fat_n > 0
   /** Nº de grasas añadidas: 0 · 1 · 2 (= 2 o más). El plato cumple con 2 (decisión 27/09). */
   fat_n?: 0 | 1 | 2
@@ -135,7 +137,9 @@ export interface MealMacros {
 }
 export interface Meal {
   slot: MealSlot
-  time?: string // HH:MM
+  time?: string // HH:MM · hora de empezar
+  /** Hora de terminar (comidas principales, 0.33.0). */
+  end?: string
   fraction?: Fraction
   carb?: Carb
   texture?: Texture

@@ -1,6 +1,7 @@
-/** Plato dibujado para valorar una comida (decisión del 28/09/2026, documento «New mock up v2»):
- *  como el plato de Harvard pero para un niño: ½ verdura cocida, ⅓ proteína y el resto hidratos.
- *  Cada parte se toca para ir llenándola: vacía → poca → objetivo (hidratos: nada → poco → ≈ ¼ → más de ¼). */
+/** Plato dibujado para valorar una comida (decisión del 28/09/2026, documento «New mock up v2»).
+ *  Pauta nueva (18/10/2026): ½ hidratos, ⅓ verdura y el resto (⅙) proteína. Los días anteriores se enseñan
+ *  con la pauta de entonces (½ verdura, ⅓ proteína, el resto hidratos), porque el nivel guardado se refiere a ella.
+ *  Cada parte se toca para ir llenándola: vacía → poca → la parte que toca (hidratos: → más de la que toca). */
 type Level = number | undefined
 
 const CX = 100
@@ -33,19 +34,30 @@ interface Part {
   levels: string[]
 }
 
-const PARTS: Part[] = [
+const PARTS_ANTES: Part[] = [
   { key: 'veg', label: 'Verdura', emoji: '🥦', target: '½', color: '#6f8f3a', a0: 0, a1: 180, levels: ['nada', 'poca', '≈ ½ plato'] },
   { key: 'prot', label: 'Proteína', emoji: '🐟', target: '⅓', color: '#b8683f', a0: 180, a1: 300, levels: ['nada', 'poca', '≈ ⅓ plato'] },
   { key: 'starch', label: 'Hidratos', emoji: '🍠', target: 'resto', color: '#c99a2e', a0: 300, a1: 360, levels: ['nada', 'poco', '≈ ¼ plato', 'más de ¼'] },
 ]
+/** Pauta del 18/10/2026. En la leyenda, primero lo que más ocupa. */
+const PARTS_OCT: Part[] = [
+  { key: 'starch', label: 'Hidratos', emoji: '🍠', target: '½', color: '#c99a2e', a0: 0, a1: 180, levels: ['nada', 'poco', '≈ ½ plato', 'más de ½'] },
+  { key: 'veg', label: 'Verdura', emoji: '🥦', target: '⅓', color: '#6f8f3a', a0: 180, a1: 300, levels: ['nada', 'poca', '≈ ⅓ plato'] },
+  { key: 'prot', label: 'Proteína', emoji: '🐟', target: '⅙', color: '#b8683f', a0: 300, a1: 360, levels: ['nada', 'poca', '≈ ⅙ plato'] },
+]
 
-export function Plato({ veg, prot, starch, onChange }: {
+export function Plato({ veg, prot, starch, onChange, nueva = true }: {
+  /** Pauta del 18/10/2026 (por defecto) o la de antes. */
+  nueva?: boolean
   veg: Level
   prot: Level
   starch: Level
   onChange: (patch: { veg?: 0 | 1 | 2; prot?: 0 | 1 | 2; starch?: 0 | 1 | 2 | 3 }) => void
 }) {
   const values: Record<Part['key'], Level> = { veg, prot, starch }
+  const PARTS = nueva ? PARTS_OCT : PARTS_ANTES
+  // La parte pequeña del plato (60°) lleva el emoji más pequeño y sin cifra.
+  const chica = (p: Part) => p.a1 - p.a0 <= 60
   const next = (p: Part) => {
     const v = values[p.key]
     const n = v == null ? 1 : (v + 1) % p.levels.length
@@ -60,9 +72,9 @@ export function Plato({ veg, prot, starch, onChange }: {
           const max = p.levels.length - 1
           // Relleno: poca = hasta la mitad del radio; objetivo = entero; «más de ¼» = entero con borde de aviso.
           const fillR = v == null || v === 0 ? 0 : v === 1 ? R * 0.55 : R
-          const over = p.key === 'starch' && v === max
+          const over = !nueva && p.key === 'starch' && v === max
           const mid = (p.a0 + p.a1) / 2
-          const [lx, ly] = pt(p.key === 'starch' ? R * 0.66 : R * 0.55, mid)
+          const [lx, ly] = pt(chica(p) ? R * 0.66 : R * 0.55, mid)
           return (
             <g key={p.key} className="plato-part" role="button" tabIndex={0}
               aria-label={`${p.label}: ${v == null ? 'sin marcar' : p.levels[v]}. Tocar para cambiar`}
@@ -70,8 +82,8 @@ export function Plato({ veg, prot, starch, onChange }: {
               <path d={sector(0, R, p.a0, p.a1)} fill={p.color} fillOpacity={0.07} stroke="#d9d2c4" strokeWidth="1.5" strokeDasharray={v == null ? '4 3' : undefined} />
               {fillR > 0 && <path d={sector(0, fillR, p.a0, p.a1)} fill={p.color} fillOpacity={v === 1 ? 0.55 : 0.85} />}
               {over && <path d={sector(0, R, p.a0, p.a1)} fill="none" stroke="#b23a2f" strokeWidth="3" />}
-              <text x={lx} y={ly - (p.key === 'starch' ? 0 : 6)} textAnchor="middle" fontSize={p.key === 'starch' ? 18 : 22}>{p.emoji}</text>
-              {p.key !== 'starch' && <text x={lx} y={ly + 16} textAnchor="middle" fontSize="11" fontWeight="700" fill="#181818">{p.target}</text>}
+              <text x={lx} y={ly - (chica(p) ? 0 : 6)} textAnchor="middle" fontSize={chica(p) ? 18 : 22}>{p.emoji}</text>
+              {!chica(p) && <text x={lx} y={ly + 16} textAnchor="middle" fontSize="11" fontWeight="700" fill="#181818">{p.target}</text>}
             </g>
           )
         })}

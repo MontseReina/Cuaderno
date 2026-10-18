@@ -1,3 +1,4 @@
+import type { MealSlot } from '../store/types'
 // Catálogos de la app (v4). Todos los textos en lenguaje llano para cuidadores.
 
 /** when: 'siempre' = en las dos listas · 'ciclo' = semana de quimio · 'fuera' = semana nadir / entre ciclos */
@@ -102,6 +103,34 @@ export const MEALS_TARGET: Record<'quimio' | 'nadir', { min: number; fatSnacks: 
   quimio: { min: 4, fatSnacks: 0 }, // 4 comidas en semana de quimio (Montserrate, 28/09/2026)
   nadir: { min: 6, fatSnacks: 2 },
 }
+/** Pauta nueva de nutrición (18/10/2026): cinco tomas al día, iguales en quimio y en nadir, y plato con
+ *  ½ hidratos · ⅓ verdura · el resto (⅙) proteína. Los días anteriores se valoran con la pauta de antes. */
+export const PAUTA_OCT_DESDE = '2026-10-18'
+export const pautaNueva = (date?: string | null) => !!date && date >= PAUTA_OCT_DESDE
+export interface TomaDef {
+  key: MealSlot
+  label: string
+  /** Comida principal: guarda hora de empezar y de terminar. */
+  principal?: boolean
+  /** Lleva el plato dibujado (verdura, proteína, hidratos) y se marca Hecha / No. */
+  plato?: boolean
+  /** Lo previsto es el batido, pero se puede escribir otro snack. */
+  batido?: boolean
+}
+/** Las tomas del día, como en New Version: desayuno, media mañana (batido), comida, media tarde (batido) y cena. */
+export const TOMAS: TomaDef[] = [
+  { key: 'desayuno', label: 'Desayuno', principal: true },
+  { key: 'media_manana', label: 'Media mañana', batido: true },
+  { key: 'comida', label: 'Comida', principal: true, plato: true },
+  { key: 'merienda', label: 'Media tarde', batido: true },
+  { key: 'cena', label: 'Cena', principal: true, plato: true },
+]
+/** Nº de comidas y de snacks de grasa que se piden ese día, según la pauta en vigor. */
+export function mealsTargetFor(mode: 'quimio' | 'nadir', date?: string | null) {
+  return pautaNueva(date) ? { min: TOMAS.length, fatSnacks: 0 } : MEALS_TARGET[mode]
+}
+/** Horas máximas de ayuno nocturno (como en New Version): pasadas, el reloj se pone en rojo. */
+export const AYUNO_MAX_H = 12
 export const MODE_LABELS: Record<'quimio' | 'nadir', string> = { quimio: 'Semana de quimio', nadir: 'Semana nadir' }
 export const MACRO_OPTS = {
   veg: [{ value: 0, label: 'Nada' }, { value: 1, label: 'Poca' }, { value: 2, label: '≈ ½ plato' }],
