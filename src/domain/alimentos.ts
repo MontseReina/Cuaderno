@@ -247,7 +247,7 @@ const RE_CANT = new RegExp(`(?:^|\\s)${NUM}\\s+(?:(?:${UNIDADES})\\s+)?(?:de\\s+
 const RE_UNIDAD = new RegExp(`^(?:${UNIDADES})$`)
 /** Palabras que no son alimentos y no hace falta reconocer. */
 const RELLENO = new Set(('un una uno unos unas dos tres cuatro cinco seis medio media poco mucho algo par de del con sin y e o al a la el los las lo en '
-  + 'para por mas menos tambien solo sola plancha horno vapor asado asada asados asadas cocido cocida cocidos cocidas hervido hervida frito frita fritos fritas '
+  + 'para por mas menos tambien solo sola siempre habitual plancha horno vapor asado asada asados asadas cocido cocida cocidos cocidas hervido hervida frito frita fritos fritas '
   + 'salteado salteada guisado guisada estofado estofada casero casera natural integral grande pequeño pequeña mediano mediana buen buena trocitos troceado '
   + 'microondas papillote rebozado rebozada gratinado gratinada crudo cruda tibio tibia caliente frio fria resto mitad entero entera mio mia '
   + 'albahaca perejil oregano tomillo romero cilantro eneldo especias especia sal pimienta pimenton curcuma comino canela jengibre vinagre suravitasan').split(' '))
@@ -316,6 +316,8 @@ export function leerAlimentos(texto: string): { leidos: Leido[]; sinReconocer: s
       a.kcal = Math.round(a.alimento.k * a.unidades)
       leidos.splice(i, 1)
     } else if (a.alimento.id === 'fruta' && b.alimento.grupo === 'fruta' && entre === '') leidos.splice(i - 1, 1)
+    // «Tortitas de harina de castaña», «crepes de harina de avena»: la harina es el ingrediente, no se suma aparte.
+    else if (b.alimento.id === 'harina' && !b.conNumero && (a.alimento.id === 'tortitas' || a.alimento.id === 'pan' || a.alimento.id === 'bizcocho') && (entre === '' || entre === 'de')) leidos.splice(i, 1)
   }
   // Lo que no se ha reconocido: trozos separados por comas, «y», «con» o «+» que no son solo palabras de relleno.
   const sinReconocer = resto.split(/[,;+.\n\-\/]|\s(?:y|con|e)\s/).map((x) => x.trim().replace(/\s+/g, ' '))
