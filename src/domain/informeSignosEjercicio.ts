@@ -146,7 +146,8 @@ export interface FilaEjercicio {
   ayuda: string | null
   paseos: (boolean | null)[] // desayuno, comida, cena; null = no cuenta (fiebre u hospital)
   pasos: number | null
-  sesiones: string[]
+  fuerza: string[]
+  aerobico: string[]
   esfuerzo: number | null
   caida: boolean
 }
@@ -175,6 +176,7 @@ export interface InformeEjercicio {
 const media = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null)
 const moda = (xs: string[]) => { const m = new Map<string, number>(); for (const x of xs) m.set(x, (m.get(x) ?? 0) + 1); return [...m].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null }
 const HOSPITAL = new Set(['ingreso', 'hospital_dia', 'urgencias'])
+const INT: Record<string, string> = { ligera: 'ligera', moderada: 'moderada', costo: 'le costó', facil: 'fácil', bien: 'bien' }
 const caida = (l?: DailyLog) => { const f = l?.extra?.functional?.falls; return !!f && !/^(no|ninguna?|nada|-+|0|sin caídas?|no hay)\.?$/i.test(f.trim()) }
 
 export function buildEjercicio(ws: string, days: string[], logs: DailyLog[], sessions: ExerciseSession[], today = todayStr()): InformeEjercicio {
@@ -195,7 +197,9 @@ export function buildEjercicio(ws: string, days: string[], logs: DailyLog[], ses
       ayuda: f.walk_aid ? WALK_AID.find((x) => x.value === f.walk_aid)?.label ?? null : null,
       paseos: COM.map((c) => (fuera ? null : !!l?.extra?.move_after?.[c])),
       pasos: l?.steps ?? null,
-      sesiones: ses.map((s) => `${s.kind === 'fuerza' ? 'fuerza' : s.exercises.map((e) => e.name).join(', ').toLowerCase() || 'aeróbico'}${s.minutes ? ` ${s.minutes} min` : ''}`),
+      // Fuerza: nº de ejercicios, minutos y cómo le fue. Aeróbico: actividad, minutos e intensidad.
+      fuerza: ses.filter((s) => s.kind === 'fuerza').map((s) => [s.exercises.length ? `${s.exercises.length} ej.` : '', s.minutes ? `${s.minutes} min` : '', INT[s.intensity ?? ''] ?? ''].filter(Boolean).join(' · ') || 'hecha'),
+      aerobico: ses.filter((s) => s.kind === 'aerobico').map((s) => [s.exercises.map((e) => e.name).join(', ').toLowerCase(), s.minutes ? `${s.minutes} min` : '', INT[s.intensity ?? ''] ?? ''].filter(Boolean).join(' · ') || 'hecho'),
       esfuerzo: l?.extra?.effort ?? null,
       caida: caida(l),
     }
