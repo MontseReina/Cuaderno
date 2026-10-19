@@ -919,3 +919,14 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .ii-svg text.ii-metat { fill: var(--green); font-weight: 700; }
 .ii-svg .ii-lim2 { stroke: #7a2018; stroke-width: 1.5; stroke-dasharray: 8 3 2 3; }
 .ii-svg text.ii-lim2t { fill: #7a2018; font-weight: 700; }
+/* 0.37.0 · Esfuerzo percibido con caras */
+.ej-caras { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .3rem; margin-top: .4rem; }
+.ej-cara { display: flex; flex-direction: column; align-items: center; gap: .05rem; padding: .35rem .1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--card); cursor: pointer; }
+.ej-cara .f { font-size: 1.5rem; line-height: 1.1; }
+.ej-cara .n { font-weight: 800; font-size: .85rem; }
+.ej-cara .l { font-size: .62rem; color: var(--muted); text-align: center; line-height: 1.1; }
+.ej-cara.on { border-color: var(--primary); background: var(--primary-soft); }
+.ii-redflag { background: #f6d7d2; color: #8c2a20; border-radius: 10px; padding: .5rem .8rem; margin-bottom: .7rem; font-size: .9rem; }
+.ii-ok { background: #e3eef0; color: #24505a; border-radius: 8px; padding: .5rem .7rem; }
+.ii-sec { margin-top: 1rem; }
+.ii-sec h3 { margin: .7rem 0 .35rem; color: var(--text); }

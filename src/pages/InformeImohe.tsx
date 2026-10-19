@@ -5,6 +5,7 @@ import { addDays, todayStr, weekStart } from '../domain/dates'
 import { menuActivo } from '../domain/menu'
 import { initials } from '../domain/exporter'
 import { TOMAS } from '../domain/catalogs'
+import { buildEjercicio, buildSignos, type InformeEjercicio, type InformeSignos } from '../domain/informeSignosEjercicio'
 import { buildInformeImohe, diaCorto, diaLargo, METAS, type Celda, type DatosInforme, type FilaDia, type GrupoHueco, type Sem, type Tarjeta } from '../domain/informeImohe'
 
 /** Informe semanal de cuidados para Imohe (0.36.0). Diseño aprobado por Montserrate el 19/10/2026. */
@@ -29,8 +30,11 @@ export default function InformeImohe() {
     menu: menuActivo(menus)?.data ?? null,
     patient: useRows('patients')[0],
   }
+  const sessions = useRows('exercise_sessions')
   const deps = [ws, today, data.logs, data.cycles, data.products, data.intakes, data.weights, data.menu, data.patient]
   const r = useMemo(() => buildInformeImohe(ws, data, today), deps) // eslint-disable-line react-hooks/exhaustive-deps
+  const sig = useMemo(() => buildSignos(r.days, data.logs, data.patient), [r.days, data.logs, data.patient]) // eslint-disable-line react-hooks/exhaustive-deps
+  const ej = useMemo(() => buildEjercicio(ws, r.days, data.logs, sessions, today), [ws, r.days, data.logs, sessions, today]) // eslint-disable-line react-hooks/exhaustive-deps
   const prev = useMemo(() => buildInformeImohe(addDays(ws, -7), data, today), deps) // eslint-disable-line react-hooks/exhaustive-deps
   const [enviadas, setEnviadas] = useState<Record<number, boolean>>({})
   const aPreguntas = async (i: number, texto: string) => {
@@ -42,7 +46,12 @@ export default function InformeImohe() {
     if (t.pct == null || p?.pct == null) return null
     return t.pct > p.pct ? '↑' : t.pct < p.pct ? '↓' : '='
   }
-  const huecos = (tipo: GrupoHueco['tipo']) => r.huecos.filter((h) => h.tipo === tipo)
+  const extra: GrupoHueco[] = [
+    ...sig.huecos.map((h) => ({ tipo: 'sr' as const, apartado: 'Signos y síntomas', que: h.que, dias: h.dias, notas: {} })),
+    ...(ej.paseosPrevistos > ej.paseosHechos ? [{ tipo: 'no' as const, apartado: 'Ejercicio', que: `Paseos después de comer sin marcar o no hechos: ${ej.paseosPrevistos - ej.paseosHechos} de ${ej.paseosPrevistos}`, dias: ej.filas.filter((f) => f.paseos.some((p) => p === false)).map((f) => f.d), notas: {} }] : []),
+  ]
+  const huecos = (tipo: GrupoHueco['tipo']) => [...r.huecos, ...extra].filter((h) => h.tipo === tipo)
+  const rojas = sig.alertas.filter((a) => a.nivel === 'rojo').length
 
   return (
     <div className="informe ii">
@@ -71,6 +80,8 @@ export default function InformeImohe() {
           <span><b>Dónde:</b> {r.cabecera.casa} en casa{r.cabecera.hospital ? ` · ${r.cabecera.hospital} en el hospital` : ''}</span>
         </div>
       </div>
+
+      {rojas > 0 && <div className="ii-redflag">🚩 <strong>{rojas} red flag{rojas > 1 ? 's' : ''} esta semana</strong> · ver «Signos y síntomas»</div>}
 
       {/* Registro de la semana */}
       <section className="ii-reg">
@@ -184,10 +195,8 @@ export default function InformeImohe() {
       )}
       <p className="muted small">% correctas = dadas ÷ (dadas + no dadas). Las sin registrar no cuentan. En semana de quimio (y 48 h antes) solo cuentan los suplementos «en ciclo». «No precisa» no cuenta.{r.suplementos.condicionales.length ? ` Condicionales dados: ${r.suplementos.condicionales.join('; ')}.` : ''}</p>
 
-      <div className="ii-two">
-        <section className="ii-todo"><h3 style={{ marginTop: 0 }}>Signos y síntomas</h3><p className="small">Próxima parte, por construir.</p></section>
-        <section className="ii-todo"><h3 style={{ marginTop: 0 }}>Ejercicio</h3><p className="small">Próxima parte, por construir.</p></section>
-      </div>
+      <Signos s={sig} />
+      <Ejercicio e={ej} />
 
       <section className="card tight">
         <h3 style={{ marginTop: 0 }}>Lo que no come</h3>
@@ -329,5 +338,101 @@ function GraficoPeso({ serie }: { serie: { ws: string; kg: number | null }[] }) 
       {pts.map((p, i) => p && <circle key={i} cx={p[0]} cy={p[1]} r={i === 5 ? 4.5 : 3.5} className={i === 5 ? 'ii-end' : 'ii-pt'} />)}
       {serie.map((s, i) => <text key={s.ws} x={x(i)} y={H - 6} textAnchor="middle">{i === 5 ? 'esta' : `−${5 - i}`}</text>)}
     </svg>
+  )
+}
+
+const nivelCls = (n: 'rojo' | 'ambar') => (n === 'rojo' ? 's-rojo' : 's-ambar')
+
+function Signos({ s }: { s: InformeSignos }) {
+  const rojo = s.alertas.filter((a) => a.nivel === 'rojo'), ambar = s.alertas.filter((a) => a.nivel === 'ambar')
+  const n = (x: number) => x.toLocaleString('es-ES')
+  const celda = (txt: string, cls = '') => ({ txt, cls })
+  const filas: [string, (f: InformeSignos['filas'][number]) => { txt: string; cls: string }, string][] = [
+    ['Temperatura máx. (°C)', (f) => (f.tempMax == null ? celda('sin reg.', 'c-sr') : celda(es(f.tempMax), f.tempMax >= 38 ? 'c-bad' : f.tempMax >= 37.5 ? 'c-warn' : '')), `${s.filas.filter((f) => (f.tempMax ?? 0) >= 38).length} día(s) con fiebre`],
+    ['Tomas de temperatura (de 2)', (f) => celda(String(f.tempTomas), f.tempTomas === 0 ? 'c-sr' : f.tempTomas < 2 ? 'c-warn' : ''), `${s.tempTomas} de ${s.tempPrevistas}`],
+    ['Tensión (la peor)', (f) => (f.ta ? celda(f.ta.txt, f.ta.mal ? 'c-warn' : '') : celda('—')), `${s.filas.filter((f) => f.ta?.mal).length} fuera de rango`],
+    ['Pulso (el peor, lpm)', (f) => (f.pulso ? celda(String(f.pulso.v), f.pulso.mal ? 'c-warn' : '') : celda('—')), `${s.filas.filter((f) => f.pulso?.mal).length} fuera de rango`],
+    ['Saturación (la más baja, %)', (f) => (f.sat == null ? celda('—') : celda(String(f.sat), f.sat < 94 ? 'c-bad' : f.sat < 95 ? 'c-warn' : '')), s.filas.some((f) => f.sat != null && f.sat < 95) ? 'hay bajas' : 'en rango'],
+    ['Dolor máx. (0–10)', (f) => (f.dolor == null ? celda('sin reg.', 'c-sr') : celda(String(f.dolor), f.dolor >= 7 ? 'c-bad' : f.dolor >= 4 ? 'c-warn' : '')), `máx. ${Math.max(0, ...s.filas.map((f) => f.dolor ?? 0))}`],
+    ['Fatiga (0–4)', (f) => celda(f.fatiga == null ? '—' : String(f.fatiga), (f.fatiga ?? 0) >= 3 ? 'c-warn' : ''), ''],
+    ['Ánimo (1–5)', (f) => celda(f.animo == null ? '—' : String(f.animo), f.animo != null && f.animo <= 2 ? 'c-warn' : ''), ''],
+    ['Micciones', (f) => celda(f.micciones == null ? '—' : n(f.micciones), f.menosOrina ? 'c-warn' : ''), ''],
+  ]
+  return (
+    <section className="ii-sec">
+      <h2>Signos y síntomas · alertas de la semana</h2>
+      <p className="muted small">Arriba solo lo que está en rojo (red flag) o en ámbar, con día, hora y cifra. Debajo, las constantes del día a día para ver si una alerta es aislada o se repite. Náuseas, vómitos y deposiciones están en Tolerancia.</p>
+      {s.alertas.length === 0 && <div className="ii-ok small">{s.sem === 'gris' ? 'Sin datos de signos y síntomas esta semana.' : 'Nada en rojo ni en ámbar esta semana.'}</div>}
+      {rojo.length > 0 && <h3>🔴 Red flags</h3>}
+      <div className="ii-devs">{rojo.map((a, i) => <Al key={'r' + i} a={a} />)}</div>
+      {ambar.length > 0 && <h3>🟡 En ámbar</h3>}
+      <div className="ii-devs">{ambar.map((a, i) => <Al key={'a' + i} a={a} />)}</div>
+      <div className="table-wrap" style={{ marginTop: '.6rem' }}>
+        <table className="table small ii-grid">
+          <thead><tr><th />{s.filas.map((f) => <th key={f.d}>{diaCorto(f.d)} {Number(f.d.slice(8))}</th>)}<th>Semana</th></tr></thead>
+          <tbody>{filas.map(([label, fn, sem]) => (
+            <tr key={label}><th scope="row">{label}</th>{s.filas.map((f) => { const c = fn(f); return <td key={f.d} className={c.cls}>{c.txt}</td> })}<td className="ii-wk">{sem}</td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <p className="muted small">Síntomas que aparecen: {s.sintomas.length ? s.sintomas.join(' · ') : 'ninguno marcado'}. Rangos aceptados el 27/09: fiebre 38 °C o 37,5 °C repetida; saturación menos de 94 % rojo, 94 % ámbar; pulso 75–118; tensión sistólica 86–110 y diastólica hasta 73; dolor 7 o más rojo, 4–6 ámbar.</p>
+    </section>
+  )
+}
+function Al({ a }: { a: InformeSignos['alertas'][number] }) {
+  return (
+    <div className={'ii-dev ' + nivelCls(a.nivel)}>
+      <span className="ii-n">{a.nivel === 'rojo' ? '!' : '·'}</span>
+      <div className="small"><strong>{a.titulo}</strong> · {diaLargo(a.dia)}{a.hora ? ` por la ${a.hora}` : ''}{a.detalle ? <span className="muted"> · {a.detalle}</span> : null}</div>
+    </div>
+  )
+}
+
+function Ejercicio({ e }: { e: InformeEjercicio }) {
+  const n = (x: number) => x.toLocaleString('es-ES')
+  const cmp = (a: number | null, b: number | null, mejorSiSube = true) => (a == null || b == null ? '' : a === b ? ' · = semana anterior' : ` · ${a > b ? '↑' : '↓'} semana anterior ${es(b)}${(a > b) === mejorSiSube ? '' : ' (peor)'}`)
+  const pPct = e.paseosPrevistos ? Math.round((e.paseosHechos / e.paseosPrevistos) * 100) : null
+  const semP: Sem = pPct == null ? 'gris' : pPct >= 80 ? 'verde' : pPct >= 60 ? 'ambar' : 'rojo'
+  const semC: Sem = e.caminarMedia == null ? 'gris' : e.caminarPrev ? ((e.caminarPrev - e.caminarMedia) / e.caminarPrev >= 0.2 ? 'rojo' : (e.caminarPrev - e.caminarMedia) / e.caminarPrev >= 0.1 ? 'ambar' : 'verde') : 'gris'
+  const TXT: Record<Sem, string> = { verde: 'Bien', ambar: 'Vigilar', rojo: 'Baja', gris: 'Sin comparar' }
+  return (
+    <section className="ii-sec">
+      <h2>Ejercicio y tolerancia al esfuerzo</h2>
+      <div className="ii-tiles">
+        <div className={'ii-tile s-' + semC}>
+          <div className="ii-lab"><span>Caminar seguido</span><span className="ii-state">● {TXT[semC]}</span></div>
+          <div className="ii-val">{e.caminarMax ?? '—'} <small>min (el máximo)</small></div>
+          <div className="ii-goal">{e.paraMasFrecuente ? `Para sobre todo por: ${e.paraMasFrecuente.toLowerCase()}` : 'Sin motivo de parada apuntado'}{e.ayudaMasFrecuente ? ` · ${e.ayudaMasFrecuente.toLowerCase()}` : ''}</div>
+          <div className="ii-line">Media {e.caminarMedia != null ? es(e.caminarMedia) : '—'} min{cmp(e.caminarMedia, e.caminarPrev)}</div>
+        </div>
+        <div className={'ii-tile s-' + semP}>
+          <div className="ii-lab"><span>Paseos tras comer</span><span className="ii-state">● {pPct == null ? 'Sin datos' : pPct >= 80 ? 'Cumple' : pPct >= 60 ? 'Se queda corto' : 'Desviado'}</span></div>
+          <div className="ii-val">{e.paseosHechos} <small>de {e.paseosPrevistos}</small></div>
+          <div className="ii-goal">Después de desayuno, comida y cena{pPct != null ? ` (${pPct} %)` : ''} · sin contar días con fiebre o en el hospital</div>
+          <div className="ii-line">{e.paseoQueMasFalla ? `El que más falla: ${e.paseoQueMasFalla === 'desayuno' ? 'después del desayuno' : `después de la ${e.paseoQueMasFalla}`}` : 'Todos hechos'}</div>
+        </div>
+        <div className={'ii-tile s-' + e.tolerancia}>
+          <div className="ii-lab"><span>Tolerancia al esfuerzo</span><span className="ii-state">● {TXT[e.tolerancia]}</span></div>
+          <div className="ii-val">{e.esfuerzoMedia != null ? es(e.esfuerzoMedia) : '—'} <small>de 10 de esfuerzo (media)</small></div>
+          <div className="ii-goal">{e.toleranciaTexto}</div>
+          <div className="ii-line">Fuerza {e.fuerza.n} · aeróbico {e.aerobico.n}{e.fuerza.min + e.aerobico.min ? ` · ${e.fuerza.min + e.aerobico.min} min` : ''}{cmp(e.esfuerzoMedia, e.esfuerzoPrev, false).replace('semana anterior', 'esfuerzo semana anterior')}</div>
+        </div>
+      </div>
+      <div className="table-wrap" style={{ marginTop: '.6rem' }}>
+        <table className="table small ii-grid">
+          <thead><tr><th />{e.filas.map((f) => <th key={f.d}>{diaCorto(f.d)} {Number(f.d.slice(8))}</th>)}<th>Semana</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Caminar seguido (min)</th>{e.filas.map((f) => <td key={f.d} className={f.caminar == null ? 'c-sr' : ''}>{f.caminar ?? 'sin reg.'}</td>)}<td className="ii-wk">máx. {e.caminarMax ?? '—'}</td></tr>
+            <tr><th scope="row">Para por · ayuda</th>{e.filas.map((f) => <td key={f.d} className={f.para && f.para !== 'No paró' ? 'c-warn' : ''}>{[f.para, f.ayuda].filter(Boolean).join(' · ') || '—'}</td>)}<td className="ii-wk">{e.paraMasFrecuente ?? ''}</td></tr>
+            <tr><th scope="row">Paseo tras desayuno · comida · cena</th>{e.filas.map((f) => <td key={f.d}>{f.paseos.every((p) => p == null) ? 'no cuenta' : f.paseos.map((p) => (p == null ? '–' : p ? '✓' : '✗')).join('')}</td>)}<td className="ii-wk">{e.paseosHechos} de {e.paseosPrevistos}</td></tr>
+            <tr><th scope="row">Pasos</th>{e.filas.map((f) => <td key={f.d}>{f.pasos != null ? n(f.pasos) : '—'}</td>)}<td className="ii-wk">{e.pasosMedia != null ? `media ${n(e.pasosMedia)}` : '—'}</td></tr>
+            <tr><th scope="row">Sesiones</th>{e.filas.map((f) => <td key={f.d}>{f.sesiones.join(' · ') || '—'}</td>)}<td className="ii-wk">{e.fuerza.min + e.aerobico.min} min</td></tr>
+            <tr><th scope="row">Esfuerzo (0–10)</th>{e.filas.map((f) => <td key={f.d} className={(f.esfuerzo ?? 0) >= 8 ? 'c-warn' : ''}>{f.esfuerzo ?? '—'}</td>)}<td className="ii-wk">{e.esfuerzoMedia != null ? `media ${es(e.esfuerzoMedia)}` : '—'}</td></tr>
+            <tr><th scope="row">Caídas o golpes</th>{e.filas.map((f) => <td key={f.d} className={f.caida ? 'c-bad' : ''}>{f.caida ? 'sí' : '—'}</td>)}<td className="ii-wk">{e.caidas}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="muted small">Prueba de la semana (sentarse y levantarse en 30 s): {e.prueba != null ? `${e.prueba} veces` : 'no se ha hecho'}{e.pruebaPrev != null ? ` · semana anterior ${e.pruebaPrev}` : ''}. Tolerancia: verde si caminar, pasos y prueba están igual o mejor que la semana anterior; ámbar si bajan entre un 10 y un 19 %, sube el esfuerzo 2 puntos o más o para por mareo o falta de aire; rojo si bajan un 20 % o más o hay una caída. Los paseos sin marcar cuentan como no hechos.</p>
+    </section>
   )
 }

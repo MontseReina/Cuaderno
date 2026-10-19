@@ -399,3 +399,28 @@ export const EVENT_TYPES: { key: string; label: string }[] = [
   { key: 'fisio', label: 'Fisioterapia' },
   { key: 'otro', label: 'Otro' },
 ]
+
+/** 0.37.0 · Ejercicio: por qué para al caminar y con qué ayuda (Montserrate, 19/10/2026). */
+export const WALK_STOP: { value: 'no_paro' | 'dolor' | 'cansancio' | 'mareo' | 'falta_aire' | 'otro'; label: string }[] = [
+  { value: 'no_paro', label: 'No paró' },
+  { value: 'dolor', label: 'Dolor' },
+  { value: 'cansancio', label: 'Cansancio' },
+  { value: 'mareo', label: 'Mareo' },
+  { value: 'falta_aire', label: 'Falta de aire' },
+  { value: 'otro', label: 'Otro' },
+]
+export const WALK_AID: { value: 'sin_ayuda' | 'muletas' | 'andador' | 'silla'; label: string }[] = [
+  { value: 'sin_ayuda', label: 'Sin ayuda' },
+  { value: 'muletas', label: 'Muletas' },
+  { value: 'andador', label: 'Andador' },
+  { value: 'silla', label: 'Silla de ruedas' },
+]
+/** Esfuerzo percibido 0–10 (escala de caras infantil). */
+export const EFFORT_FACES: { value: number; face: string; label: string }[] = [
+  { value: 0, face: '😀', label: 'Nada' },
+  { value: 2, face: '🙂', label: 'Muy poco' },
+  { value: 4, face: '😐', label: 'Algo' },
+  { value: 6, face: '😕', label: 'Bastante' },
+  { value: 8, face: '😣', label: 'Mucho' },
+  { value: 10, face: '😫', label: 'Máximo' },
+]

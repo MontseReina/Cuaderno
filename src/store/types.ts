@@ -172,7 +172,15 @@ export interface FunctionalDaily {
   stands_alone?: boolean
   walk_min?: number | null
   falls?: string
+  /** 0.37.0 · Por qué paró en el paseo más largo seguido. */
+  walk_stop?: WalkStop | null
+  /** 0.37.0 · Con qué ayuda camina. */
+  walk_aid?: WalkAid | null
+  /** 0.37.0 · Prueba de la semana: veces que se sienta y se levanta de una silla en 30 segundos. */
+  sts30?: number | null
 }
+export type WalkStop = 'no_paro' | 'dolor' | 'cansancio' | 'mareo' | 'falta_aire' | 'otro'
+export type WalkAid = 'sin_ayuda' | 'muletas' | 'andador' | 'silla'
 /** Campos añadidos en la v0.4 (columna JSONB `extra`). */
 export interface DailyExtra {
   mode?: WeekMode // modo manual de la semana (si no, se deduce del ciclo)
@@ -180,6 +188,8 @@ export interface DailyExtra {
   infusion_cups?: number | null // infusiones manzanilla / jengibre (medias tazas)
   sync?: Partial<Record<'ir_morning' | 'ir_night' | 'glasses' | 'daylight_morning' | 'daylight_afternoon' | 'sun_exposure', SyncEntry>>
   functional?: FunctionalDaily // capacidad funcional del día
+  /** 0.37.0 · Esfuerzo percibido del día (0–10, escala de caras): cuánto le ha costado lo más duro que ha hecho. */
+  effort?: number | null
   symptoms_ok?: boolean // revisado: hoy no hay síntomas que marcar
   /** Color de las flemas del día (solo si se ha marcado el síntoma). */
   phlegm_color?: PhlegmColor | null

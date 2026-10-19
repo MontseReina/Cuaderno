@@ -9,6 +9,7 @@ import { cycleContext } from '../domain/cycle'
 import { Segmented, Section } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
 import { faseTexto } from '../domain/diaTratamiento'
+import { EFFORT_FACES, WALK_AID, WALK_STOP } from '../domain/catalogs'
 
 /** Aviso del tramo del día según el día real tras la última sesión de quimio. */
 function tramo(phase: string, day: number | null, etiqueta?: string | null): string {
@@ -169,7 +170,7 @@ function Agenda({ date, draft, setView, all, logs, setDate, aviso, limites, fuer
         sub={[`Después de comer ${nMv}/3`, f.walk_min ? `paseo ${f.walk_min} min` : '', draft.steps ? `${draft.steps} pasos` : ''].filter(Boolean).join(' · ')}
         badge={nMv === 3 ? '✓' : `${nMv}/3`} ok={nMv === 3} />
       <Tarjeta ico="cf" title="Capacidad funcional" onClick={() => setView({ v: 'funcional' })}
-        sub="Escaleras · silla · caídas o golpes" badge={nF === 3 ? '✓' : `${nF}/3`} ok={nF === 3} />
+        sub={`Escaleras · silla · caídas o golpes${f.sts30 != null ? ` · prueba 30 s: ${f.sts30}` : ' · prueba de la semana'}`} badge={nF === 3 ? '✓' : `${nF}/3`} ok={nF === 3} />
       <button type="button" className="ej-otra" onClick={() => setView({ v: 'otra' })}>
         {otras.length ? `Otra actividad: ${otras.map((o) => o.label.toLowerCase()).join(', ')}${ex.other_min ? ` · ${ex.other_min} min` : ''}` : '+ Otra actividad (juego, fisio, en cama)'}
       </button>
@@ -473,9 +474,30 @@ function Paseo({ date, draft, set, setExtra, setView }: Comun) {
           <Segmented options={PASEO.map((m) => ({ value: m, label: m === 60 ? '60+' : String(m) }))} value={f.walk_min ?? null} onChange={setWalk} />
           <input type="number" inputMode="numeric" min={0} placeholder="Otro: escribe los minutos" style={{ marginTop: '.4rem' }} value={f.walk_min != null && !PASEO.includes(f.walk_min) ? f.walk_min : ''} onChange={(e) => setWalk(num(e.target.value))} />
         </div>
+        {!!f.walk_min && (
+          <>
+            <div className="field"><span>¿Por qué paró?</span>
+              <Segmented options={WALK_STOP.map((o) => ({ value: o.value, label: o.label }))} value={f.walk_stop ?? null} onChange={(v) => setExtra({ functional: { ...f, walk_stop: (v as FunctionalDaily['walk_stop']) ?? null } })} />
+            </div>
+            <div className="field"><span>¿Con qué ayuda camina?</span>
+              <Segmented options={WALK_AID.map((o) => ({ value: o.value, label: o.label }))} value={f.walk_aid ?? null} onChange={(v) => setExtra({ functional: { ...f, walk_aid: (v as FunctionalDaily['walk_aid']) ?? null } })} />
+            </div>
+          </>
+        )}
         <label className="field"><span>Pasos del día (reloj o móvil del cuidador)</span>
           <input type="number" inputMode="numeric" min={0} placeholder="Ej.: 4500" value={draft.steps ?? ''} onChange={(e) => set('steps', num(e.target.value))} />
         </label>
+      </div>
+      <div className="card">
+        <strong>¿Cuánto le ha costado moverse hoy?</strong>
+        <p className="muted small">Que lo elija él con las caras, pensando en lo más duro que ha hecho hoy (paseo o ejercicio). De 0 (nada) a 10 (lo máximo).</p>
+        <div className="ej-caras">
+          {EFFORT_FACES.map((c) => (
+            <button key={c.value} type="button" className={'ej-cara' + (draft.extra?.effort === c.value ? ' on' : '')} aria-pressed={draft.extra?.effort === c.value} onClick={() => setExtra({ effort: draft.extra?.effort === c.value ? null : c.value })}>
+              <span className="f" aria-hidden="true">{c.face}</span><span className="n">{c.value}</span><span className="l">{c.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
       <div className="ej-pie"><button type="button" className="btn block" onClick={() => setView({ v: 'agenda' })}>Listo</button></div>
       <p className="muted small" style={{ textAlign: 'center' }}>Se guarda solo al tocar.</p>
@@ -507,6 +529,13 @@ function Funcional({ date, draft, setExtra, setView }: Comun) {
             <input type="text" value={f.falls === 'Sí' ? '' : f.falls ?? ''} placeholder="Cuéntalo en una frase" onChange={(e) => setF({ falls: e.target.value.trim() ? e.target.value : 'Sí' })} />
           </label>
         )}
+      </div>
+      <div className="card">
+        <strong>Prueba de la semana · una vez por semana</strong>
+        <p className="muted small">Sentarse y levantarse de una silla sin brazos durante 30 segundos, con los brazos cruzados. Mismo día de la semana y a la misma hora. Solo si traumatología lo permite.</p>
+        <label className="field"><span>Veces en 30 segundos</span>
+          <input type="number" inputMode="numeric" min={0} max={40} placeholder="Ej.: 9" value={f.sts30 ?? ''} onChange={(e) => setF({ sts30: num(e.target.value) })} />
+        </label>
       </div>
       {caida && <div className="notice">Tras una caída o golpe en el miembro afectado, o un dolor nuevo en el hueso: parad el ejercicio y avisad a oncología como os hayan indicado.</div>}
       <div className="ej-pie"><button type="button" className="btn block" onClick={() => setView({ v: 'agenda' })}>Listo</button></div>
