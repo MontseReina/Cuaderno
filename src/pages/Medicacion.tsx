@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { currentPatientId, isDemo, remove, save, useRows } from '../store'
-import type { Intake, IntakeStatus, MedRoute, Moment, Product, ProductBlock, Traffic } from '../store/types'
+import type { Intake, IntakeStatus, MedRoute, Moment, Patient, Product, ProductBlock, Traffic } from '../store/types'
 import {
   ANTICOAG_KEYWORDS, ANTIPLATELET_SUPP, BLOCK_DEFAULT_TRAFFIC, BLOCK_HELP, BLOCK_LABELS, CONSULT_FIRST, INTAKE_REASONS, MOMENTS,
   OUTCOME_LABELS, PRESCRIBERS, ROUTE_LABELS, TRAFFIC_LABELS, WEEKDAYS,
@@ -37,7 +37,8 @@ export default function Medicacion() {
   const retired = all.filter((p) => !isActive(p, today)).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
   const intakes = useRows('intakes', (i) => i.date === today)
   const cycles = useRows('cycles')
-  const protocolStart = useRows('patients')[0]?.protocol_start
+  const patient = useRows('patients')[0]
+  const protocolStart = patient?.protocol_start
   // Rescates de antiemético apuntados hoy en Signos y síntomas (registro de náuseas, 0.25.0).
   const rescatesHoy = useRows('daily_logs', (l) => l.date === today)[0]?.extra?.nausea?.rescates ?? []
   const panels = useRows('lab_panels')
@@ -47,7 +48,7 @@ export default function Medicacion() {
   const ctx = cycleContext(cycles, today)
 
   const windowKey = trafficWindow(ctx, today)
-  const windowLabel = { infusion: 'día de infusión', mtx: 'ciclo de metotrexato', cddp_adm: 'ciclo cisplatino + adriamicina', nadir: 'nadir plaquetario (D7-14)' }
+  const windowLabel = { cirugia: 'cirugía (del ingreso al alta)', infusion: 'día de infusión', mtx: 'ciclo de metotrexato', cddp_adm: 'ciclo cisplatino + adriamicina', nadir: 'nadir plaquetario (D7-14)' }
   const trafficNow = (p: Product): Traffic | undefined => (windowKey ? p.traffic?.[windowKey] : undefined)
 
   const anticoag = products.some((p) => ANTICOAG_KEYWORDS.some((k) => (p.name + ' ' + (p.composition ?? '')).toLowerCase().includes(k)))
@@ -108,7 +109,7 @@ export default function Medicacion() {
         ...(windowKey ? [{
           key: 'ventana', nivel: 'info' as const, icono: '🗓️',
           titulo: <>{esHoy ? 'Hoy' : 'Ese día'}: <strong>{windowLabel[windowKey]}</strong></>,
-          detalle: <>Los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.{ctx.cycle && finVentanaCiclo(ctx.cycle) ? ` La suplementación de fuera de ciclo vuelve 24 h después del fin de la perfusión: ${fmtWall(finVentanaCiclo(ctx.cycle)!)}.` : ''}</>,
+          detalle: <>Los productos en rojo para esta ventana no deben darse; los ámbar, solo si el equipo lo ha autorizado.{windowKey === 'cirugia' ? (patient?.surgery_to ? ` La ventana de cirugía termina el ${fmtDate(patient.surgery_to)} (alta).` : ' Cuando le den el alta, apuntadla en «Cirugía» más abajo para que vuelva la suplementación.') : ''}{windowKey !== 'cirugia' && ctx.cycle && finVentanaCiclo(ctx.cycle) ? ` La suplementación de fuera de ciclo vuelve 24 h después del fin de la perfusión: ${fmtWall(finVentanaCiclo(ctx.cycle)!)}.` : ''}</>,
         }] : []),
         ...gated.map((p) => {
           const g = gateOf(p)!
@@ -129,6 +130,7 @@ export default function Medicacion() {
         }),
       ]} />
       {retiring && <RetirePanel product={retiring} onClose={() => setRetiring(null)} />}
+      {patient && <SurgeryCard key={patient.id + (patient.surgery_from ?? '') + (patient.surgery_to ?? '')} patient={patient} />}
       {products.length === 0 && retired.length === 0 && (
         <div className="empty">
           Sin productos. <button className="btn sm secondary" onClick={async () => { for (const s of SEED_PRODUCTS) await save('products', { ...s, patient_id: currentPatientId() } as Product) }}>Cargar la lista actual de la familia</button>
@@ -226,7 +228,7 @@ export default function Medicacion() {
                     {extraMeta(p) ? ` · ${extraMeta(p)}` : ''}{p.after_chemo_days ? ` · desde ${p.after_chemo_days} días tras ${countsFromCycleEnd(p) ? 'el fin del ciclo (cisplatino + adriamicina)' : 'la quimio'}` : ''}
                   </div>
                   <div>
-                    {(['mtx', 'cddp_adm', 'nadir', 'infusion'] as const).map((k) => p.traffic?.[k] && <span key={k} className={'tag ' + p.traffic[k]}>{k === 'mtx' ? 'MTX' : k === 'cddp_adm' ? 'CDDP+ADM' : k === 'nadir' ? 'nadir' : 'infusión'}: {TRAFFIC_LABELS[p.traffic[k]!]}</span>)}
+                    {(['mtx', 'cddp_adm', 'nadir', 'infusion', 'cirugia'] as const).map((k) => p.traffic?.[k] && <span key={k} className={'tag ' + p.traffic[k]}>{k === 'mtx' ? 'MTX' : k === 'cddp_adm' ? 'CDDP+ADM' : k === 'nadir' ? 'nadir' : k === 'infusion' ? 'infusión' : 'cirugía'}: {TRAFFIC_LABELS[p.traffic[k]!]}</span>)}
                   </div>
                 </div>
                 <button className="btn sm ghost" onClick={async () => { if (await confirmar(`¿Seguro que quieres retirar «${p.name}» de la pauta?`)) setRetiring(p) }}>Retirar</button>
@@ -260,6 +262,28 @@ export default function Medicacion() {
 }
 
 /** Retirar un producto de la pauta: fecha, motivo y si funcionó. Pasa a "anteriores". */
+/** Ventana «Cirugía» del semáforo: desde qué día se para la suplementación y hasta el alta (0.35.0). */
+function SurgeryCard({ patient }: { patient: Patient }) {
+  const [from, setFrom] = useState(patient.surgery_from ?? '')
+  const [to, setTo] = useState(patient.surgery_to ?? '')
+  const changed = from !== (patient.surgery_from ?? '') || to !== (patient.surgery_to ?? '')
+  const bad = !!from && !!to && to < from
+  return (
+    <Section title={'🏥 Cirugía' + (patient.surgery_from ? ` · desde ${fmtDate(patient.surgery_from)}${patient.surgery_to ? ` hasta ${fmtDate(patient.surgery_to)}` : ', sin alta apuntada'}` : '')}>
+      <p className="muted small">Mientras dure esta ventana, cada producto sigue su semáforo de «Cirugía»: lo que está en rojo no se da ni cuenta como pendiente. Sin fecha de alta, la ventana sigue abierta.</p>
+      <div className="grid2">
+        <Field label="Desde (se para la suplementación)"><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+        <Field label="Hasta el alta (incluido)"><input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></Field>
+      </div>
+      {bad && <p className="small" style={{ color: 'var(--red)' }}>El alta no puede ser antes del inicio.</p>}
+      <div className="row" style={{ gap: '.5rem' }}>
+        <button className="btn sm" disabled={!changed || bad} onClick={() => save('patients', { ...patient, surgery_from: from || null, surgery_to: from ? (to || null) : null } as never)}>Guardar</button>
+        {patient.surgery_from && <button className="btn sm ghost" onClick={async () => { if (await confirmar('¿Quitar la ventana de cirugía?')) save('patients', { ...patient, surgery_from: null, surgery_to: null } as never) }}>Quitar</button>}
+      </div>
+    </Section>
+  )
+}
+
 function RetirePanel({ product, onClose }: { product: Product; onClose: () => void }) {
   const [date, setDate] = useState(todayStr())
   const [reason, setReason] = useState('')
@@ -360,8 +384,8 @@ function ProductForm({ initial, onClose }: { initial: Partial<Product>; onClose:
       <div className="card">
         <h3>Semáforo por ventana</h3>
         <p className="muted small">Verde: se mantiene · Ámbar: solo con autorización del equipo · Rojo: no se da en esa ventana.</p>
-        {(['mtx', 'cddp_adm', 'nadir', 'infusion'] as const).map((k) => (
-          <Field key={k} label={{ mtx: 'Ciclo de metotrexato (hasta fin del rescate)', cddp_adm: 'Ciclo cisplatino + adriamicina (hasta 24 h tras la infusión)', nadir: 'Nadir plaquetario (D7-14)', infusion: 'Día de infusión' }[k]}>
+        {(['mtx', 'cddp_adm', 'nadir', 'infusion', 'cirugia'] as const).map((k) => (
+          <Field key={k} label={{ mtx: 'Ciclo de metotrexato (hasta fin del rescate)', cddp_adm: 'Ciclo cisplatino + adriamicina (hasta 24 h tras la infusión)', nadir: 'Nadir plaquetario (D7-14)', infusion: 'Día de infusión', cirugia: 'Cirugía (del inicio que apuntéis al alta)' }[k]}>
             <Segmented className="severity" options={TR} value={p.traffic?.[k]} onChange={(v) => set('traffic', { ...(p.traffic ?? {}), [k]: v ?? undefined })} />
           </Field>
         ))}

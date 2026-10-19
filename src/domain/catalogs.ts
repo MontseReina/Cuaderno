@@ -314,9 +314,9 @@ export const BLOCK_HELP: Record<string, string> = {
 }
 /** Semáforo por defecto al elegir el bloque de un producto nuevo (se puede cambiar). */
 export const BLOCK_DEFAULT_TRAFFIC: Record<string, Record<string, 'verde' | 'ambar' | 'rojo'>> = {
-  hospital: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde' },
-  sup_ciclo: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde' },
-  sup_fuera: { mtx: 'rojo', cddp_adm: 'rojo', nadir: 'ambar', infusion: 'rojo' },
+  hospital: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde', cirugia: 'verde' },
+  sup_ciclo: { mtx: 'verde', cddp_adm: 'verde', nadir: 'verde', infusion: 'verde', cirugia: 'rojo' },
+  sup_fuera: { mtx: 'rojo', cddp_adm: 'rojo', nadir: 'ambar', infusion: 'rojo', cirugia: 'rojo' },
 }
 export const MOMENTS: { key: string; label: string }[] = [
   { key: 'ayunas', label: 'Ayunas' },

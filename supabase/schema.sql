@@ -321,3 +321,7 @@ select _mk('menus', $c$ name text not null, data jsonb not null, active boolean 
 do $$ begin
   execute 'alter publication supabase_realtime add table menus';
 exception when duplicate_object then null; end $$;
+
+-- v0.35.0 (19/10/2026): ventana «Cirugía» del semáforo
+alter table patients add column if not exists surgery_from date;
+alter table patients add column if not exists surgery_to date;

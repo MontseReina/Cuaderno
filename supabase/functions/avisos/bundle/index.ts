@@ -1502,8 +1502,27 @@ function groupMissing(items) {
 }
 //#endregion
 //#region src/domain/medication.ts
-/** Ventana del semáforo en la que estamos ese día (día de infusión, ciclo, nadir…). */
+/** Ventana de cirugía apuntada en Medicación (desde · alta). */
+function surgeryWindow() {
+	try {
+		const p = backend.all("patients")[0];
+		return p?.surgery_from ? {
+			from: p.surgery_from.slice(0, 10),
+			to: p.surgery_to ? p.surgery_to.slice(0, 10) : null
+		} : null;
+	} catch {
+		return null;
+	}
+}
+/** ¿Ese día está dentro de la ventana de cirugía? (sin alta apuntada sigue abierta). */
+function inSurgeryWindow(date) {
+	const w = surgeryWindow();
+	return !!w && date >= w.from && (!w.to || date <= w.to);
+}
+/** Ventana del semáforo en la que estamos ese día (cirugía, día de infusión, ciclo, nadir…).
+*  La cirugía manda sobre las demás (0.35.0). */
 function trafficWindow(ctx, date) {
+	if (inSurgeryWindow(date)) return "cirugia";
 	if (!ctx.cycle) return null;
 	if (ctx.day === 0 || ctx.inCycle && ctx.cycle.end_at && date <= ctx.cycle.end_at.slice(0, 10)) return "infusion";
 	if (ctx.inCycle) return ctx.cycle.drugs.includes("MTX") ? "mtx" : "cddp_adm";

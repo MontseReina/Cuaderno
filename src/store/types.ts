@@ -29,6 +29,10 @@ export interface Patient extends Omit<BaseRow, 'patient_id'> {
   necrosis_pct?: number | null
   /** Micciones habituales al día (para el informe: «menos de lo habitual»). */
   usual_voids?: number | null
+  /** Ventana «Cirugía» del semáforo de suplementos (0.35.0): desde este día… */
+  surgery_from?: string | null
+  /** …hasta el alta (incluida). Vacío = sigue abierta hasta que se apunte el alta. */
+  surgery_to?: string | null
   load_limits?: string
   notes?: string
 }
@@ -303,7 +307,7 @@ export interface Product extends BaseRow {
   end_reason?: string
   prescribed_by?: string
   lab?: string // laboratorio / marca
-  traffic: { mtx?: Traffic; cddp_adm?: Traffic; nadir?: Traffic; infusion?: Traffic }
+  traffic: { mtx?: Traffic; cddp_adm?: Traffic; nadir?: Traffic; infusion?: Traffic; cirugia?: Traffic }
   traffic_reason?: string
   notes?: string
   /** Al retirarlo: ¿qué tal fue? (para el registro de anteriores) */
