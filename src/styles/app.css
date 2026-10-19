@@ -849,3 +849,69 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .tabla-dias .rp { width: .9rem; }
 .tabla-dias .ritmo-fin { display: block; font-size: .75rem; }
 .nutri-liquido input { width: 5.5rem; }
+
+/* 0.36.0 · Informe semanal de cuidados para Imohe */
+.ii .ii-head { border-bottom: 2px solid var(--ink-deep); padding-bottom: .7rem; margin-bottom: .8rem; }
+.ii .ii-head h1 { margin: .1rem 0 .2rem; }
+.ii-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); }
+.ii-meta { display: flex; flex-wrap: wrap; gap: .2rem 1rem; font-size: .82rem; color: var(--muted); margin-top: .4rem; }
+.ii-meta b { color: var(--text); }
+.ii-reg { background: #e8f1f1; border-radius: 10px; padding: .8rem .9rem; display: flex; flex-direction: column; gap: .6rem; }
+.ii-reg-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+@media (max-width: 700px) { .ii-reg-cols { grid-template-columns: 1fr; } }
+.ii-reg-col { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.ii-reg-col ul { margin: 0; padding-left: 1rem; display: flex; flex-direction: column; gap: .2rem; }
+.ii-tag { align-self: flex-start; font-size: .72rem; font-weight: 800; padding: .05rem .5rem; border-radius: 9px; }
+.ii-tag.t-no { background: #f6d7d2; color: #8c2a20; }
+.ii-tag.t-sr { background: #fff; color: var(--muted); border: 1px dashed var(--muted); }
+.ii-tag.t-dud { background: #fbeccc; color: #6d4a00; }
+.ii-aviso { background: #fbeccc; color: #6d4a00; border-radius: 8px; padding: .4rem .6rem; font-size: .85rem; }
+.ii-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
+@media (max-width: 760px) { .ii-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 440px) { .ii-tiles { grid-template-columns: 1fr; } }
+.ii-tile { background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--c, var(--line)); border-radius: 8px; padding: .55rem .7rem; display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.ii-tile.s-verde { --c: var(--green); } .ii-tile.s-ambar { --c: var(--amber); } .ii-tile.s-rojo { --c: var(--red); } .ii-tile.s-gris { --c: #c9c6bd; }
+.ii-lab { display: flex; justify-content: space-between; gap: .4rem; font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.ii-state { color: var(--c); white-space: nowrap; }
+.ii-val { font-size: 1.45rem; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.ii-val small { font-size: .8rem; font-weight: 600; color: var(--muted); }
+.ii-goal { font-size: .8rem; color: var(--muted); }
+.ii-line { font-size: .8rem; font-weight: 700; }
+.ii-mini { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin: .15rem 0; background: #eee; }
+.ii-mini span { display: block; }
+.ii-mini .m-ok { background: var(--green); } .ii-mini .m-part { background: var(--amber); } .ii-mini .m-no { background: var(--red); }
+.ii-mini .m-sr, .ii .c-sr { background: repeating-linear-gradient(45deg, #efece4 0 4px, #e2ddd0 4px 8px); }
+.ii-devs { display: flex; flex-direction: column; gap: .5rem; }
+.ii-dev { display: grid; grid-template-columns: 26px 1fr; gap: .5rem; padding: .55rem .7rem; border-radius: 8px; background: #f6d7d2; }
+.ii-dev.s-ambar { background: #fbeccc; }
+.ii-n { font-family: var(--font-title); font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--red); }
+.ii-dev.s-ambar .ii-n { color: #8a5f00; }
+.ii-table td, .ii-table th { vertical-align: top; }
+.ii-grid { font-variant-numeric: tabular-nums; }
+.ii-grid th, .ii-grid td { text-align: center; white-space: nowrap; padding: .3rem .4rem; }
+.ii-grid th[scope=row] { text-align: left; position: sticky; left: 0; background: var(--card); }
+.ii-grid .ii-grp th { text-align: left; background: var(--bg); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); }
+.ii-grid .ii-wk { font-weight: 800; border-left: 2px solid var(--line); }
+.ii .c-ok { background: #e3eef0; color: #24505a; font-weight: 700; }
+.ii .c-warn { background: #fbeccc; color: #6d4a00; font-weight: 700; }
+.ii .c-bad { background: #f6d7d2; color: #8c2a20; font-weight: 700; }
+.ii .c-sr { color: var(--muted); font-style: italic; }
+.ii .ii-fuera { background: #f3f1ec; color: var(--muted); }
+.ii-total td { font-weight: 800; border-top: 2px solid var(--line); }
+.ii-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin: .7rem 0; }
+@media (max-width: 700px) { .ii-two { grid-template-columns: 1fr; } }
+.ii-two > * { min-width: 0; margin: 0; }
+.ii-parte { margin-bottom: .5rem; }
+.ii-barra { height: 10px; border-radius: 5px; background: #eee; overflow: hidden; }
+.ii-barra span { display: block; height: 100%; }
+.ii-barra .c-ok { background: var(--green); } .ii-barra .c-warn { background: var(--amber); } .ii-barra .c-bad { background: var(--red); }
+.ii-svg text { fill: var(--muted); font-size: 11px; font-family: var(--font-text); }
+.ii-svg .ii-gl { stroke: var(--line); stroke-width: 1; }
+.ii-svg .ii-lim { stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.ii-svg text.ii-limt { fill: var(--red); font-weight: 700; }
+.ii-svg .ii-ln { stroke: var(--ink-deep); stroke-width: 2.5; fill: none; }
+.ii-svg .ii-pt { fill: var(--card); stroke: var(--ink-deep); stroke-width: 2; }
+.ii-svg .ii-end { fill: var(--ink-deep); }
+.ii-todo { border: 1px dashed var(--muted); border-radius: 10px; padding: .7rem .8rem; color: var(--muted); }
+@media print { .ii-tile, .ii-dev, .ii-reg { break-inside: avoid; } }
+.ii-table { min-width: 560px; }

@@ -10,12 +10,15 @@ import { AvisosImprimir, RitmoResumen } from '../components/RitmoDelDia'
 import { SuenoSemana } from '../components/SuenoSemana'
 import { Section } from '../components/ui'
 import { resumenesRecientes } from '../domain/nausea'
+import InformeImohe from './InformeImohe'
 
 /** Pilar 📊 Evaluaciones (antes «Informes», renombrado el 28/09/2026): cómo se rellena el registro,
  *  el informe semanal y, en espera, el diario y el mensual. La ruta sigue siendo /informes. */
 export default function Informes() {
   const { kind } = useParams()
-  if (kind === 'semanal') return <Semanal />
+  // 0.36.0: el informe semanal es el de cuidados para Imohe; el anterior queda en /informes/semanal-anterior.
+  if (kind === 'semanal') return <InformeImohe />
+  if (kind === 'semanal-anterior') return <Semanal />
   if (kind === 'avisos') return <AvisosImprimir />
   return <Portada />
 }
@@ -69,8 +72,9 @@ function Portada() {
       </Section>
       <Link to="/informes/semanal" className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
         <span style={{ fontSize: '1.5rem' }}>🗓️</span>
-        <span><strong>Informe semanal</strong><div className="muted small">De lunes a domingo: cómo ha ido cada bloque, alertas, qué mejorar y qué mantener. Se descarga en PDF.</div></span>
+        <span><strong>Informe semanal para Imohe</strong><div className="muted small">De lunes a domingo: qué no se hizo y qué no se registró, cada apartado con su meta y su semáforo, y las tres desviaciones principales. Se descarga en PDF.</div></span>
       </Link>
+      <Link to="/informes/semanal-anterior" className="small muted" style={{ display: 'block', margin: '-.2rem 0 .6rem .2rem' }}>Ver el informe semanal anterior</Link>
       <div className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', opacity: 0.55 }}>
         <span style={{ fontSize: '1.5rem' }}>📅</span>
         <span><strong>Informe diario</strong><div className="muted small">En espera</div></span>
@@ -127,9 +131,9 @@ function Semanal() {
       </div>
       <h1>Informe semanal</h1>
       <div className="row between noprint" style={{ marginBottom: '.6rem' }}>
-        <button className="btn sm ghost" onClick={() => nav(`/informes/semanal/${addDays(ws, -7)}`)}>‹</button>
+        <button className="btn sm ghost" onClick={() => nav(`/informes/semanal-anterior/${addDays(ws, -7)}`)}>‹</button>
         <div style={{ textAlign: 'center' }}><strong>{fmtDate(r.weekStart)} – {fmtDate(r.weekEnd)}</strong>{enCurso && <div className="muted small">semana en curso · {r.days.length} de 7 días</div>}</div>
-        <button className="btn sm ghost" disabled={enCurso} onClick={() => nav(`/informes/semanal/${addDays(ws, 7)}`)}>›</button>
+        <button className="btn sm ghost" disabled={enCurso} onClick={() => nav(`/informes/semanal-anterior/${addDays(ws, 7)}`)}>›</button>
       </div>
 
       <div className="card tight">
