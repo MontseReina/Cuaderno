@@ -1643,11 +1643,18 @@ function aguaALaHora(hhmm, despertar = "08:00") {
 	}
 	return AGUA_DIA_ML;
 }
-/** Mililitros de batido del día: media mañana y media tarde con el batido (lo de siempre si no se eligió el menú). */
+/** Mililitros de líquido de media mañana y media tarde. Lo escrito en «Líquido (ml)» manda; si no hay nada,
+*  media mañana con el batido (no el snack del menú ni otra cosa escrita) cuenta 250 ml por la parte tomada y
+*  media tarde no cuenta nada, porque su batido no siempre es igual (19/10/2026). */
 function batidoMl(log) {
 	let total = 0;
 	for (const m of log?.meals ?? []) {
-		if (!TOMAS.find((x) => x.key === m.slot)?.batido || m.choice === "menu" || m.note?.trim() || !tomada(m)) continue;
+		if (!TOMAS.find((x) => x.key === m.slot)?.batido || !tomada(m)) continue;
+		if (m.liquid_ml != null) {
+			total += Math.max(0, m.liquid_ml);
+			continue;
+		}
+		if (m.slot !== "media_manana" || m.choice === "menu" || m.note?.trim()) continue;
 		total += 250 * (m.fraction != null && m.fraction > 0 ? m.fraction : 1);
 	}
 	return Math.round(total);

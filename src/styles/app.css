@@ -848,3 +848,4 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .tabla-dias .ritmo-puntos { display: flex; margin: 0; }
 .tabla-dias .rp { width: .9rem; }
 .tabla-dias .ritmo-fin { display: block; font-size: .75rem; }
+.nutri-liquido input { width: 5.5rem; }

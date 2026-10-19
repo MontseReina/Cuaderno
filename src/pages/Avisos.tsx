@@ -159,7 +159,7 @@ export default function Avisos() {
             <tr><td><strong>Mañana</strong></td><td>Ayuno: a las 11 h y a las 12 h desde la última toma</td></tr>
           </tbody>
         </table>
-        <p className="muted small">Meta de líquidos: {ml(AGUA_DIA_ML)} ml al día (el batido cuenta). Tomas: 4 en semana de quimio y 5 en el resto. Las cantidades de agua se ajustan a la hora de despertar apuntada en Biohacking. Todos los avisos quedan guardados en <Link to="/informes">📊 Evaluaciones</Link>.</p>
+        <p className="muted small">Meta de líquidos: {ml(AGUA_DIA_ML)} ml al día (cuentan el batido de media mañana, 250 ml, y los ml que se apunten en media tarde). Tomas: 4 en semana de quimio y 5 en el resto. Las cantidades de agua se ajustan a la hora de despertar apuntada en Biohacking. Todos los avisos quedan guardados en <Link to="/informes">📊 Evaluaciones</Link>.</p>
       </div>
 
       <details className="section">

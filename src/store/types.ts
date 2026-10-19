@@ -144,6 +144,9 @@ export interface Meal {
   dishes?: MenuDish[]
   /** Media mañana y media tarde: el batido de siempre (por defecto) o el snack del menú. */
   choice?: 'batido' | 'menu'
+  /** Media mañana y media tarde: líquido tomado en ml (cuenta en Hidratación). Sin valor: media mañana con el
+   *  batido cuenta 250 ml; media tarde, nada (0.34.3). */
+  liquid_ml?: number | null
   /** Platos del menú después del primero: tomado (`si`) o no tomado (`no`). Sin marcar cuenta como tomado. */
   taken?: Record<string, 'si' | 'no' | null>
   /** Comida y cena: el postre que ha tomado, escrito por los cuidadores (cuenta sus kcal aparte). */

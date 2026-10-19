@@ -64,7 +64,7 @@ export default function Hidratacion() {
         <div className="vaso-info">
           <div className="vaso-total"><strong>{total ?? 0} ml</strong> de {target} ml</div>
           <div className="muted small">{MODE_LABELS[mode]}{total != null && total < target ? ` · faltan ${target - total} ml` : total != null ? ' · objetivo cumplido' : ''}</div>
-          {batido > 0 && <div className="small">🥤 Batido: <strong>{batido} ml</strong> (se apunta en Nutrición)</div>}
+          {batido > 0 && <div className="small">🥤 Batidos de media mañana y media tarde: <strong>{batido} ml</strong> (se apuntan en Nutrición)</div>}
           <div className="vaso-mar small">🌊 Agua de mar: {perfusion ? <><strong>{Math.round(mar / 10)} chupito{Math.round(mar / 10) === 1 ? '' : 's'}</strong> ({mar} ml) · uno de 10 ml cada 2 h hasta terminar la perfusión</> : <><strong>{mar} de {SEAWATER_TARGET_ML} ml</strong></>}</div>
           <div className="vaso-botones">
             <button type="button" className="btn sm secondary" onClick={() => sumar('agua', '½ taza de agua')}>💧 + ½ taza de agua</button>
