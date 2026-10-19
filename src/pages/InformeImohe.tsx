@@ -278,7 +278,7 @@ function DiaADia({ filas, porToma }: { filas: FilaDia[]; porToma: { slot: string
         <table className="table small ii-grid">
           <thead><tr><th />{filas.map((f) => <th key={f.d}>{diaCorto(f.d)} {Number(f.d.slice(8))}</th>)}<th>Semana</th></tr></thead>
           <tbody>
-            <tr className="ii-grp"><th colSpan={filas.length + 2}>Ingestas · ✓ entera · ¾ · ½ · ✗ no se hizo · «sin reg.» = sin registrar (quedó en blanco) · «hosp.» = día marcado como ingreso u hospital</th></tr>
+            <tr className="ii-grp"><th colSpan={filas.length + 2}>Ingestas · ✓ entera · ¾ · ½ · ✗ no se hizo · «sin reg.» = sin registrar (quedó en blanco)</th></tr>
             {TOMAS.map((t) => {
               const p = porToma.find((x) => x.slot === t.key)?.pct ?? null
               return fila(porToma.find((x) => x.slot === t.key)!.label, (f) => celdaToma(f.ingestas[t.key]), p == null ? '—' : `${p} %`, cls(p))

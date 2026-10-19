@@ -5,7 +5,8 @@
 //  - Semáforo de lo que se mide en %: verde ≥ 80 %, ámbar 60–79 %, rojo < 60 % (cortes del 27/09/2026).
 //  - Lo que quedó en blanco («sin registrar») no cuenta ni como sí ni como no: sale aparte y se enseña entre qué
 //    valores quedaría el resultado según lo que pasara de verdad.
-//  - Días de ingreso, hospital de día o urgencias: fuera de ingestas, kcal, líquidos, plato y horarios.
+//  - Los días en el hospital cuentan igual que en casa: come el menú que le lleva la familia y los cuidadores lo
+//    registran (Montserrate, 19/10/2026). «Dónde está» solo sale en la cabecera.
 import type { Cycle, DailyLog, Intake, Meal, MenuData, Patient, Product, WeightEntry } from '../store/types'
 import { addDays, todayStr } from './dates'
 import { afterChemoGate, cycleContext, isCisplatinDay, isMtxPerfusionDay, type CycleContext } from './cycle'
@@ -173,13 +174,13 @@ export function buildInformeImohe(ws: string, data: DatosInforme, today = todayS
   const H: Hueco[] = []
   // Un día sin ningún dato sale una sola vez («Día sin ningún dato»), no apartado por apartado.
   const hueco = (tipo: TipoHueco, apartado: string, que: string, dia: string, nota?: string) => { if (apartado === 'Registro' || (tipo === 'no' && apartado === 'Suplementación') || logOf(dia)) H.push({ tipo, apartado, que, dia, nota }) }
-  const enCasa = days.filter((d) => !hosp(d))
+  const enCasa = days
 
   // Días sin ningún registro
   for (const d of days) if (!logOf(d)) hueco('sr', 'Registro', 'Día sin ningún dato', d)
 
   // ---------- Ingestas ----------
-  const filas: FilaDia[] = days.map((d) => ({ d, hospital: hosp(d), modo: modoDe(d), ingestas: {}, ingestasDia: null, kcal: null, kcalCompleto: false, kcalPrevisto: null, liquidos: null, liquidosDudoso: false, ayunoH: null, cenaFin: null, vomitos: 0, noRetiene: false, nausea: null, deposicion: null, peso: null }))
+  const filas: FilaDia[] = days.map((d) => ({ d, hospital: false, modo: modoDe(d), ingestas: {}, ingestasDia: null, kcal: null, kcalCompleto: false, kcalPrevisto: null, liquidos: null, liquidosDudoso: false, ayunoH: null, cenaFin: null, vomitos: 0, noRetiene: false, nausea: null, deposicion: null, peso: null }))
   const filaDe = new Map(filas.map((f) => [f.d, f]))
   const tot = { suma: 0, reg: 0, sr: 0, enteras: 0, parciales: 0, no: 0 }
   const porSlot = new Map<string, { suma: number; reg: number }>()
@@ -277,8 +278,7 @@ export function buildInformeImohe(ws: string, data: DatosInforme, today = todayS
   let cnOk = 0, cnN = 0
   for (const f of filas) {
     const d = f.d
-    if (f.hospital || hosp(addDays(d, -1))) f.ayunoH = 'fuera'
-    else if (isMtxPerfusionDay(data.cycles, d)) f.ayunoH = 'mtx'
+    if (isMtxPerfusionDay(data.cycles, d)) f.ayunoH = 'mtx'
     else {
       const det = overnightFastDetail(logOf(d), logOf(addDays(d, -1)))
       if (!det) { f.ayunoH = 'sr'; aySr++; hueco('sr', 'Horarios', 'Hora de la cena de la víspera o de la primera ingesta (ayuno de la noche)', d) }
