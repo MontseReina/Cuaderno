@@ -915,3 +915,7 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .ii-todo { border: 1px dashed var(--muted); border-radius: 10px; padding: .7rem .8rem; color: var(--muted); }
 @media print { .ii-tile, .ii-dev, .ii-reg { break-inside: avoid; } }
 .ii-table { min-width: 560px; }
+.ii-svg .ii-meta { stroke: var(--green); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.ii-svg text.ii-metat { fill: var(--green); font-weight: 700; }
+.ii-svg .ii-lim2 { stroke: #7a2018; stroke-width: 1.5; stroke-dasharray: 8 3 2 3; }
+.ii-svg text.ii-lim2t { fill: #7a2018; font-weight: 700; }

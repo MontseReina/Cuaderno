@@ -12,7 +12,7 @@ import { afterChemoGate, cycleContext, isCisplatinDay, isMtxPerfusionDay, type C
 import { trafficWindow } from './medication'
 import { sesionesTratamiento } from './fases'
 import { fatCount, finDe, mealTraffic, overnightFastDetail, totalFluids, weekMode } from './nutrition'
-import { AYUNO_MAX_H, PAUTA_OCT_DESDE, TOMAS, pautaNueva } from './catalogs'
+import { AYUNO_MAX_H, TOMAS, pautaNueva } from './catalogs'
 import { kcalDia, platosDeToma, tomada } from './kcal'
 import { menuDelDia } from './menu'
 import { AGUA_DIA_ML, CENA_LIMITE, batidoMl, liquidosDelDia } from './avisos'
@@ -25,8 +25,12 @@ export const METAS = {
   liquidosMl: AGUA_DIA_ML, // 1.500 ml en todas las fases, con el batido
   ayunoMaxH: AYUNO_MAX_H, // 12 h
   cenaLimite: CENA_LIMITE, // 19:30
-  pesoPerdidaMaxPct: 5, // no perder más del 5 % del peso de referencia
-  pesoEstableKg: 0.2,
+  // Peso (Montserrate, 19/10/2026): la meta mínima es llegar a 25 kg lo antes posible, antes del siguiente ciclo.
+  // No debe bajar del 5 % por debajo de 25 kg (23,75). La línea del 5 % por debajo de 24 kg (22,8) avisa de que
+  // sigue muy lejos de la meta.
+  pesoMetaKg: 25,
+  pesoLimiteKg: 23.75, // 25 − 5 %
+  pesoMuyBajoKg: 22.8, // 24 − 5 %
   pescadoSemana: 3,
   pateSemana: 1, // paté de sardinas o hígado de bacalao
 }
@@ -118,7 +122,7 @@ export interface InformeImohe {
   filas: FilaDia[]
   porToma: { slot: string; label: string; pct: number | null }[]
   plato: { n: number; sr: number; ok: number; hid: number; veg: number; prot: number }
-  peso: { refKg: number | null; refFecha: string | null; ultimo: number | null; perdidaPct: number | null; cambioSemana: number | null; serie: { ws: string; kg: number | null }[] }
+  peso: { ultimo: number | null; faltaKg: number | null; cambioSemana: number | null; proximoCiclo: string | null; serie: { ws: string; kg: number | null }[] }
   suplementos: { filas: SupRow[]; dadas: number; noDadas: number; sr: number; pct: number | null; condicionales: string[] }
   noCome: { dejados: string[]; sustituciones: string[]; postres: number }
 }
@@ -389,13 +393,14 @@ export function buildInformeImohe(ws: string, data: DatosInforme, today = todayS
 
   // ---------- Peso ----------
   const pes = pesadasDe(data)
-  const refP = [...pes].filter((p) => p.date <= PAUTA_OCT_DESDE).pop() ?? pes[0] ?? null
   const semana = pes.filter((p) => p.date >= ws && p.date <= all[6] && p.date < today)
   for (const p of semana) { const f = filaDe.get(p.date); if (f) f.peso = p.kg }
   const ultimo = semana[semana.length - 1] ?? null
-  const perdidaPct = refP && ultimo ? Math.round(((refP.kg - ultimo.kg) / refP.kg) * 1000) / 10 : null
+  const faltaKg = ultimo ? Math.round(Math.max(0, METAS.pesoMetaKg - ultimo.kg) * 10) / 10 : null
+  const proximoCiclo = sesionesTratamiento(data.patient?.protocol_start, data.cycles).find((x) => x.kind !== 'cirugia' && x.date >= today)?.date ?? null
   const cambioSemana = semana.length >= 2 ? Math.round((semana[semana.length - 1].kg - semana[0].kg) * 10) / 10 : null
-  const pesoSem: Sem = !refP || !ultimo ? 'gris' : ultimo.kg >= refP.kg - METAS.pesoEstableKg ? 'verde' : (perdidaPct ?? 0) < METAS.pesoPerdidaMaxPct ? 'ambar' : 'rojo'
+  const pesoSem: Sem = !ultimo ? 'gris' : ultimo.kg >= METAS.pesoMetaKg ? 'verde' : ultimo.kg >= METAS.pesoLimiteKg ? 'ambar' : 'rojo'
+  const dias = (a: string, b: string) => Math.round((new Date(b + 'T12:00').getTime() - new Date(a + 'T12:00').getTime()) / 86400000)
   const serie = Array.from({ length: 6 }, (_, i) => addDays(ws, -7 * (5 - i))).map((w) => {
     const xs = pes.filter((p) => p.date >= w && p.date <= addDays(w, 6)).map((p) => p.kg)
     return { ws: w, kg: xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null }
@@ -406,9 +411,9 @@ export function buildInformeImohe(ws: string, data: DatosInforme, today = todayS
   const es = (x: number) => String(x).replace('.', ',')
   const tarjetas: Tarjeta[] = [
     {
-      key: 'peso', titulo: 'Peso', sem: pesoSem, pct: perdidaPct != null ? -perdidaPct : null,
+      key: 'peso', titulo: 'Peso', sem: pesoSem, pct: ultimo ? Math.round((ultimo.kg / METAS.pesoMetaKg) * 100) : null,
       valor: ultimo ? es(ultimo.kg) : '—', unidad: 'kg',
-      meta: refP ? (perdidaPct != null && perdidaPct > 0 ? `Ha perdido el ${es(perdidaPct)} % de su peso de referencia (${es(refP.kg)} kg). Límite: ${METAS.pesoPerdidaMaxPct} %` : `Peso de referencia: ${es(refP.kg)} kg. Límite: perder el ${METAS.pesoPerdidaMaxPct} %`) : 'Sin pesadas',
+      meta: ultimo ? `Meta: ${METAS.pesoMetaKg} kg${faltaKg ? ` · faltan ${es(faltaKg)} kg` : ' · alcanzada'}${ultimo.kg < METAS.pesoLimiteKg ? ` · por debajo del límite (${es(METAS.pesoLimiteKg)} kg)` : ''}${proximoCiclo ? ` · próximo ciclo ${proximoCiclo.slice(8)}/${proximoCiclo.slice(5, 7)} (en ${dias(today, proximoCiclo)} días)` : ''}` : 'Sin pesadas esta semana',
       linea: cambioSemana != null ? `${cambioSemana > 0 ? '↑ +' : cambioSemana < 0 ? '↓ ' : '= '}${es(cambioSemana)} kg esta semana` : ultimo ? 'Una sola pesada esta semana' : 'Sin pesadas esta semana',
     },
     {
@@ -466,7 +471,7 @@ export function buildInformeImohe(ws: string, data: DatosInforme, today = todayS
   const des: (Desviacion & { orden: number })[] = []
   const T = (k: Tarjeta['key']) => tarjetas.find((t) => t.key === k)!
   const add = (k: Tarjeta['key'], titulo: string, texto: string, pregunta: string) => { const t = T(k); if (t.sem === 'rojo' || t.sem === 'ambar') des.push({ sem: t.sem, titulo, texto, pregunta, orden: (t.sem === 'rojo' ? 0 : 1000) + (t.pct ?? 50) }) }
-  if (refP && ultimo) add('peso', perdidaPct != null && perdidaPct > 0 ? 'El peso baja' : 'Peso', `Última pesada ${es(ultimo.kg)} kg. Ha perdido el ${es(perdidaPct ?? 0)} % de su peso de referencia (${es(refP.kg)} kg); el límite es el ${METAS.pesoPerdidaMaxPct} %.${cambioSemana != null ? ` Esta semana: ${cambioSemana > 0 ? '+' : ''}${es(cambioSemana)} kg.` : ''}`, `Con ${kMedia != null ? n(kMedia) + ' kcal de media' : 'lo que come'}, ¿qué cifra diaria debería alcanzar para no seguir perdiendo peso?`)
+  if (ultimo) add('peso', ultimo.kg < METAS.pesoLimiteKg ? 'Peso por debajo del límite' : 'Peso por debajo de la meta', `Última pesada ${es(ultimo.kg)} kg; la meta es ${METAS.pesoMetaKg} kg (faltan ${es(faltaKg ?? 0)} kg) y no debe bajar de ${es(METAS.pesoLimiteKg)} kg.${ultimo.kg < METAS.pesoMuyBajoKg ? ` Está por debajo de ${es(METAS.pesoMuyBajoKg)} kg: muy lejos de la meta.` : ''}${cambioSemana != null ? ` Esta semana: ${cambioSemana > 0 ? '+' : ''}${es(cambioSemana)} kg.` : ''}${proximoCiclo ? ` Próximo ciclo en ${dias(today, proximoCiclo)} días.` : ''}`, `Con ${kMedia != null ? n(kMedia) + ' kcal de media' : 'lo que come'}, ¿qué cifra diaria debería alcanzar para llegar a ${METAS.pesoMetaKg} kg antes del próximo ciclo?`)
   add('energia', 'Come menos de lo previsto', `Media de ${kMedia != null ? n(kMedia) : '—'} kcal al día, el ${kPct} % de lo previsto en el menú.`, '¿Qué cifra de kcal al día debería alcanzar?')
   if (peorToma && peorTomaDet) add('ingestas', 'Ingestas', `Hace el ${ingPct} % de lo previsto. La que más falla es el ${SLOT_MIN[peorToma.slot]}: ${es(peorTomaDet.suma)} de ${peorTomaDet.reg} registradas (${peorToma.pct} %).`, `¿Hay otra opción para el ${SLOT_MIN[peorToma.slot]} que le cueste menos?`)
   const falta = [plato.hid < plato.n ? `hidratos (${plato.n - plato.hid})` : '', plato.veg < plato.n ? `verdura (${plato.n - plato.veg})` : '', plato.prot < plato.n ? `proteína (${plato.n - plato.prot})` : ''].filter(Boolean).join(', ')
@@ -520,7 +525,7 @@ export function buildInformeImohe(ws: string, data: DatosInforme, today = todayS
     datosInsuficientes: diasConDatos < 4,
     huecos: [...grupos.values()],
     tarjetas, desviaciones, rangos, filas, porToma, plato,
-    peso: { refKg: refP?.kg ?? null, refFecha: refP?.date ?? null, ultimo: ultimo?.kg ?? null, perdidaPct, cambioSemana, serie },
+    peso: { ultimo: ultimo?.kg ?? null, faltaKg, cambioSemana, proximoCiclo, serie },
     suplementos: { filas: supFilas, dadas: sD, noDadas: sN, sr: sS, pct: supPct, condicionales },
     noCome,
   }

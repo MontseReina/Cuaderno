@@ -102,7 +102,7 @@ export default function InformeImohe() {
           )
         })}
       </div>
-      <p className="muted small">* Energía: referencia provisional, lo previsto en el menú cargado, hasta tener la cifra de kcal al día. Peso: el de referencia es la pesada del {r.peso.refFecha ? ddmm(r.peso.refFecha) : '—'} (inicio de la pauta del 18/10), pendiente de confirmar.</p>
+      <p className="muted small">* Energía: referencia provisional, lo previsto en el menú cargado, hasta tener la cifra de kcal al día. Peso: meta mínima {METAS.pesoMetaKg} kg antes del próximo ciclo; verde al llegar, ámbar entre {es(METAS.pesoLimiteKg)} y {METAS.pesoMetaKg} kg, rojo por debajo de {es(METAS.pesoLimiteKg)} kg.</p>
 
       {/* Desviaciones */}
       <h2>Las tres desviaciones principales</h2>
@@ -162,8 +162,8 @@ export default function InformeImohe() {
         </section>
         <section className="card tight">
           <h3 style={{ marginTop: 0 }}>Peso, últimas 6 semanas</h3>
-          <GraficoPeso serie={r.peso.serie} refKg={r.peso.refKg} />
-          <p className="muted small">Media de las pesadas de cada semana. La línea roja es perder el {METAS.pesoPerdidaMaxPct} % del peso de referencia{r.peso.refKg ? ` (${es(r.peso.refKg)} kg)` : ''}.</p>
+          <GraficoPeso serie={r.peso.serie} />
+          <p className="muted small">Media de las pesadas de cada semana. Línea de puntos: meta de {METAS.pesoMetaKg} kg. Línea roja: límite, 5 % menos que {METAS.pesoMetaKg} kg ({es(METAS.pesoLimiteKg)} kg); de ahí no debe bajar. Línea granate: 5 % menos que 24 kg ({es(METAS.pesoMuyBajoKg)} kg); por debajo, sigue muy lejos de la meta.</p>
         </section>
       </div>
 
@@ -251,7 +251,7 @@ function BarraParte({ label, si, n }: { label: string; si: number; n: number }) 
 const MARCA: Record<string, string> = { '1': '✓', '0.75': '¾', '0.5': '½', '0.25': '¼', '0': '✗' }
 function celdaToma(c: Celda) {
   if (c.fuera) return { txt: '', cls: 'ii-fuera' }
-  if (c.v == null) return { txt: 's/r', cls: 'c-sr' }
+  if (c.v == null) return { txt: 'sin reg.', cls: 'c-sr' }
   return { txt: MARCA[String(c.v)] ?? es(c.v), cls: c.v >= 0.75 ? 'c-ok' : c.v > 0 ? 'c-warn' : 'c-bad' }
 }
 
@@ -278,7 +278,7 @@ function DiaADia({ filas, porToma }: { filas: FilaDia[]; porToma: { slot: string
         <table className="table small ii-grid">
           <thead><tr><th />{filas.map((f) => <th key={f.d}>{diaCorto(f.d)} {Number(f.d.slice(8))}</th>)}<th>Semana</th></tr></thead>
           <tbody>
-            <tr className="ii-grp"><th colSpan={filas.length + 2}>Ingestas · ✓ entera · ¾ · ½ · ✗ no se hizo · s/r sin registrar</th></tr>
+            <tr className="ii-grp"><th colSpan={filas.length + 2}>Ingestas · ✓ entera · ¾ · ½ · ✗ no se hizo · «sin reg.» = sin registrar (quedó en blanco) · «hosp.» = día marcado como ingreso u hospital</th></tr>
             {TOMAS.map((t) => {
               const p = porToma.find((x) => x.slot === t.key)?.pct ?? null
               return fila(porToma.find((x) => x.slot === t.key)!.label, (f) => celdaToma(f.ingestas[t.key]), p == null ? '—' : `${p} %`, cls(p))
@@ -286,14 +286,14 @@ function DiaADia({ filas, porToma }: { filas: FilaDia[]; porToma: { slot: string
             <tr className="ii-grp"><th colSpan={filas.length + 2}>Energía y líquidos</th></tr>
             {fila('Kcal', (f) => (f.kcal == null ? { txt: '—' } : { txt: n(f.kcal) + (f.kcalCompleto ? '' : '*'), cls: f.kcalCompleto ? cls(f.kcalPrevisto ? (f.kcal / f.kcalPrevisto) * 100 : null) : 'c-sr' }), kMedia != null ? n(kMedia) : '—')}
             {fila('% de lo previsto', (f) => ({ txt: f.kcal != null && f.kcalPrevisto ? String(Math.round((f.kcal / f.kcalPrevisto) * 100)) + (f.kcalCompleto ? '' : '*') : '—' }), '')}
-            {fila('Líquidos (ml)', (f) => (f.liquidos == null ? { txt: 's/r', cls: 'c-sr' } : { txt: n(f.liquidos) + (f.liquidosDudoso ? ' ⚠' : ''), cls: cls((f.liquidos / METAS.liquidosMl) * 100) }), lMedia != null ? n(lMedia) : '—')}
+            {fila('Líquidos (ml)', (f) => (f.liquidos == null ? { txt: 'sin reg.', cls: 'c-sr' } : { txt: n(f.liquidos) + (f.liquidosDudoso ? ' ⚠' : ''), cls: cls((f.liquidos / METAS.liquidosMl) * 100) }), lMedia != null ? n(lMedia) : '—')}
             <tr className="ii-grp"><th colSpan={filas.length + 2}>Horarios</th></tr>
-            {fila('Ayuno de la noche (h)', (f) => (f.ayunoH === 'sr' ? { txt: 's/r', cls: 'c-sr' } : f.ayunoH === 'mtx' ? { txt: 'MTX' } : f.ayunoH === 'fuera' || f.ayunoH == null ? { txt: '—' } : { txt: es(f.ayunoH), cls: f.ayunoH > METAS.ayunoMaxH ? 'c-bad' : '' }), `${ay.filter((f) => (f.ayunoH as number) <= METAS.ayunoMaxH).length} de ${ay.length}`)}
-            {fila('Fin de la cena', (f) => (f.cenaFin === 'sr' ? { txt: 's/r', cls: 'c-sr' } : f.cenaFin === 'no' ? { txt: 'no cenó', cls: 'c-bad' } : f.cenaFin === 'fuera' || f.cenaFin == null ? { txt: '—' } : { txt: f.cenaFin, cls: f.cenaFin > METAS.cenaLimite ? 'c-warn' : '' }), `${cn.filter((f) => (f.cenaFin as string) <= METAS.cenaLimite).length} de ${cn.length}`)}
+            {fila('Ayuno de la noche (h)', (f) => (f.ayunoH === 'sr' ? { txt: 'sin reg.', cls: 'c-sr' } : f.ayunoH === 'mtx' ? { txt: 'MTX' } : f.ayunoH === 'fuera' || f.ayunoH == null ? { txt: '—' } : { txt: es(f.ayunoH), cls: f.ayunoH > METAS.ayunoMaxH ? 'c-bad' : '' }), `${ay.filter((f) => (f.ayunoH as number) <= METAS.ayunoMaxH).length} de ${ay.length}`)}
+            {fila('Fin de la cena', (f) => (f.cenaFin === 'sr' ? { txt: 'sin reg.', cls: 'c-sr' } : f.cenaFin === 'no' ? { txt: 'no cenó', cls: 'c-bad' } : f.cenaFin === 'fuera' || f.cenaFin == null ? { txt: '—' } : { txt: f.cenaFin, cls: f.cenaFin > METAS.cenaLimite ? 'c-warn' : '' }), `${cn.filter((f) => (f.cenaFin as string) <= METAS.cenaLimite).length} de ${cn.length}`)}
             <tr className="ii-grp"><th colSpan={filas.length + 2}>Tolerancia y peso</th></tr>
             {fila('Vómitos', (f) => ({ txt: f.noRetiene ? `${f.vomitos} · no retiene` : String(f.vomitos), cls: f.vomitos || f.noRetiene ? 'c-bad' : '' }), `${filas.filter((f) => f.vomitos || f.noRetiene).length} días`)}
             {fila('Náusea máxima (0–10)', (f) => ({ txt: f.nausea == null ? '—' : String(f.nausea), cls: (f.nausea ?? 0) >= 5 ? 'c-bad' : (f.nausea ?? 0) >= 3 ? 'c-warn' : '' }), `máx. ${Math.max(0, ...filas.map((f) => f.nausea ?? 0))}`)}
-            {fila('Deposición (Bristol)', (f) => (f.deposicion === 'sr' || f.deposicion == null ? { txt: 's/r', cls: 'c-sr' } : f.deposicion === 'no' ? { txt: 'no hizo' } : { txt: String(f.deposicion), cls: f.deposicion <= 2 || f.deposicion >= 6 ? 'c-warn' : '' }), `${depReg.filter((f) => typeof f.deposicion === 'number').length} de ${depReg.length} días`)}
+            {fila('Deposición (Bristol)', (f) => (f.deposicion === 'sr' || f.deposicion == null ? { txt: 'sin reg.', cls: 'c-sr' } : f.deposicion === 'no' ? { txt: 'no hizo' } : { txt: String(f.deposicion), cls: f.deposicion <= 2 || f.deposicion >= 6 ? 'c-warn' : '' }), `${depReg.filter((f) => typeof f.deposicion === 'number').length} de ${depReg.length} días`)}
             {fila('Peso (kg)', (f) => ({ txt: f.peso != null ? es(f.peso) : '' }), pesos.length >= 2 ? `${es(Math.round((pesos[pesos.length - 1].peso! - pesos[0].peso!) * 10) / 10)}` : '')}
           </tbody>
         </table>
@@ -303,13 +303,17 @@ function DiaADia({ filas, porToma }: { filas: FilaDia[]; porToma: { slot: string
   )
 }
 
-function GraficoPeso({ serie, refKg }: { serie: { ws: string; kg: number | null }[]; refKg: number | null }) {
+function GraficoPeso({ serie }: { serie: { ws: string; kg: number | null }[] }) {
   const vals = serie.map((s) => s.kg).filter((x): x is number => x != null)
   if (!vals.length) return <p className="muted small">Sin pesadas en las últimas 6 semanas.</p>
-  const lim = refKg != null ? refKg * (1 - METAS.pesoPerdidaMaxPct / 100) : null
-  const all = [...vals, ...(lim != null ? [lim] : []), ...(refKg != null ? [refKg] : [])]
+  const lineas = [
+    { kg: METAS.pesoMetaKg, cls: 'ii-meta', txt: `meta · ${METAS.pesoMetaKg} kg` },
+    { kg: METAS.pesoLimiteKg, cls: 'ii-lim', txt: `límite (25 − 5 %) · ${es(METAS.pesoLimiteKg)}` },
+    { kg: METAS.pesoMuyBajoKg, cls: 'ii-lim2', txt: `muy por debajo (24 − 5 %) · ${es(METAS.pesoMuyBajoKg)}` },
+  ]
+  const all = [...vals, ...lineas.map((l) => l.kg)]
   const lo = Math.floor((Math.min(...all) - 0.2) * 2) / 2, hi = Math.ceil((Math.max(...all) + 0.2) * 2) / 2
-  const W = 320, H = 130, x0 = 34, x1 = 305, y0 = 10, y1 = 100
+  const W = 340, H = 150, x0 = 34, x1 = 325, y0 = 12, y1 = 118
   const y = (v: number) => y0 + ((hi - v) / (hi - lo)) * (y1 - y0)
   const x = (i: number) => x0 + (i * (x1 - x0)) / 5
   const ticks: number[] = []
@@ -320,7 +324,7 @@ function GraficoPeso({ serie, refKg }: { serie: { ws: string; kg: number | null 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Peso medio por semana" className="ii-svg">
       {ticks.map((t) => <g key={t}><line x1={x0} x2={x1} y1={y(t)} y2={y(t)} className="ii-gl" /><text x={0} y={y(t) + 4}>{es(t)}</text></g>)}
-      {lim != null && <><line x1={x0} x2={x1} y1={y(lim)} y2={y(lim)} className="ii-lim" /><text x={x1} y={y(lim) - 4} textAnchor="end" className="ii-limt">límite −{METAS.pesoPerdidaMaxPct} % · {es(Math.round(lim * 10) / 10)}</text></>}
+      {lineas.map((l) => <g key={l.cls}><line x1={x0} x2={x1} y1={y(l.kg)} y2={y(l.kg)} className={l.cls} /><text x={x1} y={y(l.kg) - 3} textAnchor="end" className={l.cls + 't'}>{l.txt}</text></g>)}
       <polyline points={linea} className="ii-ln" />
       {pts.map((p, i) => p && <circle key={i} cx={p[0]} cy={p[1]} r={i === 5 ? 4.5 : 3.5} className={i === 5 ? 'ii-end' : 'ii-pt'} />)}
       {serie.map((s, i) => <text key={s.ws} x={x(i)} y={H - 6} textAnchor="middle">{i === 5 ? 'esta' : `−${5 - i}`}</text>)}
