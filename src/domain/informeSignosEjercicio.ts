@@ -188,7 +188,8 @@ export function buildEjercicio(ws: string, days: string[], logs: DailyLog[], ses
     const l = logOf(d)
     const f = l?.extra?.functional ?? {}
     const fiebre = (l?.temp_max ?? 0) >= 38 || Object.values(l?.extra?.vitals ?? {}).some((v) => (v?.temp ?? 0) >= 38)
-    const fuera = fiebre || HOSPITAL.has(l?.location ?? '')
+    // Un día sin ningún dato (p. ej. el de la cirugía) no cuenta: no sabemos dónde estaba ni si pudo caminar.
+    const fuera = !l || fiebre || HOSPITAL.has(l?.location ?? '')
     const ses = sessions.filter((s) => s.date === d && !s.deleted_at)
     return {
       d,

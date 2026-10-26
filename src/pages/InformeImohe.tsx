@@ -353,7 +353,7 @@ function Signos({ s }: { s: InformeSignos }) {
     ['Tensión (la peor)', (f) => (f.ta ? celda(f.ta.txt, f.ta.mal ? 'c-warn' : '') : celda('—')), `${s.filas.filter((f) => f.ta?.mal).length} fuera de rango`],
     ['Pulso (el peor, lpm)', (f) => (f.pulso ? celda(String(f.pulso.v), f.pulso.mal ? 'c-warn' : '') : celda('—')), `${s.filas.filter((f) => f.pulso?.mal).length} fuera de rango`],
     ['Saturación (la más baja, %)', (f) => (f.sat == null ? celda('—') : celda(String(f.sat), f.sat < 94 ? 'c-bad' : f.sat < 95 ? 'c-warn' : '')), s.filas.some((f) => f.sat != null && f.sat < 95) ? 'hay bajas' : 'en rango'],
-    ['Dolor máx. (0–10)', (f) => (f.dolor == null ? celda('sin reg.', 'c-sr') : celda(String(f.dolor), f.dolor >= 7 ? 'c-bad' : f.dolor >= 4 ? 'c-warn' : '')), `máx. ${Math.max(0, ...s.filas.map((f) => f.dolor ?? 0))}`],
+    ['Dolor máx. (0–10)', (f) => (f.dolor == null ? celda('sin reg.', 'c-sr') : celda(String(f.dolor), f.dolor >= 7 ? 'c-bad' : f.dolor >= 4 ? 'c-warn' : '')), s.filas.some((f) => f.dolor != null) ? `máx. ${Math.max(...s.filas.map((f) => f.dolor ?? 0))}` : 'sin registrar'],
     ['Fatiga (0–4)', (f) => celda(f.fatiga == null ? '—' : String(f.fatiga), (f.fatiga ?? 0) >= 3 ? 'c-warn' : ''), ''],
     ['Ánimo (1–5)', (f) => celda(f.animo == null ? '—' : String(f.animo), f.animo != null && f.animo <= 2 ? 'c-warn' : ''), ''],
     ['Micciones', (f) => celda(f.micciones == null ? '—' : n(f.micciones), f.menosOrina ? 'c-warn' : ''), ''],
