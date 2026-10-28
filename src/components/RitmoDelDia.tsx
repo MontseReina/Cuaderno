@@ -5,6 +5,7 @@ import { addDays, fmtDate, todayStr } from '../domain/dates'
 import {
   AREA_ICO, AREA_LABEL, desviaciones, grupoDe, GRUPO_LABEL, MOMENTOS, ml, ritmoDe, RITMO_LABEL, RITMO_NIVEL,
   type Area, type AvisoRow, type Desviacion, type Momento,
+  MANO_HORAS, MANO_MOMENTOS,
 } from '../domain/avisos'
 
 /** 0.34.0 · Evaluaciones → Ritmo del día y desviaciones. Lee los controles de las 12, 16 y 19 h y el cierre de cada día
@@ -132,8 +133,10 @@ export function RitmoResumen() {
   )
 }
 
-const MOMENTO_TXT: Record<string, string> = { '12': '12:00', '16': '16:00', '19': '19:00', '21': '21:00', cama: 'A dormir', caminar_desayuno: 'Caminar (desayuno)', caminar_comida: 'Caminar (comida)', caminar_cena: 'Caminar (cena)', '2130': '21:30', ayuno11: 'Ayuno 11 h', ayuno12: 'Ayuno 12 h', final: 'Cierre', prueba: 'Prueba' }
-const ORDEN = ['ayuno11', 'ayuno12', 'caminar_desayuno', '12', 'caminar_comida', '16', '19', 'caminar_cena', '21', 'cama', '2130', 'final']
+const MOMENTO_TXT: Record<string, string> = { '12': '12:00', '16': '16:00', '19': '19:00', '21': '21:00', cama: 'A dormir', caminar_desayuno: 'Caminar (desayuno)', caminar_comida: 'Caminar (comida)', caminar_cena: 'Caminar (cena)', '2130': '21:30', ayuno11: 'Ayuno 11 h', ayuno12: 'Ayuno 12 h', final: 'Cierre', prueba: 'Prueba', ...Object.fromEntries(MANO_HORAS.map((h) => [`mano_${h}`, `Mano ${h}:00`])) }
+/** Orden por hora aproximada; los de la mano van justo antes del control de su misma hora. */
+const HORA_ORDEN: Record<string, string> = { ayuno11: '08:59', ayuno12: '09:00', caminar_desayuno: '09:30', '12': '12:01', caminar_comida: '15:00', '16': '16:01', '19': '19:01', caminar_cena: '20:30', '21': '21:01', cama: '21:10', '2130': '21:31', final: '23:59' }
+const ORDEN = [...Object.keys(HORA_ORDEN), ...MANO_MOMENTOS].sort((a, b) => (HORA_ORDEN[a] ?? `${a.slice(5)}:00`).localeCompare(HORA_ORDEN[b] ?? `${b.slice(5)}:00`))
 
 /** Evaluaciones → Avisos (para imprimir o guardar en PDF): todos los avisos enviados y los controles, día a día. */
 export function AvisosImprimir() {

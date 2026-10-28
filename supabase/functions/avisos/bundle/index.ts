@@ -1822,6 +1822,7 @@ const TITULOS = {
 	"2130": "Huma · Para mañana",
 	cama: "Huma · A dormir 🌙",
 	caminar: "Huma · A caminar 🚶",
+	mano: "Huma · Ejercicios de la mano ✋",
 	ayuno11: "Huma · Buenos días 🌅",
 	ayuno12: "Huma · Buenos días 🌅",
 	prueba: "Huma · Aviso de prueba"
@@ -1953,6 +1954,14 @@ function avisoCaminar(d, ahora, yaMandados) {
 	}
 	return null;
 }
+const MANO_HORAS = Array.from({ length: 12 }, (_, i) => String(9 + i).padStart(2, "0"));
+MANO_HORAS.map((h) => `mano_${h}`);
+function avisoMano() {
+	return {
+		title: TITULOS.mano,
+		body: "✋ Unai, toca mover la mano: primero los dedos y después los ejercicios con la bola. ¡Cada ronda suma!"
+	};
+}
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
 function ayunoAhora(d, ahora) {
 	if ((d.log?.meals ?? []).some((m) => tomada(m))) return null;
@@ -2011,6 +2020,11 @@ function tareasALaHora(ahora) {
 	if (entre("07:00", "13:00")) out.push({ tipo: "ayuno" });
 	if (entre("06:00", "23:30")) out.push({ tipo: "caminar" });
 	if (entre("00:00", "02:00")) out.push({ tipo: "cierre" });
+	const h = ahora.slice(0, 2);
+	if (MANO_HORAS.includes(h) && ahora.slice(3, 5) < "40") out.push({
+		tipo: "mano",
+		momento: `mano_${h}`
+	});
 	return out;
 }
 //#endregion
@@ -2326,6 +2340,14 @@ async function tick(env, fetchFn, date, hhmm, dry = false) {
 			horas: a.horas,
 			aviso: a.aviso,
 			envio: await mandar(date, a.momento, a.aviso)
+		});
+	} else if (t.tipo === "mano") {
+		const aviso = avisoMano();
+		if (!await candado(date, t.momento, aviso)) continue;
+		hecho.push({
+			momento: t.momento,
+			aviso,
+			envio: await mandar(date, t.momento, aviso)
 		});
 	} else if (t.tipo === "cierre") {
 		const dd = datos(ayer);

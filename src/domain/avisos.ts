@@ -285,6 +285,7 @@ export const TITULOS: Record<string, string> = {
   '2130': 'Huma · Para mañana',
   cama: 'Huma · A dormir 🌙',
   caminar: 'Huma · A caminar 🚶',
+  mano: 'Huma · Ejercicios de la mano ✋',
   ayuno11: 'Huma · Buenos días 🌅',
   ayuno12: 'Huma · Buenos días 🌅',
   prueba: 'Huma · Aviso de prueba',
@@ -388,6 +389,16 @@ export function avisoCaminar(d: DatosDia, ahora: string, yaMandados: Set<string>
   return null
 }
 
+/** 0.38.0 · Ejercicios de la mano: cada hora en punto de 9:00 a 20:00 (también en el hospital). Primero movilizar los
+ *  dedos y luego la bola. Cada hora se manda una sola vez (momento `mano_09`, `mano_10`…). */
+export const MANO_DESDE = 9
+export const MANO_HASTA = 20
+export const MANO_HORAS = Array.from({ length: MANO_HASTA - MANO_DESDE + 1 }, (_, i) => String(MANO_DESDE + i).padStart(2, '0'))
+export const MANO_MOMENTOS = MANO_HORAS.map((h) => `mano_${h}`)
+export function avisoMano(): Aviso {
+  return { title: TITULOS.mano, body: '✋ Unai, toca mover la mano: primero los dedos y después los ejercicios con la bola. ¡Cada ronda suma!' }
+}
+
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
 export function ayunoAhora(d: DatosDia, ahora: string): { horas: number; desde: string; limite: string } | null {
   if ((d.log?.meals ?? []).some((m) => tomada(m))) return null
@@ -414,7 +425,7 @@ export function avisoAyuno(d: DatosDia, ahora: string, yaMandados: Set<string>):
 
 /** Qué toca hacer en este minuto (hora de Madrid). El servidor lo llama cada 5 minutos; cada momento se hace una
  *  sola vez al día (se guarda en la tabla `avisos`). */
-export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: 'caminar' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' }
+export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: 'caminar' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' } | { tipo: 'mano'; momento: string }
 export function tareasALaHora(ahora: string): Tarea[] {
   const out: Tarea[] = []
   const entre = (a: string, b: string) => ahora >= a && ahora < b
@@ -428,6 +439,8 @@ export function tareasALaHora(ahora: string): Tarea[] {
   if (entre(AYUNO_DESDE, AYUNO_HASTA)) out.push({ tipo: 'ayuno' })
   if (entre('06:00', '23:30')) out.push({ tipo: 'caminar' })
   if (entre('00:00', '02:00')) out.push({ tipo: 'cierre' })
+  const h = ahora.slice(0, 2)
+  if (MANO_HORAS.includes(h) && ahora.slice(3, 5) < '40') out.push({ tipo: 'mano', momento: `mano_${h}` })
   return out
 }
 

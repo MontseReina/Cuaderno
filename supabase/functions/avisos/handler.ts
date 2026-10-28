@@ -10,7 +10,7 @@ import { setDatos } from './store-stub'
 import { sendPush, type VapidKeys } from './webpush'
 import {
   avisoAyuno, avisoCama, avisoCaminar, avisoCierre, avisoDelMomento, avisoParaManana, controlesDelMomento, controlesFinales, modoDelDia,
-  pendientesDelDia, tareasALaHora, TITULOS, type Aviso, type Control, type DatosDia,
+  pendientesDelDia, tareasALaHora, avisoMano, TITULOS, type Aviso, type Control, type DatosDia,
 } from '../../../src/domain/avisos'
 import { addDays } from '../../../src/domain/dates'
 import type { Cycle, DailyLog, Intake, Patient, Product, WeightEntry } from '../../../src/store/types'
@@ -194,6 +194,10 @@ export async function tick(env: Env, fetchFn: typeof fetch, date: string, hhmm: 
       if (!a) continue
       if (!(await candado(date, a.momento, a.aviso, { valor: Math.round(a.horas * 10) / 10, meta: 12 }))) continue
       hecho.push({ momento: a.momento, horas: a.horas, aviso: a.aviso, envio: await mandar(date, a.momento, a.aviso) })
+    } else if (t.tipo === 'mano') {
+      const aviso = avisoMano()
+      if (!(await candado(date, t.momento, aviso))) continue
+      hecho.push({ momento: t.momento, aviso, envio: await mandar(date, t.momento, aviso) })
     } else if (t.tipo === 'cierre') {
       // Cierre del día de AYER: cómo terminó cada apartado y qué quedó sin rellenar (cuenta como no hecho).
       const dd = datos(ayer)
