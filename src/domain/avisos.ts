@@ -395,8 +395,9 @@ export const MANO_DESDE = 9
 export const MANO_HASTA = 20
 export const MANO_HORAS = Array.from({ length: MANO_HASTA - MANO_DESDE + 1 }, (_, i) => String(MANO_DESDE + i).padStart(2, '0'))
 export const MANO_MOMENTOS = MANO_HORAS.map((h) => `mano_${h}`)
-export function avisoMano(): Aviso {
-  return { title: TITULOS.mano, body: '✋ Unai, toca mover la mano: primero los dedos y después los ejercicios con la bola. ¡Cada ronda suma!' }
+export function avisoMano(d: DatosDia, hora: string): Aviso | null {
+  if (d.log?.extra?.mano?.[hora]) return null // esa ronda ya está marcada en Ejercicio
+  return { title: TITULOS.mano, body: '✋ Unai, toca mover la mano: primero los dedos y después los ejercicios con la bola. ¡Cada ronda suma! Al terminar, marcadla en Ejercicio.' }
 }
 
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */

@@ -10,6 +10,7 @@ import { Segmented, Section } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
 import { faseTexto } from '../domain/diaTratamiento'
 import { EFFORT_FACES, WALK_AID, WALK_STOP } from '../domain/catalogs'
+import { MANO_HORAS } from '../domain/avisos'
 
 /** Aviso del tramo del día según el día real tras la última sesión de quimio. */
 function tramo(phase: string, day: number | null, etiqueta?: string | null): string {
@@ -29,6 +30,7 @@ type View =
   | { v: 'ejercicio'; i: number | null }
   | { v: 'aerobico'; edit: string | 'nuevo' | null }
   | { v: 'paseo' }
+  | { v: 'mano' }
   | { v: 'funcional' }
   | { v: 'otra' }
   | { v: 'no'; kind: Kind }
@@ -82,6 +84,7 @@ export default function Ejercicio() {
   if (view.v === 'fuerza' || view.v === 'ejercicio') body = <Fuerza {...props} all={all} sesion={fuerzaHoy[0]} view={view} marcar={marcar} />
   else if (view.v === 'aerobico') body = <Aerobico {...props} all={all} sesiones={aeroHoy} edit={view.edit} marcar={marcar} />
   else if (view.v === 'paseo') body = <Paseo {...props} />
+  else if (view.v === 'mano') body = <Mano {...props} />
   else if (view.v === 'funcional') body = <Funcional {...props} />
   else if (view.v === 'otra') body = <Otra {...props} />
   else if (view.v === 'no') body = <NoHecho {...props} kind={view.kind} />
@@ -125,6 +128,7 @@ function Agenda({ date, draft, setView, all, logs, setDate, aviso, limites, fuer
       s.some((x) => x.kind === 'fuerza') && 'fz',
       s.some((x) => x.kind === 'aerobico') && 'ae',
       (Object.values(mv).some(Boolean) || l?.extra?.functional?.walk_min || l?.steps) && 'pa',
+      Object.values(l?.extra?.mano ?? {}).some(Boolean) && 'mn',
     ].filter(Boolean) as string[]
   }
   const ex = draft.extra ?? {}
@@ -134,6 +138,7 @@ function Agenda({ date, draft, setView, all, logs, setDate, aviso, limites, fuer
   const f = ex.functional ?? {}
   const nF = [f.stairs, f.stands_alone, f.falls].filter((x) => x !== undefined && x !== null && x !== '').length
   const otras = OTRAS.filter((o) => draft.activity?.[o.key])
+  const nMano = MANO_HORAS.filter((h) => ex.mano?.[h]).length
 
   const ejercicios = fuerza.flatMap((s) => s.exercises)
   const fzMin = fuerza.reduce((a, s) => a + (s.minutes ?? 0), 0)
@@ -156,7 +161,7 @@ function Agenda({ date, draft, setView, all, logs, setDate, aviso, limites, fuer
           </button>
         ))}
       </div>
-      <p className="muted small ej-leyenda"><i className="fz" /> fuerza <i className="ae" /> aeróbico <i className="pa" /> paseo</p>
+      <p className="muted small ej-leyenda"><i className="fz" /> fuerza <i className="ae" /> aeróbico <i className="pa" /> paseo <i className="mn" /> mano</p>
 
       {aviso && <div className="notice">{aviso}</div>}
 
@@ -169,6 +174,8 @@ function Agenda({ date, draft, setView, all, logs, setDate, aviso, limites, fuer
       <Tarjeta ico="pa" title="Paseo y movimiento" onClick={() => setView({ v: 'paseo' })}
         sub={[`Después de comer ${nMv}/3`, f.walk_min ? `paseo ${f.walk_min} min` : '', draft.steps ? `${draft.steps} pasos` : ''].filter(Boolean).join(' · ')}
         badge={nMv === 3 ? '✓' : `${nMv}/3`} ok={nMv === 3} />
+      <Tarjeta ico="mn" title="Ejercicios de la mano" onClick={() => setView({ v: 'mano' })}
+        sub={`Dedos y luego bola · ${nMano} de ${MANO_HORAS.length} rondas`} badge={`${nMano}/${MANO_HORAS.length}`} ok={nMano === MANO_HORAS.length} />
       <Tarjeta ico="cf" title="Capacidad funcional" onClick={() => setView({ v: 'funcional' })}
         sub={`Escaleras · silla · caídas o golpes${f.sts30 != null ? ` · prueba 30 s: ${f.sts30}` : ' · prueba de la semana'}`} badge={nF === 3 ? '✓' : `${nF}/3`} ok={nF === 3} />
       <button type="button" className="ej-otra" onClick={() => setView({ v: 'otra' })}>
@@ -198,6 +205,7 @@ const ICONOS: Record<string, ReactNode> = {
   ae: svg(<path d="M3 12h4l2-5 4 10 2-5h6" />),
   pa: svg(<><circle cx="13" cy="4" r="2" /><path d="M10 21l2-7 3 3v4M9 11l3-3 3 3 3 1M12 8l-1 6" /></>),
   cf: svg(<path d="M4 20h4v-4h4v-4h4V8h4" />),
+  mn: svg(<path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V5.5a1.5 1.5 0 0 1 3 0V13M17 9.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-4.6-2.2L5 15.5a1.6 1.6 0 0 1 2.4-2L8 14" />),
 }
 
 /** Registros antiguos de capacidad funcional semanal (antes de la 0.15). */
@@ -499,6 +507,33 @@ function Paseo({ date, draft, set, setExtra, setView }: Comun) {
           ))}
         </div>
       </div>
+      <div className="ej-pie"><button type="button" className="btn block" onClick={() => setView({ v: 'agenda' })}>Listo</button></div>
+      <p className="muted small" style={{ textAlign: 'center' }}>Se guarda solo al tocar.</p>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- Ejercicios de la mano
+/** 0.38.1 · Una ronda por hora de 9 a 20 h: primero movilizar los dedos y luego la bola. El aviso de cada hora no se
+ *  manda si esa ronda ya está marcada. */
+function Mano({ date, draft, setExtra, setView }: Comun) {
+  const m = draft.extra?.mano ?? {}
+  const n = MANO_HORAS.filter((h) => m[h]).length
+  return (
+    <div>
+      <Cabecera title="Ejercicios de la mano" date={date} onBack={() => setView({ v: 'agenda' })} sub="Cada ronda: primero movilizar los dedos y después la bola. Tocad la hora de cada ronda hecha." />
+      <div className="card">
+        <strong>Rondas de hoy · {n} de {MANO_HORAS.length}</strong>
+        <div className="ej-mano">
+          {MANO_HORAS.map((h) => (
+            <button key={h} type="button" className={'ej-sino' + (m[h] ? ' on' : '')} aria-pressed={!!m[h]} aria-label={m[h] ? `Ronda de las ${Number(h)}:00 hecha` : `Marcar la ronda de las ${Number(h)}:00`}
+              onClick={() => setExtra({ mano: { ...m, [h]: !m[h] } })}>
+              {m[h] ? '✓ ' : ''}{Number(h)}:00
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="muted small">Lo que no se marque cuenta como no realizado. Si hay dolor, hinchazón o cambios en la herida, parad y consultadlo con traumatología.</p>
       <div className="ej-pie"><button type="button" className="btn block" onClick={() => setView({ v: 'agenda' })}>Listo</button></div>
       <p className="muted small" style={{ textAlign: 'center' }}>Se guarda solo al tocar.</p>
     </div>

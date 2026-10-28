@@ -1467,7 +1467,7 @@ function dayCompleteness(log, date, med, tomasMeta = 3) {
 		{
 			key: "ejercicio",
 			label: "Ejercicio",
-			done: has(log?.steps) || has(log?.activity_min) || Object.values(log?.activity ?? {}).some(Boolean) || Object.values(log?.extra?.move_after ?? {}).some(Boolean) || Object.values(log?.extra?.functional ?? {}).some((v) => v !== void 0 && v !== null && v !== "") || Object.values(log?.extra?.ex_no ?? {}).some(Boolean),
+			done: has(log?.steps) || has(log?.activity_min) || Object.values(log?.activity ?? {}).some(Boolean) || Object.values(log?.extra?.move_after ?? {}).some(Boolean) || Object.values(log?.extra?.mano ?? {}).some(Boolean) || Object.values(log?.extra?.functional ?? {}).some((v) => v !== void 0 && v !== null && v !== "") || Object.values(log?.extra?.ex_no ?? {}).some(Boolean),
 			to: `/ejercicio/${date}`,
 			group: "Ejercicio"
 		}
@@ -1956,10 +1956,11 @@ function avisoCaminar(d, ahora, yaMandados) {
 }
 const MANO_HORAS = Array.from({ length: 12 }, (_, i) => String(9 + i).padStart(2, "0"));
 MANO_HORAS.map((h) => `mano_${h}`);
-function avisoMano() {
+function avisoMano(d, hora) {
+	if (d.log?.extra?.mano?.[hora]) return null;
 	return {
 		title: TITULOS.mano,
-		body: "✋ Unai, toca mover la mano: primero los dedos y después los ejercicios con la bola. ¡Cada ronda suma!"
+		body: "✋ Unai, toca mover la mano: primero los dedos y después los ejercicios con la bola. ¡Cada ronda suma! Al terminar, marcadla en Ejercicio."
 	};
 }
 /** Reloj de ayuno de la mañana: horas desde la última ingesta de ayer si hoy aún no ha tomado nada. */
@@ -2342,7 +2343,8 @@ async function tick(env, fetchFn, date, hhmm, dry = false) {
 			envio: await mandar(date, a.momento, a.aviso)
 		});
 	} else if (t.tipo === "mano") {
-		const aviso = avisoMano();
+		const aviso = avisoMano(datos(date), t.momento.slice(5));
+		if (!aviso) continue;
 		if (!await candado(date, t.momento, aviso)) continue;
 		hecho.push({
 			momento: t.momento,

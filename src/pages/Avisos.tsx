@@ -149,7 +149,7 @@ export default function Avisos() {
         <h3>Qué avisos llegan</h3>
         <table className="tabla-avisos small">
           <tbody>
-            <tr><td><strong>9:00 a 20:00</strong></td><td>Cada hora en punto: ejercicios de la mano de Unai (primero movilizar los dedos, luego la bola). También en el hospital</td></tr>
+            <tr><td><strong>9:00 a 20:00</strong></td><td>Cada hora en punto: ejercicios de la mano de Unai (primero movilizar los dedos, luego la bola). No llega si esa ronda ya está marcada en Ejercicio. También en el hospital</td></tr>
             <tr><td><strong>12:00</strong></td><td>Agua (unos 500 ml), tomas, temperatura de la mañana y peso si lleva {DIAS_SIN_PESO} días sin pesarle</td></tr>
             <tr><td><strong>16:00</strong></td><td>Agua (unos 900 ml) y tomas</td></tr>
             <tr><td><strong>19:00</strong></td><td>Agua (unos 1.250 ml), tomas, temperatura de la tarde, la cena si aún no está (como tarde a las 19:30) y deposiciones si lleva {DIAS_SIN_DEPOSICION} días sin ninguna</td></tr>

@@ -211,6 +211,8 @@ export interface DailyExtra {
   other_min?: number | null
   /** «Hoy no se ha hecho» con el motivo, por tipo de sesión (0.32.0). */
   ex_no?: Partial<Record<'fuerza' | 'aerobico', string>>
+  /** Ejercicios de la mano (dedos y luego bola): ✓ por ronda, clave = hora «09»…«20» (0.38.1). */
+  mano?: Partial<Record<string, boolean>>
   /** Tipo de Bristol de cada deposición del día, en orden (0.28.0). */
   stools?: { bristol?: number | null }[]
   /** Registro de náuseas (0.25.0): escala de caras 0-10 por momento, impacto, arcadas y rescates. */
