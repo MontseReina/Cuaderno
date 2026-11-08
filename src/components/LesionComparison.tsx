@@ -88,7 +88,7 @@ export default function LesionComparison({ rows, compact }: { rows: Finding[]; c
                     const valor = f.verdict === 'no_visto' && f.size_mm == null ? 'No se ve' : f.size_mm != null ? `${mm(f.size_mm)} mm` : 'sin medida'
                     return <td key={d} className="num">{valor}{f.count != null && f.count > 1 ? <span className="muted small"> ×{f.count}</span> : null}{nota(f.notes)}</td>
                   })}
-                  <td><span className={'tag ' + ev.tag}>{ev.label}</span>{!compact && !ev.porInforme && ev.label !== '—' && <div className="muted small">por medida</div>}</td>
+                  <td><span className={'tag ' + ev.tag}>{ev.label}</span>{!compact && !ev.porInforme && /^(Aumenta|Disminuye|Sin cambios)/.test(ev.label) && <div className="muted small">por medida</div>}</td>
                 </tr>
               )
             })}
