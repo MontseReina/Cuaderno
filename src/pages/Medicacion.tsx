@@ -14,6 +14,7 @@ import { Avisos } from '../components/Avisos'
 import { Field, Section, Segmented, TriButton, type TriState } from '../components/ui'
 import { SEED_PRODUCTS } from '../domain/seed'
 import { confirmar } from '../components/Confirmar'
+import { SurgeryCard, cirugiaVigente } from '../components/VentanaCirugia'
 import { diaTratamiento } from '../domain/diaTratamiento'
 import { diaCerrado } from '../domain/cierre'
 
@@ -140,7 +141,8 @@ export default function Medicacion() {
         }),
       ]} />
       {retiring && <RetirePanel product={retiring} onClose={() => setRetiring(null)} />}
-      {patient && <SurgeryCard key={patient.id + (patient.surgery_from ?? '') + (patient.surgery_to ?? '')} patient={patient} />}
+      {/* 0.42.2 · Montserrate (08/11): pasada el alta, la tarjeta sale de Medicación; queda registrada y se edita en Ciclos. */}
+      {patient && cirugiaVigente(patient) && <SurgeryCard key={patient.id + (patient.surgery_from ?? '') + (patient.surgery_to ?? '')} patient={patient} />}
       {products.length === 0 && retired.length === 0 && (
         <div className="empty">
           Sin productos. <button className="btn sm secondary" onClick={async () => { for (const s of SEED_PRODUCTS) await save('products', { ...s, patient_id: currentPatientId() } as Product) }}>Cargar la lista actual de la familia</button>
@@ -277,28 +279,6 @@ export default function Medicacion() {
 }
 
 /** Retirar un producto de la pauta: fecha, motivo y si funcionó. Pasa a "anteriores". */
-/** Ventana «Cirugía» del semáforo: desde qué día se para la suplementación y hasta el alta (0.35.0). */
-function SurgeryCard({ patient }: { patient: Patient }) {
-  const [from, setFrom] = useState(patient.surgery_from ?? '')
-  const [to, setTo] = useState(patient.surgery_to ?? '')
-  const changed = from !== (patient.surgery_from ?? '') || to !== (patient.surgery_to ?? '')
-  const bad = !!from && !!to && to < from
-  return (
-    <Section title={'🏥 Cirugía' + (patient.surgery_from ? ` · desde ${fmtDate(patient.surgery_from)}${patient.surgery_to ? ` hasta ${fmtDate(patient.surgery_to)}` : ', sin alta apuntada'}` : '')}>
-      <p className="muted small">Mientras dure esta ventana, cada producto sigue su semáforo de «Cirugía»: lo que está en rojo no se da ni cuenta como pendiente. Sin fecha de alta, la ventana sigue abierta.</p>
-      <div className="grid2">
-        <Field label="Desde (se para la suplementación)"><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
-        <Field label="Hasta el alta (incluido)"><input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} /></Field>
-      </div>
-      {bad && <p className="small" style={{ color: 'var(--red)' }}>El alta no puede ser antes del inicio.</p>}
-      <div className="row" style={{ gap: '.5rem' }}>
-        <button className="btn sm" disabled={!changed || bad} onClick={() => save('patients', { ...patient, surgery_from: from || null, surgery_to: from ? (to || null) : null } as never)}>Guardar</button>
-        {patient.surgery_from && <button className="btn sm ghost" onClick={async () => { if (await confirmar('¿Quitar la ventana de cirugía?')) save('patients', { ...patient, surgery_from: null, surgery_to: null } as never) }}>Quitar</button>}
-      </div>
-    </Section>
-  )
-}
-
 function RetirePanel({ product, onClose }: { product: Product; onClose: () => void }) {
   const [date, setDate] = useState(todayStr())
   const [reason, setReason] = useState('')

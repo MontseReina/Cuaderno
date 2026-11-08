@@ -8,6 +8,7 @@ import { sesionesTratamiento, type Sesion } from '../domain/fases'
 import { resumenDeCiclo } from '../domain/nausea'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
+import { SurgeryCard } from '../components/VentanaCirugia'
 import { esSesionDeQuimio, fechaSesion } from '../domain/numeroCiclo'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
@@ -31,11 +32,18 @@ export default function Ciclos() {
   const DRUGS_OF: Record<string, Drug[]> = { mtx: ['MTX'], cddp: ['CDDP', 'ADM'] }
   // 0.39.1 · La cirugía (fechas de Medicación → ventana de cirugía) se ve en la lista, en su sitio por fecha.
   const cirugia = patient?.surgery_from ? { from: patient.surgery_from.slice(0, 10), to: patient.surgery_to ? patient.surgery_to.slice(0, 10) : null } : null
-  const tarjetaCirugia = cirugia && (
-    <div className="card">
-      <strong>Cirugía · semana 8 del protocolo</strong>
-      <div className="muted small">{fmtDate(cirugia.from)}{cirugia.to ? ` · Alta ${fmtDate(cirugia.to)}` : ' · Sin alta apuntada'} · Las fechas se cambian en Medicación (ventana de cirugía).</div>
-    </div>
+  // 0.42.2 · Pasada el alta, la ventana ya no sale en Medicación: las fechas se ven y se cambian aquí.
+  const [editCirugia, setEditCirugia] = useState(false)
+  const tarjetaCirugia = cirugia && patient && (editCirugia
+    ? <div>
+        <SurgeryCard key={patient.id + (patient.surgery_from ?? '') + (patient.surgery_to ?? '')} patient={patient} />
+        <button className="btn sm ghost" onClick={() => setEditCirugia(false)}>Cerrar</button>
+      </div>
+    : <div className="card">
+        <strong>Cirugía · semana 8 del protocolo</strong>
+        <div className="muted small">{fmtDate(cirugia.from)}{cirugia.to ? ` · Alta ${fmtDate(cirugia.to)}` : ' · Sin alta apuntada'}</div>
+        <button className="btn sm secondary" style={{ marginTop: '.4rem' }} onClick={() => setEditCirugia(true)}>Cambiar fechas</button>
+      </div>
   )
 
   const filaSesion = (x: Sesion) => {
