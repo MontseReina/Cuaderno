@@ -689,3 +689,11 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .ii-sec { margin-top: 1rem; }
 .ii-sec h3 { margin: .7rem 0 .35rem; color: var(--text); }
 .hoy-calendario { margin-top: .4rem; }
+
+/* 0.43.0 · Tabla comparativa de lesiones */
+.lesiontable { font-size: .85rem; }
+.lesiontable th, .lesiontable td { padding: .3rem .4rem; vertical-align: top; }
+.lesiontable .num { text-align: right; white-space: nowrap; }
+.lesiontable tr.nueva td:first-child { border-left: 3px solid var(--red); }
+.lesiontable sup { color: var(--muted); margin-left: .1rem; }
+.lesionnotas { margin: .3rem 0 .4rem 1.1rem; padding: 0; }

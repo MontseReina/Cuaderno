@@ -10,7 +10,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.42.2'
+export const APP_VERSION = '0.43.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -142,7 +142,7 @@ export function buildAiReport(from: string, to: string): string {
   L.push(`- Paciente: ${name}${patient?.birth_year ? ` (nacido en ${patient.birth_year})` : ''} · Protocolo: ${patient?.protocol ?? '—'}${patient?.arm ? ` · brazo ${patient.arm}` : ''}${patient?.pgp ? ` · Pgp ${patient.pgp}` : ''}${patient?.necrosis_pct != null ? ` · necrosis ${patient.necrosis_pct} %` : ''}`)
   L.push(`- Catéter: ${patient?.catheter_type ?? '—'} · Límites de traumatología: ${patient?.load_limits ?? '—'}`)
   L.push('- Diagnósticos:')
-  for (const d of diagnoses) L.push(`  - ${d.name} (${d.kind}, ${d.date}) — ${d.status}${d.watch_signs.length ? ` · vigilar: ${d.watch_signs.join(', ')}` : ''}${d.evolution.length ? `\n    - evolución: ${d.evolution.map((e) => `${e.date}: ${e.text}`).join(' | ')}` : ''}${(d.findings ?? []).length ? `\n    - hallazgos medibles: ${(d.findings ?? []).slice().sort((a, b) => a.date.localeCompare(b.date)).map((f) => `${f.date} ${f.name}${f.location ? ` (${f.location})` : ''}${f.size_mm != null ? ` ${f.size_mm} mm` : ''}${f.count != null ? ` ×${f.count}` : ''}${f.source ? ` [${f.source}]` : ''}`).join(' | ')}` : ''}`)
+  for (const d of diagnoses) L.push(`  - ${d.name} (${d.kind}, ${d.date}) — ${d.status}${d.watch_signs.length ? ` · vigilar: ${d.watch_signs.join(', ')}` : ''}${d.evolution.length ? `\n    - evolución: ${d.evolution.map((e) => `${e.date}: ${e.text}`).join(' | ')}` : ''}${(d.findings ?? []).length ? `\n    - hallazgos medibles: ${(d.findings ?? []).slice().sort((a, b) => a.date.localeCompare(b.date)).map((f) => `${f.date} ${f.name}${f.location ? ` (${f.location})` : ''}${f.size_mm != null ? ` ${f.size_mm} mm` : ''}${f.count != null ? ` ×${f.count}` : ''}${f.source ? ` [${f.source}]` : ''}${f.verdict ? ` · según informe: ${f.verdict}` : ''}${f.notes ? ` · nota: ${f.notes}` : ''}`).join(' | ')}` : ''}`)
   L.push('- Todo lo que toma (vigente a fecha del informe):')
   for (const b of ['hospital', 'alopatico', 'sup_ciclo', 'sup_fuera'] as const) {
     const list = products.filter((p) => p.block === b && (!p.end_date || p.end_date >= to))

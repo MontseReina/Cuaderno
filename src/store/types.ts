@@ -53,7 +53,11 @@ export interface Finding {
   count?: number | null
   source?: string // informe del que sale (TAC, PET-TAC…)
   notes?: string
+  /** 0.43.0 · Lo que dice el informe de esta lesión respecto al estudio anterior
+   *  (tiene prioridad sobre la resta de milímetros en la tabla comparativa). */
+  verdict?: FindingVerdict
 }
+export type FindingVerdict = 'disminuye' | 'igual' | 'aumenta' | 'nueva' | 'no_visto'
 
 export type DiagnosisKind = 'principal' | 'metastasis' | 'complicacion' | 'infeccion' | 'otro'
 export type DiagnosisStatus = 'activo' | 'resuelto'
