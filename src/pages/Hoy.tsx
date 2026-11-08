@@ -27,7 +27,7 @@ export default function Hoy() {
   const pct = Math.round((reg.done / reg.total) * 100)
 
   const cortico = corticoidAlert(cycles, today)
-  const pp = protocolPoint(patient?.protocol_start, today)
+  const pp = protocolPoint(patient?.protocol_start, today, cycles)
   const lugar = LOCATIONS.find((l) => l.value === todayLog?.location)
   const estado = ctx.nadir ? 'Nadir (D7-14)' : 'En ciclo'
   // Productos con la regla «N días tras la quimio» que se pueden empezar hoy o en los 2 días siguientes al desbloqueo.

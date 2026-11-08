@@ -47,7 +47,7 @@ export default function Calendario() {
   const trat = calendarioTratamiento(start, cycles)
   const ses = sesionesTratamiento(start, cycles)
   const faseDe = (d: string) => faseDelDia(start, cycles, d, ses)?.fase ?? ''
-  const pp = (d: string) => protocolPoint(start, d)
+  const pp = (d: string) => protocolPoint(start, d, cycles)
   const dias = diasDelMes(mes)
   const [y, m] = mes.split('-').map(Number)
   const evDe = (d: string) => events.filter((e) => e.start_at.slice(0, 10) === d && e.status !== 'cancelado')

@@ -133,7 +133,7 @@ export function buildWeekly(ws: string, data: WeeklyData, today = todayStr()): W
   const complications = complicationsOf(days, logOf)
 
   // ---------- Cabecera ----------
-  const pp = protocolPoint(data.patient?.protocol_start, days[days.length - 1] ?? ws)
+  const pp = protocolPoint(data.patient?.protocol_start, days[days.length - 1] ?? ws, data.cycles)
   const lastCtx = days.length ? ctx(days[days.length - 1]) : null
   const weekCycles = data.cycles.filter((c) => { const d = (c.start_at ?? c.planned_date).slice(0, 10); return d >= ws && d <= all[6] })
   const farmacos = weekCycles.length ? Array.from(new Set(weekCycles.flatMap((c) => c.drugs))).join(' + ') : null

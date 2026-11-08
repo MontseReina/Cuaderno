@@ -29,7 +29,7 @@ export function faseTexto(start: string | null | undefined, cycles: Cycle[], dat
 }
 
 export function diaTratamiento(start: string | null | undefined, cycles: Cycle[], date: string): DiaTratamientoTexto | null {
-  const pp = protocolPoint(start, date)
+  const pp = protocolPoint(start, date, cycles)
   const ses = sesionesTratamiento(start, cycles).filter((s) => s.kind !== 'cirugia')
   const last = ses.filter((s) => s.date <= date).pop()
   const ciclo = last ? (last.cycle?.number ?? calendarioTratamiento(start, cycles).get(last.date)?.ciclo ?? null) : null

@@ -36,6 +36,14 @@ export default function Ciclos() {
   // Sesiones del protocolo que aún no están en Tratamiento: fecha de la hoja (miércoles). Al registrarlas se pone la fecha definitiva.
   const pendientes = sesionesTratamiento(patient?.protocol_start, cycles).filter((x) => x.delProtocolo && x.date >= addDays(todayStr(), -7))
   const DRUGS_OF: Record<string, Drug[]> = { mtx: ['MTX'], cddp: ['CDDP', 'ADM'] }
+  // 0.39.1 · La cirugía (fechas de Medicación → ventana de cirugía) se ve en la lista, en su sitio por fecha.
+  const cirugia = patient?.surgery_from ? { from: patient.surgery_from.slice(0, 10), to: patient.surgery_to ? patient.surgery_to.slice(0, 10) : null } : null
+  const tarjetaCirugia = cirugia && (
+    <div className="card">
+      <strong>Cirugía · semana 8 del protocolo</strong>
+      <div className="muted small">{fmtDate(cirugia.from)}{cirugia.to ? ` · Alta ${fmtDate(cirugia.to)}` : ' · Sin alta apuntada'} · Las fechas se cambian en Medicación (ventana de cirugía).</div>
+    </div>
+  )
 
   const filaSesion = (x: Sesion) => {
       const plan = PROTOCOL_34.find((p) => p.week === x.week)?.label ?? ''
@@ -78,7 +86,7 @@ export default function Ciclos() {
       )}
       {pendientes.length > 0 && (
         <Section title={`Próximas sesiones del protocolo (${pendientes.length})`} open>
-          <p className="muted small">Fechas de la hoja de tratamiento (siempre en miércoles). Son las que usan el calendario y las pautas de alimentación hasta que se registra la fecha definitiva.</p>
+          <p className="muted small">Fechas calculadas con la hoja de tratamiento a partir de la última sesión registrada (si una sesión se retrasa, las siguientes se corren con ella). Son las que usan el calendario y las pautas de alimentación hasta que se registra la fecha definitiva.</p>
           {pendientes.slice(0, 5).map(filaSesion)}
           {pendientes.length > 5 && (
             <details style={{ marginTop: '.3rem' }}>
@@ -89,8 +97,10 @@ export default function Ciclos() {
         </Section>
       )}
       {cycles.length === 0 && <div className="empty">Aún no hay ciclos. Añade el primero con la fecha prevista; el resto se completa durante el ingreso.</div>}
-      {cycles.map((c) => (
-        <div className="card" key={c.id} onClick={() => setEditing(c)} style={{ cursor: 'pointer' }}>
+      {cycles.map((c, i) => (
+        <div key={c.id}>
+        {cirugia && cirugia.from > c.planned_date && (i === 0 || cirugia.from <= cycles[i - 1].planned_date) && tarjetaCirugia}
+        <div className="card" onClick={() => setEditing(c)} style={{ cursor: 'pointer' }}>
           <div className="row between">
             <strong>Ciclo {c.number} · {c.drugs.map((d) => DRUG_LABELS[d] ?? d).join(' + ')}</strong>
             {c.corticoid_iv && <span className="tag ambar">corticoide IV</span>}
@@ -105,7 +115,9 @@ export default function Ciclos() {
           {c.rescue?.substance && <div className="small">Rescate: {c.rescue.substance} {c.rescue.start ? `desde ${fmtWall(c.rescue.start)}` : ''} {c.rescue.end ? `hasta ${fmtWall(c.rescue.end)}` : '(en curso)'}</div>}
           {(() => { const r = resumenDeCiclo(c, logs, todayStr()); return r ? <div className="small">Náuseas: aguda {r.aguda.dias ? `${r.aguda.completos}/${r.aguda.dias}` : '—'} · retardada {r.retardada.dias ? `${r.retardada.completos}/${r.retardada.dias}` : '—'} días con control completo{r.rescates ? ` · ${r.rescates} rescate${r.rescates > 1 ? 's' : ''}` : ''}</div> : null })()}
         </div>
+        </div>
       ))}
+      {cirugia && cycles.every((c) => cirugia.from <= c.planned_date) && tarjetaCirugia}
     </div>
   )
 }

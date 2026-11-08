@@ -1,11 +1,12 @@
 import type { Cycle } from '../store/types'
 import { addDays, diffDays } from './dates'
 import { PROTOCOL_34 } from './catalogs'
+import { fechaSemana } from './protocol'
 
 /** Fases del tratamiento para las pautas de alimentación y el calendario (regla de Montserrate, 28/09/2026).
  *  Las sesiones salen de Tratamiento (fecha definitiva: inicio real o, si no, la prevista) y, para las semanas
- *  del protocolo que aún no están en Tratamiento, de la hoja del protocolo (Anexo 2: siempre en miércoles,
- *  inicio + 7 × semana). */
+ *  del protocolo que aún no están en Tratamiento, de la hoja del protocolo (Anexo 2) contando desde la última
+ *  sesión registrada (0.39.1: los retrasos corren las semanas siguientes). */
 export type Fase = 'mtx' | 'cddp' | 'nadir'
 export type Tramo = 'vispera' | 'perfusion' | 'rescate' | 'resto' | 'perfusion48' | 'alta' | 'nadir'
 export interface Sesion {
@@ -34,7 +35,7 @@ export function sesionesTratamiento(start: string | null | undefined, cycles: Cy
   if (start) {
     for (const p of PROTOCOL_34) {
       if (usadas.has(p.week)) continue
-      const date = addDays(start, p.week * 7)
+      const date = fechaSemana(start, cycles, p.week) ?? addDays(start, p.week * 7)
       out.push({ date, end: date, kind: KIND[p.label] ?? 'mtx', week: p.week, delProtocolo: true })
     }
   }
