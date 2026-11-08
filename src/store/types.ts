@@ -546,25 +546,11 @@ export interface Tables {
   practices: Practice
   practice_log: PracticeLog
   weights: WeightEntry
-  challenges: Challenge
   guidelines: Guideline
   menus: MenuRow
   push_subscriptions: PushSubscriptionRow
   avisos: AvisoRow
 }
-/** Reto de la semana: el premio y la meta de cada semana (lunes a domingo).
- *  Los puntos no se guardan: se calculan con lo que ya está apuntado. */
-export interface Challenge extends BaseRow {
-  week_start: string // lunes, YYYY-MM-DD
-  prize?: string | null
-  prize_icon?: string | null
-  goal: number // puntos para ganar el premio (por defecto 500 de 700)
-  shield_min: number // mínimo garantizado en días de hospital (por defecto 60)
-  creature_name?: string | null // nombre que le pone el niño a Huma
-  trainer_name?: string | null // nombre del entrenador (el niño), para el relato
-  delivered_at?: string | null // cuándo se entregó el premio
-}
-
 /** Menú de la nutricionista (0.33.0). Vive en la base de datos, nunca en el código (el repositorio es público). */
 export interface MenuDish { id: string; n: string; k?: number; p?: { veg?: number; prot?: number; hid?: number } }
 export interface MenuPlato {
@@ -629,7 +615,7 @@ export const TABLE_NAMES = [
   'patients', 'profiles', 'diagnoses', 'cycles', 'daily_logs', 'products', 'intakes',
   'lab_panels', 'lab_results', 'organ_tests', 'microbiome_tests', 'calendar_events',
   'todos', 'questions', 'weekly_child', 'weekly_caregiver', 'caregiver_daily',
-  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'challenges', 'guidelines', 'menus',
+  'exercise_sessions', 'functional_weekly', 'exposures_weekly', 'practices', 'practice_log', 'weights', 'guidelines', 'menus',
   'push_subscriptions', 'avisos',
 ] as const satisfies readonly TableName[]
 

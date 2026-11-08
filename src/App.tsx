@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Route, Routes, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Route, Routes, Link, useLocation, Navigate } from 'react-router-dom'
 import { backend, isDemo, useRows, useStoreVersion } from './store'
 import { todayStr } from './domain/dates'
 import Hoy from './pages/Hoy'
@@ -26,7 +26,6 @@ import Biblioteca from './pages/Biblioteca'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import Datos from './pages/Datos'
-import Reto from './pages/Reto'
 import Informes from './pages/Informes'
 import { AvisoVersion } from './components/AvisoVersion'
 import { ConfirmarHost } from './components/Confirmar'
@@ -34,7 +33,6 @@ import PinGate from './pages/PinGate'
 import { pinUnlocked } from './domain/pin'
 import { APP_VERSION } from './domain/exporter'
 import { Mark } from './components/Logo'
-import { HumaArt } from './components/Huma'
 import { BandaSalud, usePendienteRojo, useSaludHoy } from './components/Salud'
 import { ApartadosNav, SiguienteApartado, conApartados, esApartado } from './components/Apartados'
 
@@ -92,26 +90,12 @@ function Shell() {
   const salud = useSaludHoy()
   usePendienteRojo(salud.traffic.level, salud.traffic.reasons)
   const { pathname } = useLocation()
-  // Modo niño: el Reto ocupa toda la pantalla, sin barras ni accesos a lo clínico.
-  const nino = pathname === '/reto' || pathname.startsWith('/reto/')
   const rojo = salud.traffic.level === 'rojo'
   const zona = zonaDe(pathname)
   // Al cambiar de pantalla se empieza arriba: si no, al entrar en un apartado desde la lista de «Hoy»
   // la página se queda a media altura y no se ven los apartados ni lo que falta. Cambiar de día no mueve la página.
   const pantalla = pathname.split('/')[1] ?? ''
   useEffect(() => { window.scrollTo(0, 0) }, [pantalla])
-  if (nino) return (
-    <div className="app modo-nino">
-      <main className="content">
-        <ConfirmarHost />
-        <SalirModoNino />
-        <Routes>
-          <Route path="/reto" element={<Reto />} />
-          <Route path="/reto/:section" element={<Reto />} />
-        </Routes>
-      </main>
-    </div>
-  )
   return (
     <div className={'app' + (rojo ? ' con-banda' : '')}>
       <div className="cabecera noprint">
@@ -132,7 +116,6 @@ function Shell() {
       </div>
       <nav className="tabbar noprint">
         <Tab to="/" ico="🏠" label="Hoy" active={zona === 'hoy'} />
-        <Tab to="/reto" ico={<HumaArt k="fenix" size={24} className="tab-huma" silueta />} label="Reto" active={false} />
         <Tab to="/seguimiento" ico="📊" label="Seguimiento" active={zona === 'seguimiento'} />
         <Tab to="/mas" ico="🧭" label="Más" active={zona === 'mas'} />
       </nav>
@@ -142,6 +125,7 @@ function Shell() {
         {conApartados(pathname) && <ApartadosNav />}
         <Routes>
           <Route path="/" element={<Hoy />} />
+          <Route path="/reto/*" element={<Navigate to="/" replace />} />
           <Route path="/inicio" element={<Hoy />} />
           <Route path="/seguimiento" element={<Seguimiento />} />
           <Route path="/diario" element={<Diario />} />
@@ -198,26 +182,3 @@ function Tab({ to, ico, label, active }: { to: string; ico: ReactNode; label: st
   )
 }
 
-/** Salida del modo niño: hay que mantener pulsado, para que no se salga sin querer. */
-const PULSACION_MS = 1200
-function SalirModoNino() {
-  const nav = useNavigate()
-  const timer = useRef<number | null>(null)
-  const [pulsando, setPulsando] = useState(false)
-  const soltar = () => { if (timer.current != null) { clearTimeout(timer.current); timer.current = null } setPulsando(false) }
-  const pulsar = () => { soltar(); setPulsando(true); timer.current = window.setTimeout(() => { timer.current = null; nav('/') }, PULSACION_MS) }
-  useEffect(() => soltar, [])
-  return (
-    <div className="nino-salir noprint">
-      <button
-        type="button"
-        className={'nino-salir-btn' + (pulsando ? ' pulsando' : '')}
-        onPointerDown={pulsar} onPointerUp={soltar} onPointerLeave={soltar} onPointerCancel={soltar}
-        onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) pulsar() }} onKeyUp={soltar}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        🔒 Mantén pulsado para salir
-      </button>
-    </div>
-  )
-}
