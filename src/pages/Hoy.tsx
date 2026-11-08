@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { backend, useRows, save } from '../store'
 import { addDays, fmtDate } from '../domain/dates'
-import { afterChemoGate, corticoidAlert } from '../domain/cycle'
+import { afterChemoGate, corticoidAlert, corticoidText } from '../domain/cycle'
 import { protocolPoint } from '../domain/protocol'
 import { knownUsers } from '../domain/users'
 import { LOCATIONS } from '../domain/catalogs'
@@ -92,7 +92,7 @@ export default function Hoy() {
 
       {cortico && (
         <div className="notice" style={{ marginTop: '.8rem' }}>
-          <strong>Corticoide intravenoso en el ciclo {cortico.number}</strong>{cortico.corticoid_detail ? ` (${cortico.corticoid_detail})` : ''}: puede subir la glucosa y alterar el sueño estos días. Vigilar apetito, sed, pipí abundante y despertares; anotar en <Link to="/nutricion">Nutrición</Link> y <Link to="/biohacking">Biohacking</Link>.
+          <strong>Corticoide intravenoso en el ciclo {cortico.number}</strong>{corticoidText(cortico) ? ` (${corticoidText(cortico)})` : ''}: puede subir la glucosa y alterar el sueño estos días. Vigilar apetito, sed, pipí abundante y despertares; anotar en <Link to="/nutricion">Nutrición</Link> y <Link to="/biohacking">Biohacking</Link>.
         </div>
       )}
       {unlocked.map(({ p, g }) => (

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { currentPatientId, remove, save, useRows } from '../store'
 import type { Cycle, Drug, MedRow } from '../store/types'
 import { DRUG_LABELS, DRUG_WATCH, NAUSEA_LABELS, PROTOCOL_34, ROUTE_LABELS } from '../domain/catalogs'
-import { cumulativeDoses, DOSE_THRESHOLDS } from '../domain/cycle'
+import { cumulativeDoses, DOSE_THRESHOLDS, hasCorticoid } from '../domain/cycle'
 import { addDays, fmtDate, fmtWall, hoursBetween, toLocalInput, todayStr } from '../domain/dates'
 import { sesionesTratamiento, type Sesion } from '../domain/fases'
 import { resumenDeCiclo } from '../domain/nausea'
@@ -96,7 +96,7 @@ export default function Ciclos() {
         <div className="card" onClick={() => setEditing(c)} style={{ cursor: 'pointer' }}>
           <div className="row between">
             <strong>Ciclo {c.number} · {c.drugs.map((d) => DRUG_LABELS[d] ?? d).join(' + ')}</strong>
-            {c.corticoid_iv && <span className="tag ambar">corticoide IV</span>}
+            {hasCorticoid(c) && <span className="tag ambar">corticoide IV</span>}
           </div>
           <div className="muted small">
             Previsto {fmtDate(c.planned_date)}
@@ -116,7 +116,7 @@ export default function Ciclos() {
 }
 
 const COLS_BASIC: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'reason', label: 'Motivo' }]
-const COLS_ANTIEMETIC: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'nausea', label: 'Intensidad de náusea' }, { key: 'sufficient', label: '¿Fue suficiente?' }]
+const COLS_ANTIEMETIC: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'nausea', label: 'Intensidad de náusea' }, { key: 'sufficient', label: '¿Fue suficiente?' }, { key: 'corticoid', label: '¿Corticoide IV?' }]
 const COLS_BETWEEN: MedColumn[] = [{ key: 'name', label: 'Medicamento' }, { key: 'route', label: 'Vía' }, { key: 'mg', label: 'mg' }, { key: 'posology', label: 'Posología' }, { key: 'reason', label: 'Motivo' }]
 
 function renderMedCell(r: MedRow, key: MedColumn['key'], set: (p: Partial<MedRow>) => void) {
@@ -144,8 +144,14 @@ function renderMedCell(r: MedRow, key: MedColumn['key'], set: (p: Partial<MedRow
           <option value="no">No</option>
         </select>
       )
+    case 'corticoid':
+      return (
+        <div style={{ textAlign: 'center' }}>
+          <input type="checkbox" aria-label="Es corticoide intravenoso" title="Repercute en glucosa y sueño: se avisa en la portada" checked={!!r.corticoid} onChange={(e) => set({ corticoid: e.target.checked || undefined })} />
+        </div>
+      )
     default:
-      return <input type="text" value={r[key] ?? ''} onChange={(e) => set({ [key]: e.target.value } as Partial<MedRow>)} placeholder={key === 'mg' ? 'mg' : ''} inputMode={key === 'mg' ? 'decimal' : undefined} />
+      return <input type="text" value={(r[key] as string | undefined) ?? ''} onChange={(e) => set({ [key]: e.target.value } as Partial<MedRow>)} placeholder={key === 'mg' ? 'mg' : ''} inputMode={key === 'mg' ? 'decimal' : undefined} />
   }
 }
 /** Ciclos guardados con la versión anterior (campos de texto) → filas. */
@@ -162,8 +168,23 @@ function legacyBetween(c: Partial<Cycle>): MedRow[] {
   return rows
 }
 
+const CORTICO_RE = /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i
+/** 0.41.1 · El corticoide pasa al protocolo antiemético: las filas de corticoide de «durante la perfusión»
+ *  se mueven allí marcadas, y la casilla suelta antigua se convierte en una fila (solo al abrir; se guarda con «Guardar»). */
+function moverCorticoide(c: Partial<Cycle>): Partial<Cycle> {
+  const infusion = c.other_meds?.infusion ?? []
+  const mover = infusion.filter((m) => CORTICO_RE.test(m.name ?? ''))
+  let items = [...(c.antiemetic?.items ?? legacyAntiemetic(c)), ...mover.map((m) => ({ name: m.name, mg: m.mg, posology: m.posology, corticoid: true }))]
+  if (c.corticoid_iv && !items.some((m) => m.corticoid)) {
+    if (items.some((m) => CORTICO_RE.test(m.name ?? ''))) items = items.map((m) => (CORTICO_RE.test(m.name ?? '') ? { ...m, corticoid: true } : m))
+    else items = [...items, { name: c.corticoid_detail?.trim() || 'Corticoide intravenoso', corticoid: true }]
+  }
+  if (!mover.length && !c.corticoid_iv) return c
+  return { ...c, antiemetic: { ...c.antiemetic, items }, other_meds: { ...c.other_meds, infusion: infusion.filter((m) => !mover.includes(m)) } }
+}
+
 function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycles: Cycle[]; onClose: () => void }) {
-  const [c, setC] = useState<Partial<Cycle>>({ drugs: [], corticoid_iv: false, rescue: {}, antiemetic: {}, other_meds: {}, drug_watch: {}, actual_dose_mg_m2: {}, ...initial })
+  const [c, setC] = useState<Partial<Cycle>>(() => moverCorticoide({ drugs: [], corticoid_iv: false, rescue: {}, antiemetic: {}, other_meds: {}, drug_watch: {}, actual_dose_mg_m2: {}, ...initial }))
   const logsN = useRows('daily_logs')
   const nauseaCiclo = c.id && c.planned_date ? resumenDeCiclo(c as Cycle, logsN, todayStr()) : null
   const set = <K extends keyof Cycle>(k: K, v: Cycle[K]) => setC((x) => ({ ...x, [k]: v }))
@@ -177,7 +198,6 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
     })
   }, [drugsKey, c.planned_date, c.start_at, cycles])
   const fasting = hoursBetween(c.fasting_last_meal_at, c.start_at)
-  const hasCorticoRow = /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i.test((c.other_meds?.infusion ?? []).map((m) => m.name).join(' '))
   const delay = c.start_at && c.planned_date ? Math.max(0, Math.round((new Date(toLocalInput(c.start_at)).getTime() - new Date(c.planned_date.slice(0, 10) + 'T00:00').getTime()) / 86400000)) : null
 
   return (
@@ -242,7 +262,7 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
       </Section>
 
       <Section title="Medicación durante la perfusión">
-        <p className="muted small">Una fila por medicamento (hidratación, alcalinización, protectores, corticoide…). Cuando se pueda subir el informe en PDF, estas filas se rellenarán solas y se podrán corregir a mano.</p>
+        <p className="muted small">Una fila por medicamento (hidratación, alcalinización, protectores…). El corticoide va en el protocolo antiemético. Cuando se pueda subir el informe en PDF, estas filas se rellenarán solas y se podrán corregir a mano.</p>
         <MedTable<MedRow>
           rows={c.other_meds?.infusion ?? []}
           onChange={(rows) => set('other_meds', { ...c.other_meds, infusion: rows })}
@@ -250,9 +270,8 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
           render={renderMedCell}
         />
         {/^\s*$/.test(c.infusion_meds ?? '') ? null : <Field label="Texto libre anterior"><textarea value={c.infusion_meds ?? ''} onChange={(e) => set('infusion_meds', e.target.value)} /></Field>}
-        <Check checked={!!c.corticoid_iv || hasCorticoRow} onChange={(v) => set('corticoid_iv', v)}><strong>Corticoide intravenoso</strong> (repercute en glucosa y sueño: se avisa en la portada)</Check>
-        {(c.corticoid_iv || hasCorticoRow) && <Field label="Cuál, dosis, días"><input type="text" value={c.corticoid_detail ?? ''} onChange={(e) => set('corticoid_detail', e.target.value)} /></Field>}
         <h3>Protocolo antiemético</h3>
+        <p className="muted small">Incluido el corticoide intravenoso (p. ej. dexametasona): márcalo en «¿Corticoide IV?» y se avisa en la portada, porque repercute en glucosa y sueño.</p>
         <MedTable<MedRow>
           rows={c.antiemetic?.items ?? legacyAntiemetic(c)}
           onChange={(rows) => set('antiemetic', { ...c.antiemetic, items: rows })}
@@ -313,7 +332,7 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
       )}
       <Field label="Notas"><textarea value={c.notes ?? ''} onChange={(e) => set('notes', e.target.value)} /></Field>
       <div className="row">
-        <button className="btn" disabled={!c.drugs?.length || !c.planned_date} onClick={async () => { await save('cycles', { ...c, patient_id: currentPatientId() } as Cycle); onClose() }}>Guardar</button>
+        <button className="btn" disabled={!c.drugs?.length || !c.planned_date} onClick={async () => { const cortico = (c.antiemetic?.items ?? []).some((m) => m.corticoid); await save('cycles', { ...c, corticoid_iv: cortico, corticoid_detail: '', patient_id: currentPatientId() } as Cycle); onClose() }}>Guardar</button>
         {c.id && <button className="btn danger" onClick={async () => { if (await confirmar('¿Borrar este ciclo? Se puede recuperar desde el registro.')) { await remove('cycles', c.id!); onClose() } }}>Borrar</button>}
       </div>
     </div>

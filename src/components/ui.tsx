@@ -155,7 +155,7 @@ export function Bristol({ value, onChange, help }: { value: number | null | unde
 }
 
 /** Tabla editable de medicamentos (Nombre · mg · Posología · Motivo · [Vía] · [Náusea / Suficiente]). */
-export interface MedColumn { key: 'name' | 'mg' | 'posology' | 'reason' | 'route' | 'nausea' | 'sufficient'; label: string }
+export interface MedColumn { key: 'name' | 'mg' | 'posology' | 'reason' | 'route' | 'nausea' | 'sufficient' | 'corticoid'; label: string }
 export function MedTable<T extends { name: string }>({ rows, onChange, columns, render }: {
   rows: T[]
   onChange: (rows: T[]) => void

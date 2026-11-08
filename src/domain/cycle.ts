@@ -1,4 +1,4 @@
-import type { Cycle, DailyLog, Diagnosis, OtherSymptom } from '../store/types'
+import type { Cycle, DailyLog, Diagnosis, MedRow, OtherSymptom } from '../store/types'
 import { addDays, diffDays, nowLocalInput, todayStr, wallClock } from './dates'
 import { DRUG_LABELS, SYMPTOMS, type SymptomDef } from './catalogs'
 import { faseDelDia, sesionesTratamiento, type Fase } from './fases'
@@ -185,11 +185,27 @@ export function isMtxPerfusionDay(cycles: Cycle[], date: string) {
 export function isCisplatinDay(ctx: CycleContext) {
   return !!ctx.cycle && ctx.inCycle && ctx.cycle.drugs.includes('CDDP')
 }
+const CORTICO_RE = /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i
+/** 0.41.1 · El corticoide IV se apunta como una fila más del protocolo antiemético, con su casilla «¿Corticoide IV?».
+ *  Se siguen reconociendo los ciclos antiguos (casilla suelta y filas de «durante la perfusión»). */
+export function corticoidRows(c: Pick<Cycle, 'antiemetic' | 'other_meds'>): MedRow[] {
+  const ae = (c.antiemetic?.items ?? []).filter((m) => m.corticoid || CORTICO_RE.test(m.name ?? ''))
+  const inf = (c.other_meds?.infusion ?? []).filter((m) => CORTICO_RE.test(m.name ?? ''))
+  return [...ae, ...inf]
+}
+export function hasCorticoid(c: Pick<Cycle, 'corticoid_iv' | 'antiemetic' | 'other_meds'>): boolean {
+  return !!c.corticoid_iv || corticoidRows(c).length > 0
+}
+/** Texto corto del corticoide: «dexametasona 4 mg · cada 8 h». */
+export function corticoidText(c: Pick<Cycle, 'corticoid_detail' | 'antiemetic' | 'other_meds'>): string {
+  const rows = corticoidRows(c).filter((m) => m.name?.trim())
+  if (rows.length) return rows.map((m) => `${m.name}${m.mg ? ` ${m.mg} mg` : ''}${m.posology ? ` · ${m.posology}` : ''}`).join('; ')
+  return c.corticoid_detail ?? ''
+}
 /** Corticoide intravenoso en el ciclo actual o en los últimos días (repercute en glucosa y sueño). */
 export function corticoidAlert(cycles: Cycle[], date: string): Cycle | null {
   for (const c of cycles) {
-    const hasCortico = c.corticoid_iv || /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i.test((c.other_meds?.infusion ?? []).map((m) => m.name).join(' '))
-    if (!hasCortico) continue
+    if (!hasCorticoid(c)) continue
     const d0 = (c.start_at ?? c.planned_date).slice(0, 10)
     const d = diffDays(date, d0)
     if (d >= 0 && d <= 5) return c

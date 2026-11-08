@@ -1,7 +1,7 @@
 import { backend } from '../store'
 import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
-import { cycleContext, dailyTraffic, isCisplatinDay, otroSintomaTexto, otrosSintomas, symptomsForToday } from './cycle'
+import { corticoidText, cycleContext, dailyTraffic, hasCorticoid, isCisplatinDay, otroSintomaTexto, otrosSintomas, symptomsForToday } from './cycle'
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { kcalDia } from './kcal'
 import { menuActivo, menuDelDia } from './menu'
@@ -10,7 +10,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.42.0'
+export const APP_VERSION = '0.42.1'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -162,11 +162,11 @@ export function buildAiReport(from: string, to: string): string {
   for (const c of cyc) {
     L.push(`- Ciclo ${c.number} · ${c.drugs.map((d) => DRUG_LABELS[d]).join(' + ')} · previsto ${c.planned_date}${c.start_at ? ` · inicio ${c.start_at.replace('T', ' ')}` : ''}${c.end_at ? ` · fin ${c.end_at.replace('T', ' ')}` : ''}${c.delay_days ? ` · retraso ${c.delay_days} d (${c.delay_reason ?? ''})` : ''}`)
     if (c.actual_dose) L.push(`  - dosis real: ${c.actual_dose}`)
-    if (c.corticoid_iv) L.push(`  - corticoide IV: ${c.corticoid_detail ?? 'sí'}`)
+    if (hasCorticoid(c)) L.push(`  - corticoide IV: ${corticoidText(c) || 'sí'}`)
     if (c.rescue?.substance) L.push(`  - rescate: ${c.rescue.substance} ${c.rescue.start ?? ''} → ${c.rescue.end ?? 'en curso'}; MTX 24/48/72 h: ${c.rescue.mtx24 ?? '—'} / ${c.rescue.mtx48 ?? '—'} / ${c.rescue.mtx72 ?? '—'}`)
     const medRow = (m: { name: string; mg?: string; posology?: string; reason?: string; route?: string }) => `${m.name}${m.route ? ` [${m.route}]` : ''}${m.mg ? ` ${m.mg} mg` : ''}${m.posology ? ` · ${m.posology}` : ''}${m.reason ? ` (${m.reason})` : ''}`
     if (c.other_meds?.infusion?.length) L.push(`  - durante la perfusión: ${c.other_meds.infusion.map(medRow).join('; ')}`)
-    if (c.antiemetic?.items?.length) L.push(`  - antiemético: ${c.antiemetic.items.map((m) => `${medRow(m)}${m.nausea != null ? ` · náusea ${m.nausea}/3` : ''}${m.sufficient ? ` · suficiente: ${m.sufficient}` : ''}`).join('; ')}`)
+    if (c.antiemetic?.items?.length) L.push(`  - antiemético: ${c.antiemetic.items.map((m) => `${medRow(m)}${m.nausea != null ? ` · náusea ${m.nausea}/3` : ''}${m.sufficient ? ` · suficiente: ${m.sufficient}` : ''}${m.corticoid ? ' · corticoide IV' : ''}`).join('; ')}`)
     else if (c.antiemetic?.drug) L.push(`  - antiemético: ${c.antiemetic.drug} ${c.antiemetic.scheme ?? ''} · suficiente: ${c.antiemetic.sufficient ?? '—'}`)
     { const rn = resumenDeCiclo(c, backend.all('daily_logs'), to < todayStr() ? to : todayStr()); if (rn) L.push(`  - náuseas según el registro diario: ${rn.texto}`) }
     if (c.other_meds?.between?.length) L.push(`  - entre quimio y quimio: ${c.other_meds.between.map(medRow).join('; ')}`)

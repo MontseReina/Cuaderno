@@ -79,6 +79,8 @@ export interface MedRow {
   route?: MedRoute
   nausea?: 0 | 1 | 2 | 3
   sufficient?: 'si' | 'parcial' | 'no'
+  /** 0.41.1 · Fila del protocolo antiemético marcada como corticoide intravenoso (avisa en la portada). */
+  corticoid?: boolean
 }
 
 export type Drug = 'MTX' | 'CDDP' | 'ADM' | 'HDIFO' | 'MTP' | 'OTRO'
@@ -111,7 +113,7 @@ export interface Cycle extends BaseRow {
     mtx48?: number | null
     mtx72?: number | null
   }
-  /** Protocolo antiemético: filas Nombre · mg · Posología · Intensidad de náusea · ¿Fue suficiente? */
+  /** Protocolo antiemético: filas Nombre · mg · Posología · Intensidad de náusea · ¿Fue suficiente? · ¿Corticoide IV? */
   antiemetic?: { items?: MedRow[]; drug?: string; scheme?: string; sufficient?: 'si' | 'parcial' | 'no' }
   /** Bolsa JSON de medicación: durante la perfusión y entre quimio y quimio. */
   other_meds?: { infusion?: MedRow[]; between?: MedRow[]; oral_alopatico?: string; oral_suplemento?: string; iv?: string }
