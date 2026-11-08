@@ -27,7 +27,9 @@ function otroMes(ym: string, delta: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-export default function Calendario() {
+/** 0.40.0 · El calendario también se ve dentro de «Hoy» (embebido): con el día de hoy abierto debajo,
+ *  así las citas de hoy se ven sin una tarjeta aparte. */
+export default function Calendario({ embebido = false }: { embebido?: boolean }) {
   const events = useRows('calendar_events').sort((a, b) => a.start_at.localeCompare(b.start_at))
   const cycles = useRows('cycles')
   const patient = useRows('patients')[0]
@@ -36,7 +38,7 @@ export default function Calendario() {
   const [view, setView] = useState<'proximos' | 'mes' | 'pasados'>('mes')
   const today = todayStr()
   const [mes, setMes] = useState(today.slice(0, 7))
-  const [diaSel, setDiaSel] = useState<string | null>(null)
+  const [diaSel, setDiaSel] = useState<string | null>(embebido ? today : null)
 
   if (editing) return <EventForm initial={editing} onClose={() => setEditing(null)} />
 
@@ -80,7 +82,7 @@ export default function Calendario() {
   return (
     <div>
       <div className="row between">
-        <h1>Calendario</h1>
+        {embebido ? <h3 className="hoy-rotulo">📅 Calendario</h3> : <h1>Calendario</h1>}
         <button className="btn sm" onClick={() => setEditing({ type: 'consulta', start_at: nowLocalInput(), all_day: false, status: 'previsto' })}>+ Evento</button>
       </div>
       <Segmented options={[{ value: 'mes', label: 'Este mes' }, { value: 'proximos', label: 'Próximos' }, { value: 'pasados', label: 'Pasados' }]} value={view} onChange={(v) => setView(v ?? 'mes')} />
@@ -91,7 +93,7 @@ export default function Calendario() {
             <button type="button" className="btn sm secondary" aria-label="Mes anterior" onClick={() => { setMes(otroMes(mes, -1)); setDiaSel(null) }}>‹</button>
             <div className="cal-mes">
               <strong>{MESES[m - 1][0].toUpperCase() + MESES[m - 1].slice(1)} {y}</strong>
-              {mes !== today.slice(0, 7) && <button type="button" className="linkbtn small" onClick={() => { setMes(today.slice(0, 7)); setDiaSel(null) }}>volver a hoy</button>}
+              {mes !== today.slice(0, 7) && <button type="button" className="linkbtn small" onClick={() => { setMes(today.slice(0, 7)); setDiaSel(embebido ? today : null) }}>volver a hoy</button>}
             </div>
             <button type="button" className="btn sm secondary" aria-label="Mes siguiente" onClick={() => { setMes(otroMes(mes, 1)); setDiaSel(null) }}>›</button>
           </div>

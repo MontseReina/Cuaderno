@@ -15,7 +15,6 @@ const LISTA = [
   { to: '/pautas', ico: '🌱', label: 'Pautas', desc: '' },
   { to: '/pendientes', ico: '☑️', label: 'Pendientes', desc: '' },
   { to: '/informes', ico: '📊', label: 'Evaluaciones e informe semanal', desc: 'Cómo se rellena el registro y el informe de la semana en PDF' },
-  { to: '/calendario', ico: '📅', label: 'Calendario', desc: '' },
 ]
 
 /** Pestaña «Seguimiento» (0.29.0): lo que se consulta, no lo que se apunta cada día. */

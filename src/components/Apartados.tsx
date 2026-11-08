@@ -4,9 +4,8 @@ import { todayStr } from '../domain/dates'
 import { apartadoDeRuta, fechaDeRuta, resumenDelDia, type EstadoApartado } from '../domain/apartados'
 
 export const esApartado = (path: string) => !!apartadoDeRuta(path)
-const esHoy = (path: string) => path === '/' || path === '/inicio'
-/** La rejilla de apartados se ve en «Hoy» y dentro de cada apartado. */
-export const conApartados = (path: string) => esHoy(path) || esApartado(path)
+/** La rejilla de apartados se ve dentro de cada apartado. En «Hoy» no (0.40.0): repetía la lista de abajo. */
+export const conApartados = (path: string) => esApartado(path)
 
 /** Lo que queda por rellenar en un día, apartado por apartado. */
 export function useResumenDia(date: string) {

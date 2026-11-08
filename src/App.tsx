@@ -166,7 +166,7 @@ function Shell() {
 }
 
 /** A qué pestaña pertenece cada pantalla (las seis del registro diario cuelgan de «Hoy»). */
-const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/calendario', '/pendientes', '/equipo', '/pautas']
+const SEGUIMIENTO = ['/seguimiento', '/informes', '/ciclos', '/analiticas', '/diagnosticos', '/microbiota', '/pendientes', '/equipo', '/pautas']
 const MAS = ['/mas', '/emocional', '/biblioteca', '/datos', '/ajustes', '/avisos']
 function zonaDe(path: string): 'hoy' | 'seguimiento' | 'mas' {
   const en = (l: string[]) => l.some((p) => path === p || path.startsWith(p + '/'))

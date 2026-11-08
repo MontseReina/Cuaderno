@@ -1,22 +1,23 @@
 import { Link } from 'react-router-dom'
 import { backend, useRows, save } from '../store'
-import { addDays, fmtDate, fmtWall } from '../domain/dates'
+import { addDays, fmtDate } from '../domain/dates'
 import { afterChemoGate, corticoidAlert } from '../domain/cycle'
 import { protocolPoint } from '../domain/protocol'
 import { knownUsers } from '../domain/users'
 import { LOCATIONS } from '../domain/catalogs'
 import { diaTratamiento } from '../domain/diaTratamiento'
 import { useSaludHoy } from '../components/Salud'
+import Calendario from './Calendario'
 import { Marca, useResumenDia } from '../components/Apartados'
 import type { EstadoApartado } from '../domain/apartados'
 
 /** Pantalla de entrada. Primero la salud y después una sola lista con lo que queda por rellenar,
- *  apartado por apartado (0.30.0: sin franjas de mañana, tarde y noche). Lo completo baja a «Hecho». */
+ *  apartado por apartado (0.30.0: sin franjas de mañana, tarde y noche). Lo completo baja a «Hecho».
+ *  0.40.0: sin la tira de apartados arriba (repetía esta lista) y con el calendario al final. */
 export default function Hoy() {
   const { today, patient, todayLog, traffic, ctx } = useSaludHoy()
   const cycles = useRows('cycles')
   const todos = useRows('todos', (t) => t.status === 'pendiente')
-  const events = useRows('calendar_events', (e) => e.status === 'previsto')
   const allProducts = useRows('products')
   const me = backend.currentUserId()
   const nameOf = (id: string) => knownUsers().find((u) => u.id === id)?.name ?? 'alguien'
@@ -36,8 +37,6 @@ export default function Hoy() {
     .map((p) => ({ p, g: afterChemoGate(p, cycles, today) }))
     .filter((x) => x.g && !x.g.waiting && !!x.g.from && today <= addDays(x.g.from, 2))
 
-  const hoyEventos = events.filter((e) => e.start_at.slice(0, 10) === today).sort((a, b) => a.start_at.localeCompare(b.start_at))
-  const masAdelante = events.filter((e) => e.start_at.slice(0, 10) > today).length
   // Solo lo que toca hacer hoy (o lo que se quedó atrás). El resto está en Pendientes.
   const todoDate = (t: { do_date?: string | null; due_date?: string | null }) => t.do_date ?? t.due_date ?? null
   const forMe = (t: { assignees: string[] }) => t.assignees.includes(me) || t.assignees.length === 0
@@ -123,23 +122,7 @@ export default function Hoy() {
           </div>
         )}
       </div>
-      <h3 className="hoy-rotulo">📅 Citas de hoy</h3>
-      <div className="card tight">
-        {hoyEventos.length === 0 && <div className="muted">Nada en el calendario para hoy. <Link to="/calendario">Añadir</Link></div>}
-        {hoyEventos.map((e) => (
-          <div className="item" key={e.id}>
-            <div className="main">
-              <div>{e.title}</div>
-              <div className="meta">{e.all_day ? 'todo el día' : fmtWall(e.start_at).replace(/^.*?, /, '')}{e.place ? ` · ${e.place}` : ''}{e.companion ? ` · acompaña ${e.companion}` : ''}</div>
-            </div>
-          </div>
-        ))}
-        {masAdelante > 0 && (
-          <div className="muted small" style={{ paddingTop: '.4rem' }}>
-            <Link to="/calendario">{masAdelante} cita{masAdelante > 1 ? 's' : ''} en los próximos días →</Link>
-          </div>
-        )}
-      </div>
+      <div className="hoy-calendario"><Calendario embebido /></div>
     </div>
   )
 }
