@@ -75,7 +75,7 @@ export default function LesionComparison({ rows, compact }: { rows: Finding[]; c
           <tbody>
             {lista.map((g) => {
               const ev = evolucion(g, fechas)
-              const esNueva = g.first !== fechas[0]
+              const esNueva = ev.label === 'Nueva'
               return (
                 <tr key={g.key} className={esNueva ? 'nueva' : ''}>
                   <td>
