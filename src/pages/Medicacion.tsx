@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { currentPatientId, isDemo, remove, save, useRows } from '../store'
 import type { Intake, IntakeStatus, MedRoute, Moment, Patient, Product, ProductBlock, Traffic } from '../store/types'
@@ -61,7 +61,9 @@ export default function Medicacion() {
   // Días de la semana y regla «N días tras la quimio».
   const notToday = (p: Product) => !!p.weekdays?.length && !p.weekdays.includes(dow(today))
   const gateOf = (p: Product) => afterChemoGate(p, cycles, today)
-  const waiting = (p: Product) => !!gateOf(p)?.waiting
+  /** Aún no ha empezado: la fecha de inicio es posterior al día que se mira (0.41.1). */
+  const notStarted = (p: Product) => !!p.start_date && p.start_date.slice(0, 10) > today
+  const waiting = (p: Product) => !!gateOf(p)?.waiting || notStarted(p)
   const gated = products.filter((p) => gateOf(p))
 
   if (editing) return <ProductForm initial={editing} onClose={() => setEditing(null)} />
@@ -84,7 +86,15 @@ export default function Medicacion() {
   // Solo las columnas de momentos que usa algún producto (para que la tabla quepa en el móvil).
   const usedMoments = MOMENTS.filter((m) => products.some((p) => p.moments.includes(m.key as Moment)))
   const onDemand = products.filter((p) => p.moments.length === 0)
+  // 0.41.1: orden de la tabla de tomas. Arriba los enjuagues de ayunas (oil pulling); luego la suplementación;
+  // después toda la medicación del hospital junta; al final los enjuagues de la noche. Dentro de cada grupo, por el
+  // primer momento del día en que se toma y por nombre.
+  const esEnjuague = (p: Product) => /enjuague|oil pulling/i.test(p.name)
+  const grupoToma = (p: Product) => esEnjuague(p) ? (p.moments[0] === 'ayunas' ? 0 : 3) : p.block === 'hospital' ? 2 : 1
+  const primerMomento = (p: Product) => Math.min(...p.moments.map((m) => MOMENTS.findIndex((x) => x.key === m)))
+  const GRUPO_TOMA = ['', 'Suplementación', 'Medicación del hospital', 'Enjuagues de la noche']
   const scheduled = products.filter((p) => p.moments.length > 0 && !notToday(p))
+    .sort((a, b) => grupoToma(a) - grupoToma(b) || primerMomento(a) - primerMomento(b) || a.name.localeCompare(b.name, 'es'))
   const skippedToday = products.filter((p) => p.moments.length > 0 && notToday(p))
   const legacy = products.filter((p) => !BLOCKS.includes(p.block))
 
@@ -152,16 +162,20 @@ export default function Medicacion() {
                 </tr>
               </thead>
               <tbody>
-                {scheduled.map((p) => {
+                {scheduled.map((p, i) => {
                   const t = trafficNow(p)
                   const wait = waiting(p)
                   const blocked = t === 'rojo' || wait
+                  const g = grupoToma(p)
+                  const cabecera = GRUPO_TOMA[g] && (i === 0 || grupoToma(scheduled[i - 1]) !== g) ? GRUPO_TOMA[g] : ''
                   return (
-                    <tr key={p.id} style={blocked ? { opacity: 0.55 } : undefined}>
+                    <Fragment key={p.id}>
+                    {cabecera && <tr><td colSpan={usedMoments.length + 1} className="muted small" style={{ fontWeight: 700, paddingTop: '.8rem' }}>{cabecera}</td></tr>}
+                    <tr style={blocked ? { opacity: 0.55 } : undefined}>
                       <td>
                         <div onClick={() => setEditing(p)} style={{ cursor: 'pointer' }}>
                           {p.name} {t && <span className={'tag ' + t}>{TRAFFIC_LABELS[t]}</span>}
-                          {wait && <span className="tag gray">desde {fmtDate(gateOf(p)!.from)}</span>}
+                          {wait && <span className="tag gray">desde {fmtDate(notStarted(p) ? p.start_date! : gateOf(p)!.from)}</span>}
                           {p.condition && !wait && <span className="tag amarillo">si {p.condition}</span>}
                           <div className="meta">{p.dose}{p.lab ? ` · ${p.lab}` : ''}{p.route ? ` · ${ROUTE_LABELS[p.route]}` : ''}</div>
                         </div>
@@ -186,6 +200,7 @@ export default function Medicacion() {
                         )
                       })}
                     </tr>
+                    </Fragment>
                   )
                 })}
               </tbody>
