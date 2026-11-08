@@ -442,7 +442,7 @@ function Weights({ open }: { open: boolean }) {
         return (
           <div className="charts">
             <MiniChart title="Peso" unit="kg" kind="bar" points={serie((x) => x.kg)} />
-            <MiniChart title="Altura" unit="cm" kind="line" decimals={0} points={serie((x) => x.height_cm)} />
+            <MiniChart title="Altura" unit="cm" kind="line" decimals={1} minDecimals={0} points={serie((x) => x.height_cm)} />
             <MiniChart title="Grasa" unit="%" kind="line" points={serie((x) => x.fat_pct)} />
             <MiniChart title="Músculo" unit="kg" kind="line" points={serie((x) => x.muscle_kg)} />
             <MiniChart title="Agua corporal" unit="%" kind="line" points={serie((x) => x.water_pct)} />

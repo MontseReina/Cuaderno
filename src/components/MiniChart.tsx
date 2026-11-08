@@ -9,12 +9,14 @@ const W = 320
 const H = 120
 const PAD = { l: 8, r: 8, t: 10, b: 22 }
 
-export function MiniChart({ title, unit, points, kind, decimals = 1, color = 'var(--primary)' }: {
+export function MiniChart({ title, unit, points, kind, decimals = 1, minDecimals, color = 'var(--primary)' }: {
   title: string
   unit: string
   points: ChartPoint[]
   kind: 'bar' | 'line'
   decimals?: number
+  /** Decimales mínimos (por defecto = decimals). Altura: 0 → «135» y «134,5». */
+  minDecimals?: number
   color?: string
 }) {
   const [sel, setSel] = useState<number | null>(null)
@@ -29,7 +31,7 @@ export function MiniChart({ title, unit, points, kind, decimals = 1, color = 'va
       </div>
     )
   }
-  const fmt = (v: number) => v.toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+  const fmt = (v: number) => v.toLocaleString('es-ES', { minimumFractionDigits: minDecimals ?? decimals, maximumFractionDigits: decimals })
   const ys = points.map((p) => p.y)
   let lo = Math.min(...ys)
   let hi = Math.max(...ys)
