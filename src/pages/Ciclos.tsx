@@ -8,22 +8,15 @@ import { sesionesTratamiento, type Sesion } from '../domain/fases'
 import { resumenDeCiclo } from '../domain/nausea'
 import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
+import { esSesionDeQuimio, fechaSesion } from '../domain/numeroCiclo'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
 
-/** Un ciclo agrupa el metotrexato y el cisplatino + adriamicina de la misma tanda
- *  (ciclo 1 = semanas 0 y 1, ciclo 2 = semanas 4 y 5). Por eso el número solo sube
- *  cuando empieza un metotrexato nuevo después de un cisplatino + adriamicina.
- *  Después de la cirugía habrá que revisarlo: el tratamiento puede cambiar según
- *  el porcentaje de necrosis. */
+/** 0.41.0 · Numeración de corrido (Montserrate, 08/11/2026): cada sesión de quimio es un ciclo y se numera
+ *  por orden de fecha. Al guardar se propone el número que le toca; la app lo recalcula siempre por fecha. */
 function suggestNumber(cycles: Cycle[], c: Partial<Cycle>) {
-  const prev = cycles
-    .filter((x) => x.id !== c.id && x.planned_date <= (c.planned_date ?? '9999-99-99'))
-    .sort((a, b) => a.planned_date.localeCompare(b.planned_date))
-    .pop()
-  if (!prev) return 1
-  const empiezaTanda = (c.drugs ?? []).includes('MTX') && !(prev.drugs ?? []).includes('MTX')
-  return empiezaTanda ? (prev.number ?? 0) + 1 : (prev.number ?? 1)
+  const fecha = (c.start_at ?? c.planned_date ?? '9999-99-99').slice(0, 16)
+  return cycles.filter((x) => x.id !== c.id && esSesionDeQuimio(x) && fechaSesion(x) <= fecha).length + 1
 }
 
 
@@ -174,16 +167,15 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
   const logsN = useRows('daily_logs')
   const nauseaCiclo = c.id && c.planned_date ? resumenDeCiclo(c as Cycle, logsN, todayStr()) : null
   const set = <K extends keyof Cycle>(k: K, v: Cycle[K]) => setC((x) => ({ ...x, [k]: v }))
-  // En un ciclo nuevo el número se propone solo contando por medicamento; se puede corregir a mano.
-  const [numeroAMano, setNumeroAMano] = useState(false)
+  // 0.41.0 · El número sale solo, de corrido por fecha (se recalcula si cambian la fecha o los fármacos).
   const drugsKey = (c.drugs ?? []).join('+')
   useEffect(() => {
-    if (initial.id || numeroAMano) return
+    if (!esSesionDeQuimio({ drugs: c.drugs ?? [] })) return
     setC((x) => {
       const n = suggestNumber(cycles, x)
       return x.number === n ? x : { ...x, number: n }
     })
-  }, [drugsKey, c.planned_date, initial.id, numeroAMano, cycles])
+  }, [drugsKey, c.planned_date, c.start_at, cycles])
   const fasting = hoursBetween(c.fasting_last_meal_at, c.start_at)
   const hasCorticoRow = /dexametasona|metilpred|hidrocortisona|prednis|corticoide/i.test((c.other_meds?.infusion ?? []).map((m) => m.name).join(' '))
   const delay = c.start_at && c.planned_date ? Math.max(0, Math.round((new Date(toLocalInput(c.start_at)).getTime() - new Date(c.planned_date.slice(0, 10) + 'T00:00').getTime()) / 86400000)) : null
@@ -196,8 +188,8 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
       </div>
       <Section title="Quimioterápico" open>
         <div className="grid2">
-          <Field label="Nº de ciclo" hint="Un ciclo agrupa el metotrexato y el cisplatino + adriamicina de la misma tanda">
-            <input type="number" value={c.number ?? ''} onChange={(e) => { setNumeroAMano(true); set('number', Number(e.target.value)) }} />
+          <Field label="Nº de ciclo" hint="Se numera solo, de corrido por fecha: cada sesión de quimio es un ciclo">
+            <input type="number" value={c.number ?? ''} readOnly />
           </Field>
           <Field label="Semana del protocolo"><input type="number" value={c.protocol_week ?? ''} onChange={(e) => set('protocol_week', e.target.value === '' ? null : Number(e.target.value))} /></Field>
         </div>

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { LocalBackend } from './local'
 import { SupabaseBackend } from './supabase'
 import { nowIso, uid, type Backend, type Row } from './store'
-import type { BaseRow, TableName } from './types'
+import type { BaseRow, Cycle, TableName } from './types'
+import { numerarDeCorrido } from '../domain/numeroCiclo'
 import { diaCerrado, MSG_DIA_CERRADO, TABLAS_DEL_DIA } from '../domain/cierre'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
@@ -10,6 +11,20 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
 export const backend: Backend = url && key ? new SupabaseBackend(url, key) : new LocalBackend()
 export const isDemo = backend.mode === 'demo'
+
+// 0.41.0 · Los ciclos se numeran de corrido por fecha (cada sesión de quimio = un ciclo), da igual el número guardado.
+// Se hace aquí para que toda la app (lista, Hoy, calendario, informes, exportación) vea la misma numeración.
+{
+  const allOriginal = backend.all.bind(backend)
+  const cache = new WeakMap<object, unknown[]>()
+  backend.all = ((table: TableName) => {
+    const rows = allOriginal(table)
+    if (table !== 'cycles' || !rows) return rows
+    let r = cache.get(rows)
+    if (!r) { r = numerarDeCorrido(rows as Cycle[]); cache.set(rows, r) }
+    return r
+  }) as Backend['all']
+}
 
 /** Re-renderiza el componente cuando cambia cualquier dato. */
 export function useStoreVersion() {

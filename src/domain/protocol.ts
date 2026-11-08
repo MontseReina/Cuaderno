@@ -65,22 +65,33 @@ export interface DiaTratamiento {
   tipo: 'mtx' | 'cddp' | 'adm' | 'cirugia'
   /** Hay una sesión registrada en Tratamiento para esa semana (la fecha es la registrada). */
   registrada: boolean
-  /** Nº de ciclo: el de Tratamiento si está registrada; si no, el de la hoja antes de la cirugía (sem. 0-1 = 1, 4-5 = 2). Después de la cirugía, pendiente. */
+  /** Nº de ciclo de corrido (0.41.0): cada sesión de quimio es un ciclo, por orden de fecha; la cirugía no cuenta (null). */
   ciclo: number | null
 }
 
 /** Días de quimio y cirugía del protocolo, por fecha. Si en Tratamiento hay una sesión con esa semana
  *  del protocolo, manda su fecha real; si no, se calcula desde la última sesión registrada (fechaSemana). */
-export function calendarioTratamiento(start: string | null | undefined, cycles: (CicloAncla & { number?: number | null })[]): Map<string, DiaTratamiento> {
+export function calendarioTratamiento(start: string | null | undefined, cycles: (CicloAncla & { number?: number | null; drugs?: string[] })[]): Map<string, DiaTratamiento> {
   const out = new Map<string, DiaTratamiento>()
   if (!start) return out
   for (const p of PROTOCOL_34) {
     const n = PLAN_NOMBRE[p.label] ?? { corto: p.label, largo: p.label, tipo: 'mtx' as const }
     const reg = cycles.find((c) => c.protocol_week === p.week)
     const date = reg ? (reg.start_at ?? reg.planned_date).slice(0, 10) : fechaSemana(start, cycles, p.week) ?? addDays(start, p.week * 7)
-    const cicloHoja: Record<number, number> = { 0: 1, 1: 1, 4: 2, 5: 2 }
-    const ciclo = n.tipo === 'cirugia' ? null : reg?.number ?? cicloHoja[p.week] ?? null
-    out.set(date, { week: p.week, ...n, registrada: !!reg, ciclo })
+    out.set(date, { week: p.week, ...n, registrada: !!reg, ciclo: null })
+  }
+  // 0.41.0 · Nº de ciclo de corrido: cada sesión de quimio (registrada o aún de la hoja) cuenta una, por orden de fecha; la cirugía no.
+  const regDates = cycles
+    .filter((c) => (c.drugs ?? []).some((d) => ['MTX', 'CDDP', 'ADM', 'HDIFO'].includes(d)))
+    .map((c) => (c.start_at ?? c.planned_date).slice(0, 10))
+  const pendientes = Array.from(out.entries()).filter(([, d]) => d.tipo !== 'cirugia' && !d.registrada).map(([date]) => date)
+  const todas = [...regDates.map((date) => ({ date, reg: true })), ...pendientes.map((date) => ({ date, reg: false }))]
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.reg === b.reg ? 0 : a.reg ? -1 : 1))
+  for (const [date, d] of out) {
+    if (d.tipo === 'cirugia') continue
+    const reg = d.registrada ? cycles.find((c) => c.protocol_week === d.week) : undefined
+    const i = todas.findIndex((x) => x.date === date && x.reg === d.registrada)
+    d.ciclo = reg?.number ?? (i >= 0 ? i + 1 : null)
   }
   return out
 }
