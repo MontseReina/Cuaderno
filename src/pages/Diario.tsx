@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { backend, useRows } from '../store'
 import { useDailyDraft } from '../store/useDailyDraft'
-import type { DailyLog, FeverCause, NauseaDia, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
+import type { DailyLog, FeverCause, NauseaDia, OtherSymptom, PhlegmColor, PreventiveMark, VomitEpisode, VomitKind } from '../store/types'
 import { addDays, fmtDate, todayStr } from '../domain/dates'
 import { cycleContext, dailyTraffic, isMtxPerfusionDay, symptomsForToday, vomitSeverity } from '../domain/cycle'
 import { medicationProgress, trafficWindow } from '../domain/medication'
@@ -80,7 +80,8 @@ export default function Diario() {
   const hasCatheter = !!patient?.catheter_type
   const preventive = PREVENTIVE.filter((p) => !p.when || p.when === 'siempre' || (p.when === 'nadir' && ctx.nadir) || (p.when === 'cateter' && hasCatheter) || (p.when === 'mtx' && isMtxPerfusionDay(cycles, date)) || (p.when === 'infusion' && trafficWindow(ctx, date) === 'infusion'))
   const groups = useMemo(() => Array.from(new Set(preventive.map((p) => p.group))), [preventive])
-  const symptomsMarked = Object.values(draft.symptoms).filter((v) => v > 0).length
+  const otros = draft.extra?.other_symptoms ?? []
+  const symptomsMarked = Object.values(draft.symptoms).filter((v) => v > 0).length + otros.filter((o) => o.text?.trim()).length
   const prevDone = preventive.filter((p) => draft.preventive[p.key] === true).length
 
   return (
@@ -244,6 +245,7 @@ export default function Diario() {
             )}
           </div>
         ))}
+        <OtrosSintomas lista={otros} onChange={(l) => setExtra({ other_symptoms: l })} />
         {ctx.cycle && ctx.inCycle && ctx.cycle.drugs.some((dr) => DRUG_WATCH[dr]?.length) && (
           <div className="notice">
             <strong>Vigilancia de estos días</strong>
@@ -322,6 +324,29 @@ function Vomitos({ episodios, noLiquidos, onChange }: { episodios: VomitEpisode[
       {(alertas.length > 0 || (noLiquidos && episodios.length > 0)) && (
         <div className="notice">{alertas.length ? 'Vómito con sangre, en posos, en escopetazo o fecaloideo' : 'No retiene líquidos'}: es criterio para llamar al equipo hoy.</div>
       )}
+    </div>
+  )
+}
+
+/** Otros síntomas (0.42.0): lo que no está en el listado y hay que vigilar. Se escribe y se marca la intensidad. */
+function OtrosSintomas({ lista, onChange }: { lista: OtherSymptom[]; onChange: (l: OtherSymptom[]) => void }) {
+  const upd = (i: number, patch: Partial<OtherSymptom>) => onChange(lista.map((o, j) => (j === i ? { ...o, ...patch } : o)))
+  return (
+    <div className="otros-sintomas" style={{ margin: '.8rem 0 .5rem', paddingTop: '.6rem', borderTop: '1px solid var(--line, #e5e0d6)' }}>
+      <div className="small" style={{ marginBottom: '.2rem' }}><strong>Otros síntomas</strong></div>
+      <div className="muted small" style={{ marginBottom: '.35rem' }}>Lo que no aparece en la lista y hay que tener en alerta. Sale como «a vigilar» en el semáforo y en los informes.</div>
+      {lista.map((o, i) => (
+        <div key={i} style={{ marginBottom: '.5rem' }}>
+          <div className="row" style={{ gap: '.4rem', flexWrap: 'nowrap' }}>
+            <input type="text" placeholder="¿Qué síntoma? (p. ej. dolor de cabeza, ojo rojo…)" value={o.text} onChange={(e) => upd(i, { text: e.target.value })} style={{ flex: 1 }} />
+            <button type="button" className="btn sm ghost" aria-label="Quitar este síntoma" onClick={() => onChange(lista.filter((_, j) => j !== i))}>✕</button>
+          </div>
+          <div style={{ marginTop: '.3rem' }}>
+            <Severity value={o.sev} onChange={(v) => upd(i, { sev: (v < 1 ? 1 : v) as OtherSymptom['sev'] })} labels={SEVERITY_LABELS.slice(1).map(String)} offset={1} />
+          </div>
+        </div>
+      ))}
+      <button type="button" className="btn sm secondary" onClick={() => onChange([...lista, { text: '', sev: 1 }])}>+ Otro síntoma</button>
     </div>
   )
 }

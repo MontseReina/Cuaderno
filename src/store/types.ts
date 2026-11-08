@@ -179,6 +179,8 @@ export interface FunctionalDaily {
   /** 0.37.0 · Prueba de la semana: veces que se sienta y se levanta de una silla en 30 segundos. */
   sts30?: number | null
 }
+/** Síntoma escrito a mano (no está en el listado): 1 leve · 2 moderado · 3 intenso. */
+export interface OtherSymptom { text: string; sev: 1 | 2 | 3 }
 export type WalkStop = 'no_paro' | 'dolor' | 'cansancio' | 'mareo' | 'falta_aire' | 'otro'
 export type WalkAid = 'sin_ayuda' | 'muletas' | 'andador' | 'silla'
 /** Campos añadidos en la v0.4 (columna JSONB `extra`). */
@@ -197,6 +199,8 @@ export interface DailyExtra {
   fever_cause?: FeverCause | null
   /** Texto libre cuando el motivo es «otro». */
   fever_cause_other?: string | null
+  /** 0.42.0 · Otros síntomas que no están en la lista, escritos por la familia, con su intensidad. Siempre salen como «a vigilar». */
+  other_symptoms?: OtherSymptom[]
   /** Vómitos del día, uno por episodio, con hora y tipo. */
   vomits?: VomitEpisode[]
   /** No retiene ni líquidos (criterio de vómitos intensos). */

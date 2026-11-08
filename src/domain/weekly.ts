@@ -2,7 +2,7 @@
 // Diseño y decisiones: documento «Huma · Informe semanal (diseño)», 27/09/2026.
 import type { Cycle, DailyLog, Diagnosis, ExerciseSession, Intake, Meal, Patient, Product, VitalEntry, WeightEntry } from '../store/types'
 import { addDays, todayStr } from './dates'
-import { afterChemoGate, corticoidAlert, cycleContext, isCisplatinDay, isMtxPerfusionDay, vomitSeverity, type CycleContext } from './cycle'
+import { afterChemoGate, corticoidAlert, cycleContext, otrosSintomas, isCisplatinDay, isMtxPerfusionDay, vomitSeverity, type CycleContext } from './cycle'
 import { medicationProgress, trafficWindow } from './medication'
 import { dayCompleteness } from './completeness'
 import { dayNutrition, fastingHours, isFatSlot, mealTraffic, totalFluids, weekMode } from './nutrition'
@@ -318,6 +318,18 @@ function signos(days: string[], logOf: (d: string) => DailyLog | undefined, data
     notable.push(`${label}: ${vals.length} día${vals.length > 1 ? 's' : ''}, máximo ${['', 'leve', 'moderado', 'intenso'][max]}${dir}`)
     if (def?.redAt3 && max >= 3) { bump('rojo'); alerts.push({ date: vals.find((x) => x.v === 3)!.d, text: `${label}: intenso`, block: B }); if (k !== 'vomitos') ojo.push({ title: label, light: 'rojo', text: `Llegó a intenso el ${dayLabel(vals.find((x) => x.v === 3)!.d)} (${vals.length} día${vals.length > 1 ? 's' : ''} en la semana). Es de los síntomas que, intensos, se avisan al equipo.` }) }
     else bump('amarillo')
+  }
+  // Otros síntomas escritos por la familia (0.42.0): siempre a vigilar.
+  const otrosW = new Map<string, { txt: string; dias: string[]; max: number }>()
+  for (const [d, l] of logs) for (const o of otrosSintomas(l)) {
+    const k = o.text.trim().toLowerCase()
+    const x = otrosW.get(k) ?? { txt: o.text.trim(), dias: [], max: 0 }
+    x.dias.push(d); x.max = Math.max(x.max, o.sev); otrosW.set(k, x)
+  }
+  for (const x of otrosW.values()) {
+    bump('amarillo')
+    alerts.push({ date: x.dias[0], text: `Otro síntoma: ${x.txt}`, block: B })
+    ojo.push({ title: x.txt, light: 'amarillo', text: `Síntoma apuntado a mano (no está en la lista): ${x.dias.length} día${x.dias.length > 1 ? 's' : ''} (${x.dias.map(dayLabel).join(', ')}), máximo ${['', 'leve', 'moderado', 'intenso'][x.max]}. Comentarlo con el equipo → Preguntas.` })
   }
   const phlegm = logs.filter(([, l]) => l.extra?.phlegm_color === 'verde' || l.extra?.phlegm_color === 'rojo')
   for (const [d, l] of phlegm) { notable.push(`Flemas ${l.extra!.phlegm_color === 'rojo' ? 'con sangre' : 'verdes'} (${dayLabel(d)})`); alerts.push({ date: d, text: `Flemas ${l.extra!.phlegm_color === 'rojo' ? 'con sangre' : 'verdes'}`, block: B }); bump('rojo') }

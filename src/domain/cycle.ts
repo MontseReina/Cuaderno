@@ -1,4 +1,4 @@
-import type { Cycle, DailyLog, Diagnosis } from '../store/types'
+import type { Cycle, DailyLog, Diagnosis, OtherSymptom } from '../store/types'
 import { addDays, diffDays, nowLocalInput, todayStr, wallClock } from './dates'
 import { DRUG_LABELS, SYMPTOMS, type SymptomDef } from './catalogs'
 import { faseDelDia, sesionesTratamiento, type Fase } from './fases'
@@ -97,6 +97,13 @@ export interface TrafficResult {
 }
 
 /** Semáforo diario. Regla propuesta, pendiente de validación por oncología. */
+/** Otros síntomas escritos a mano (0.42.0): solo los que tienen texto. */
+export function otrosSintomas(log: DailyLog | undefined): OtherSymptom[] {
+  return (log?.extra?.other_symptoms ?? []).filter((o) => o.text?.trim())
+}
+const SEV_TXT = ['', 'leve', 'moderado', 'intenso']
+export const otroSintomaTexto = (o: OtherSymptom) => `${o.text.trim()} (${SEV_TXT[o.sev] ?? ''})`
+
 export function dailyTraffic(log: DailyLog | undefined, prev: DailyLog[], ctx: CycleContext, symptomDefs: SymptomDef[]): TrafficResult {
   const reasons: string[] = []
   const red: string[] = []
@@ -115,7 +122,11 @@ export function dailyTraffic(log: DailyLog | undefined, prev: DailyLog[], ctx: C
   if (log.urine_color != null && log.urine_color >= 6) red.push('Orina marrón o rojiza')
   if ((s['mucositis'] ?? 0) >= 2 && (log.fluids_total_ml ?? 999) < 300) red.push('Dolor de boca y apenas bebe')
 
-  if (red.length) return { level: 'rojo', reasons: red, score }
+  // Otros síntomas escritos a mano: suman a la puntuación y siempre se ponen a vigilar (ámbar).
+  const otros = otrosSintomas(log)
+  for (const o of otros) score += o.sev
+  if (red.length) return { level: 'rojo', reasons: [...red, ...otros.map((o) => `Otro síntoma: ${otroSintomaTexto(o)}`)], score }
+  for (const o of otros) reasons.push(`Otro síntoma a vigilar: ${otroSintomaTexto(o)}`)
 
   const moderate = symptomDefs.filter((d) => (s[d.key] ?? 0) === 2).length
   if (moderate >= 2) reasons.push(`${moderate} síntomas moderados el mismo día`)

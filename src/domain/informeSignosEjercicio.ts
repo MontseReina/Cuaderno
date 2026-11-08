@@ -6,6 +6,7 @@ import { addDays, todayStr } from './dates'
 import { STOOL_COLORS, SYMPTOMS, VOMIT_KINDS, WALK_AID, WALK_STOP } from './catalogs'
 import { temperaturasApuntadas, TEMPS_DIA } from './avisos'
 import { tiposBristol } from './deposiciones'
+import { otrosSintomas } from './cycle'
 
 export type Nivel = 'rojo' | 'ambar'
 export interface Alerta { nivel: Nivel; dia: string; hora?: string; titulo: string; detalle?: string }
@@ -104,6 +105,8 @@ export function buildSignos(days: string[], logs: DailyLog[], patient?: Patient)
       if (v >= 3 && def?.redAt3) add('rojo', d, `${label}: intenso`)
       else if (v >= 2) add('ambar', d, `${label}: moderado`)
     }
+    // Otros síntomas escritos por la familia (0.42.0): siempre a vigilar.
+    for (const o of otrosSintomas(l)) add('ambar', d, `Otro síntoma: ${o.text.trim()}`, undefined, ['', 'leve', 'moderado', 'intenso'][o.sev])
     if ((l?.fatigue ?? 0) >= 3) add('ambar', d, `Cansancio ${l!.fatigue}/4`, undefined, 'descansa más de lo normal o casi todo el día tumbado')
     if (l?.mood_child != null && l.mood_child <= 2) add('ambar', d, `Ánimo ${l.mood_child}/5`)
     // Orina
@@ -124,6 +127,14 @@ export function buildSignos(days: string[], logs: DailyLog[], patient?: Patient)
     const label = SYMPTOMS.find((s) => s.key === k)?.label ?? k.replace(/^dx_/, '').replace(/_/g, ' ')
     sintomas.push(`${label} (${vals.length} día${vals.length > 1 ? 's' : ''}, máx. ${['', 'leve', 'moderado', 'intenso'][Math.max(...vals)]})`)
   }
+
+  const otrosSem = new Map<string, { txt: string; dias: number; max: number }>()
+  for (const d of days) for (const o of otrosSintomas(logOf(d))) {
+    const k = o.text.trim().toLowerCase()
+    const x = otrosSem.get(k) ?? { txt: o.text.trim(), dias: 0, max: 0 }
+    x.dias++; x.max = Math.max(x.max, o.sev); otrosSem.set(k, x)
+  }
+  for (const x of otrosSem.values()) sintomas.push(`${x.txt} [otro] (${x.dias} día${x.dias > 1 ? 's' : ''}, máx. ${['', 'leve', 'moderado', 'intenso'][x.max]})`)
 
   A.sort((a, b) => (a.nivel === b.nivel ? a.dia.localeCompare(b.dia) : a.nivel === 'rojo' ? -1 : 1))
   const conDatos = days.some((d) => logOf(d))

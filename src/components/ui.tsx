@@ -29,14 +29,14 @@ export function Segmented<T extends string | number>({
   )
 }
 
-export function Severity({ value, onChange, labels }: { value: number | undefined; onChange: (v: number) => void; labels: readonly string[] }) {
+export function Severity({ value, onChange, labels, offset = 0 }: { value: number | undefined; onChange: (v: number) => void; labels: readonly string[]; offset?: number }) {
   return (
     <div className="seg severity">
-      {labels.map((l, i) => (
+      {labels.map((l, n) => { const i = n + offset; return (
         <button key={i} type="button" className={(value ?? 0) === i ? `on s${i}` : ''} onClick={() => onChange(i)}>
           {l}
         </button>
-      ))}
+      ) })}
     </div>
   )
 }

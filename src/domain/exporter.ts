@@ -1,7 +1,7 @@
 import { backend } from '../store'
 import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
-import { cycleContext, dailyTraffic, isCisplatinDay, symptomsForToday } from './cycle'
+import { cycleContext, dailyTraffic, isCisplatinDay, otroSintomaTexto, otrosSintomas, symptomsForToday } from './cycle'
 import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { kcalDia } from './kcal'
 import { menuActivo, menuDelDia } from './menu'
@@ -10,7 +10,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.41.1'
+export const APP_VERSION = '0.42.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -207,6 +207,8 @@ export function buildAiReport(from: string, to: string): string {
     const vom = (l.extra?.vomits ?? []).map((e) => `${e.time}${e.kind ? ' ' + (VOMIT_KINDS.find((k) => k.value === e.kind)?.label.toLowerCase() ?? e.kind) : ''}`).join(', ')
     const s = Object.entries(l.symptoms).filter(([, v]) => v > 0).map(([k, v]) => `${sym(k)} ${SEVERITY_LABELS[v].toLowerCase()}${k === 'flemas' && l.extra?.phlegm_color ? ` (${l.extra.phlegm_color})` : ''}${k === 'fiebre' && l.extra?.fever_cause ? ` (motivo: ${l.extra.fever_cause === 'otro' ? (l.extra.fever_cause_other || 'otro') : FEVER_CAUSES.find((f) => f.value === l.extra!.fever_cause)?.label.toLowerCase()})` : ''}${k === 'vomitos' && vom ? ` (${vom}${l.extra?.vomit_no_liquids ? '; no retiene líquidos' : ''})` : ''}`)
     if (s.length) L.push(`- Síntomas: ${s.join(' · ')}`)
+    const ot = otrosSintomas(l)
+    if (ot.length) L.push(`- Otros síntomas (apuntados a mano): ${ot.map(otroSintomaTexto).join(' · ')}`)
     // Náuseas (0.25.0): escala 0-10 por momento, fase, impacto, arcadas, rescates y control del día.
     const nz = l.extra?.nausea
     if (nz && (nauseaMax(nz) != null || nz.arcadas || nz.rescates?.length || nz.anticipatoria)) {

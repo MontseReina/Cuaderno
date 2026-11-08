@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import type { DailyLog } from '../store/types'
 import { addDays } from '../domain/dates'
-import { cycleContext, vomitSeverity } from '../domain/cycle'
+import { cycleContext, otrosSintomas, vomitSeverity } from '../domain/cycle'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
 import { FLUID_TARGET, SYMPTOMS, URINE_COLORS } from '../domain/catalogs'
 import type { Cycle } from '../store/types'
@@ -137,6 +137,22 @@ export function CuadroMandos({ lunes, logs, cycles }: { lunes: string; logs: Dai
         if (!l) return { txt: '' }
         const v = l.symptoms?.[k] ?? 0
         return { txt: SEV[v], nivel: v >= 3 ? 'rojo' : v === 2 ? 'ambar' : v === 1 ? 'ambar' : 'ok', titulo: SEV_LARGO[v] }
+      }),
+    })
+  }
+
+  // Otros síntomas escritos a mano (0.42.0): una fila por síntoma.
+  const otrosC = new Map<string, string>()
+  for (const d of hasta) for (const o of otrosSintomas(logOf(d))) if (!otrosC.has(o.text.trim().toLowerCase())) otrosC.set(o.text.trim().toLowerCase(), o.text.trim())
+  for (const [k, txt] of otrosC) {
+    filas.push({
+      key: 'o_' + k, label: txt,
+      celdas: dias.map((d) => {
+        const l = logOf(d)
+        if (!l) return { txt: '' }
+        const o = otrosSintomas(l).find((x) => x.text.trim().toLowerCase() === k)
+        const v = o?.sev ?? 0
+        return { txt: SEV[v], nivel: v >= 3 ? 'rojo' : v >= 1 ? 'ambar' : 'ok', titulo: SEV_LARGO[v] }
       }),
     })
   }
