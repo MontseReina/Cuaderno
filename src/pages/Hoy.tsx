@@ -13,7 +13,7 @@ import type { EstadoApartado } from '../domain/apartados'
 
 /** Pantalla de entrada. Primero la salud y después una sola lista con lo que queda por rellenar,
  *  apartado por apartado (0.30.0: sin franjas de mañana, tarde y noche). Lo completo baja a «Hecho».
- *  0.40.0: sin la tira de apartados arriba (repetía esta lista) y con el calendario al final. */
+ *  0.40.0: sin la tira de apartados arriba (repetía esta lista) y con el calendario arriba del todo (0.40.2), antes de la salud y de lo que queda por rellenar. */
 export default function Hoy() {
   const { today, patient, todayLog, traffic, ctx } = useSaludHoy()
   const cycles = useRows('cycles')
@@ -60,6 +60,8 @@ export default function Hoy() {
       </div>
       {pp && <div className="muted small">{pp.plan ? `Esta semana del protocolo toca ${pp.plan}` : 'Semana de descanso del protocolo'}</div>}
       {lugar && <div className="small" style={{ marginTop: '.2rem' }}>{lugar.emoji} {lugar.short}</div>}
+
+      <div className="hoy-calendario"><Calendario embebido /></div>
 
       <div className={'traffic inline hoy-salud ' + traffic.level}>
         <h2>
@@ -122,7 +124,6 @@ export default function Hoy() {
           </div>
         )}
       </div>
-      <div className="hoy-calendario"><Calendario embebido /></div>
     </div>
   )
 }
