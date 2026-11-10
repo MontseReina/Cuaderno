@@ -6,6 +6,7 @@ import { fmtDate, todayStr } from '../domain/dates'
 import { Field, Section, Segmented } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
 import { faseTexto } from '../domain/diaTratamiento'
+import { ayunoDeFecha, textoAyuno } from '../domain/ayunoAnalitica'
 
 type Flag = 'bajo' | 'alto' | 'ok'
 const flagOf = (r: LabResult): Flag => (r.ref_low != null && r.value < r.ref_low ? 'bajo' : r.ref_high != null && r.value > r.ref_high ? 'alto' : 'ok')
@@ -57,6 +58,7 @@ export default function Analiticas() {
             <strong>Última: {fmtDate(latest.date)}</strong>
             <span className="tag gray">{faseTexto(protocolStart, cycles, latest.date) ?? ''} {latest.context}</span>
           </div>
+          {(() => { const a = ayunoDeFecha(cycles, latest.date); return a && <div className={'notice small' + (a.enAyunas ? ' ok' : '')}>Ciclo {a.ciclo} · {textoAyuno(a)}.</div> })()}
           {latestOut.length === 0 && <div className="muted">Todo dentro de rango.</div>}
           {latestOut.sort((a, b) => Math.abs(dev(b)) - Math.abs(dev(a))).map((r) => (
             <div className="item" key={r.id} onClick={() => setSelected(selected === r.analyte ? null : r.analyte)} style={{ cursor: 'pointer' }}>
@@ -89,7 +91,7 @@ export default function Analiticas() {
           <div className="item" key={p.id} onClick={() => setEditing({ panel: p, results: byPanel.get(p.id) ?? [] })} style={{ cursor: 'pointer' }}>
             <div className="main">
               <div>{fmtDate(p.date)} · {p.context}</div>
-              <div className="meta">{(byPanel.get(p.id) ?? []).length} analitos · {(byPanel.get(p.id) ?? []).filter((r) => flagOf(r) !== 'ok').length} fuera de rango</div>
+              <div className="meta">{(byPanel.get(p.id) ?? []).length} analitos · {(byPanel.get(p.id) ?? []).filter((r) => flagOf(r) !== 'ok').length} fuera de rango{(() => { const a = ayunoDeFecha(cycles, p.date); return a ? ` · ${a.horas} h de ayuno (${a.enAyunas ? 'glucemia en ayunas' : 'glucemia no en ayunas'})` : '' })()}</div>
             </div>
           </div>
         ))}

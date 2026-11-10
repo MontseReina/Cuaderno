@@ -10,6 +10,7 @@ import { Check, Field, MedTable, Section, Segmented, type MedColumn } from '../c
 import { confirmar } from '../components/Confirmar'
 import { SurgeryCard } from '../components/VentanaCirugia'
 import { esSesionDeQuimio, fechaSesion } from '../domain/numeroCiclo'
+import { ayunoDeCiclo, AYUNO_GLUCEMIA_H } from '../domain/ayunoAnalitica'
 
 const DRUGS: Drug[] = ['MTX', 'CDDP', 'ADM', 'HDIFO', 'MTP', 'OTRO']
 
@@ -206,6 +207,7 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
     })
   }, [drugsKey, c.planned_date, c.start_at, cycles])
   const fasting = hoursBetween(c.fasting_last_meal_at, c.start_at)
+  const ayunoLab = ayunoDeCiclo(c)
   const delay = c.start_at && c.planned_date ? Math.max(0, Math.round((new Date(toLocalInput(c.start_at)).getTime() - new Date(c.planned_date.slice(0, 10) + 'T00:00').getTime()) / 86400000)) : null
 
   return (
@@ -267,6 +269,20 @@ function CycleForm({ initial, cycles, onClose }: { initial: Partial<Cycle>; cycl
         <Field label="Última comida antes de la quimio" hint={fasting != null ? `Horas de ayuno: ${fasting} h` : 'Se calculan las horas de ayuno con el inicio de la perfusión'}>
           <input type="datetime-local" value={toLocalInput(c.fasting_last_meal_at)} onChange={(e) => set('fasting_last_meal_at', e.target.value || null)} />
         </Field>
+        <Field label="Extracción de la analítica de control">
+          <input type="datetime-local" value={toLocalInput(c.lab_draw_at)} onChange={(e) => set('lab_draw_at', e.target.value || null)} />
+        </Field>
+        <Field label="Última comida antes de la analítica" hint={ayunoLab ? `Horas de ayuno: ${ayunoLab.horas} h` : 'Se calculan las horas de ayuno con la hora de la extracción, para saber si la glucemia es en ayunas'}>
+          <input type="datetime-local" value={toLocalInput(c.lab_last_meal_at)} onChange={(e) => set('lab_last_meal_at', e.target.value || null)} />
+        </Field>
+        {ayunoLab && (
+          <div className={'notice small' + (ayunoLab.enAyunas ? ' ok' : '')}>
+            {ayunoLab.enAyunas
+              ? <>Glucemia <strong>en ayunas</strong> ({ayunoLab.horas} h, ≥ {AYUNO_GLUCEMIA_H} h): se puede leer como glucemia basal.</>
+              : <>Glucemia <strong>no en ayunas</strong> ({ayunoLab.horas} h, menos de {AYUNO_GLUCEMIA_H} h): puede salir más alta por lo que comió; no es una glucemia basal.</>}
+            {hasCorticoid(c as Cycle) && ' Ojo: en este ciclo hay corticoide IV, que también sube la glucosa.'}
+          </div>
+        )}
       </Section>
 
       <Section title="Medicación durante la perfusión">

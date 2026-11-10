@@ -1,4 +1,5 @@
 import { backend } from '../store'
+import { ayunoDeCiclo, textoAyuno } from './ayunoAnalitica'
 import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
 import { corticoidText, cycleContext, dailyTraffic, hasCorticoid, isCisplatinDay, otroSintomaTexto, otrosSintomas, symptomsForToday } from './cycle'
@@ -10,7 +11,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.44.0'
+export const APP_VERSION = '0.45.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -171,6 +172,7 @@ export function buildAiReport(from: string, to: string): string {
     { const rn = resumenDeCiclo(c, backend.all('daily_logs'), to < todayStr() ? to : todayStr()); if (rn) L.push(`  - náuseas según el registro diario: ${rn.texto}`) }
     if (c.other_meds?.between?.length) L.push(`  - entre quimio y quimio: ${c.other_meds.between.map(medRow).join('; ')}`)
     if (c.fasting_last_meal_at && c.start_at) L.push(`  - ayuno previo: desde ${c.fasting_last_meal_at.replace('T', ' ')}`)
+    { const a = ayunoDeCiclo(c); if (a) L.push(`  - analítica de control: extracción ${c.lab_draw_at!.replace('T', ' ')}, última comida ${c.lab_last_meal_at!.replace('T', ' ')} → ${textoAyuno(a)}`) }
     if (c.notes) L.push(`  - notas: ${c.notes}`)
   }
   L.push('')

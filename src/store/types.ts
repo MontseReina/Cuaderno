@@ -103,6 +103,9 @@ export interface Cycle extends BaseRow {
   admission_at?: string | null
   discharge_at?: string | null
   fasting_last_meal_at?: string | null
+  /** 0.45.0 · Analítica de control del ciclo: hora de la extracción y última comida antes (¿glucemia en ayunas?). */
+  lab_draw_at?: string | null
+  lab_last_meal_at?: string | null
   infusion_meds?: string
   corticoid_iv: boolean
   corticoid_detail?: string

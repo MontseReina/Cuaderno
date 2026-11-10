@@ -325,3 +325,7 @@ exception when duplicate_object then null; end $$;
 -- v0.35.0 (19/10/2026): ventana «Cirugía» del semáforo
 alter table patients add column if not exists surgery_from date;
 alter table patients add column if not exists surgery_to date;
+
+-- v0.45.0 (10/11/2026): analítica de control del ciclo (hora de extracción y última comida antes → ¿glucemia en ayunas?)
+alter table cycles add column if not exists lab_draw_at timestamptz;
+alter table cycles add column if not exists lab_last_meal_at timestamptz;
