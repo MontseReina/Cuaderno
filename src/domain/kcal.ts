@@ -1,7 +1,7 @@
 /** Kilocalorías estimadas (0.33.0, como New Version).
  *  - Si se escribe algo en «Otro», sustituye al menú: cada alimento reconocido cuenta por su ración casera (o por el
- *    número escrito) y por la cantidad marcada (en comida y cena, la parte del plato dibujado; en el resto, Entera,
- *    ¾ o Media).
+ *    número escrito) y por la cantidad marcada (en comida y cena, la parte del plato dibujado; si no, Entera,
+ *    ¾, Media o Casi nada).
  *  - Si no se escribe nada, cuentan los platos del menú de ese día (o el batido en media mañana y media tarde).
  *  Son una estimación para saber más o menos cuánto come al día: ni un tope ni un objetivo. */
 import { ALIMENTOS, leerAlimentos, type Grupo, type Leido } from './alimentos'
@@ -38,13 +38,15 @@ const nombre = (slot: string) => tomaDe(slot)?.label ?? MEAL_SLOTS.find((s) => s
 /** ¿Cuenta esta toma como tomada? Marcada con algo distinto de «No», o con algo escrito o una hora. */
 export const tomada = (m?: Meal) => !!m && m.fraction !== 0 && (m.fraction != null || !!m.note?.trim() || !!m.dessert?.trim() || !!m.time || !!m.end)
 
-/** Parte que se tomó de cada zona del plato dibujado (1 si no se ha marcado) y la media para el resto (aceite, salsas). */
+/** Parte que se tomó de cada zona del plato dibujado y la media para el resto (aceite, salsas). Lo que no se
+ *  marca en el plato toma la cantidad de Entera / ¾ / Media / Casi nada (1 si tampoco hay). */
 export function factoresPlato(m?: Meal) {
+  const base = m?.fraction != null && m.fraction > 0 ? m.fraction : 1
   const f = (k: keyof typeof FACTOR_PLATO): number | null => { const n = m?.macros?.[k]; return n == null ? null : (FACTOR_PLATO[k] as readonly number[])[n] ?? 1 }
   const veg = f('veg'), prot = f('prot'), hid = f('starch')
   const marcados = [veg, prot, hid].filter((v): v is number => v != null)
-  const resto = marcados.length ? marcados.reduce((s, v) => s + v, 0) / marcados.length : 1
-  return { veg: veg ?? 1, prot: prot ?? 1, hid: hid ?? 1, resto }
+  const resto = marcados.length ? marcados.reduce((s, v) => s + v, 0) / marcados.length : base
+  return { veg: veg ?? base, prot: prot ?? base, hid: hid ?? base, resto }
 }
 /** Kilocalorías de un plato del menú en una comida con plato dibujado, según lo marcado en el plato. */
 export function kcalConPlato(d: MenuDish, m?: Meal): number | null {

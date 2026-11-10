@@ -257,7 +257,7 @@ function BarraParte({ label, si, n }: { label: string; si: number; n: number }) 
   )
 }
 
-const MARCA: Record<string, string> = { '1': '✓', '0.75': '¾', '0.5': '½', '0.25': '¼', '0': '✗' }
+const MARCA: Record<string, string> = { '1': '✓', '0.75': '¾', '0.5': '½', '0.25': '¼', '0.1': 'casi nada', '0': '✗' }
 function celdaToma(c: Celda) {
   if (c.fuera) return { txt: '', cls: 'ii-fuera' }
   if (c.v == null) return { txt: 'sin reg.', cls: 'c-sr' }

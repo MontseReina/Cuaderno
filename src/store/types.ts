@@ -128,7 +128,7 @@ export interface Cycle extends BaseRow {
 }
 
 export type FeverCause = 'cateter' | 'respiratorio' | 'orina' | 'tripa' | 'perfusion' | 'sin_foco' | 'otro'
-export type Fraction = 0 | 0.25 | 0.5 | 0.75 | 1
+export type Fraction = 0 | 0.1 | 0.25 | 0.5 | 0.75 | 1
 export type Carb = 'sin' | 'baja' | 'media' | 'alta'
 export type Texture = 'normal' | 'blando' | 'triturado' | 'liquido'
 export type MealSlot = 'desayuno' | 'media_manana' | 'comida' | 'merienda' | 'cena' | 'otra' | 'snack_grasa_1' | 'snack_grasa_2'

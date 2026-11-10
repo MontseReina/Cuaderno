@@ -81,7 +81,7 @@ export const CARB_HELP: Record<string, { label: string; help: string }> = {
   alta: { label: 'Alta', help: 'Dos o más raciones, o dulces / zumo / bollería / batidos hipercalóricos azucarados.' },
 }
 export const FRACTION_LABELS: Record<string, string> = {
-  '0': 'Nada', '0.25': '¼', '0.5': '½', '0.75': '¾', '1': 'Todo',
+  '0': 'Nada', '0.1': 'Casi nada', '0.25': '¼', '0.5': '½', '0.75': '¾', '1': 'Todo',
 }
 export const MEAL_SLOTS: { key: string; label: string; fat?: boolean }[] = [
   { key: 'desayuno', label: 'Desayuno' },
@@ -112,7 +112,7 @@ export interface TomaDef {
   label: string
   /** Comida principal: guarda hora de empezar y de terminar. */
   principal?: boolean
-  /** Lleva el plato dibujado (verdura, proteína, hidratos) y se marca Hecha / No. */
+  /** Lleva el plato dibujado (verdura, proteína, hidratos) ; se marca Entera / ¾ / Media / Casi nada / No como el resto. */
   plato?: boolean
   /** Lo previsto es el batido, pero se puede escribir otro snack. */
   batido?: boolean

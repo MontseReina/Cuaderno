@@ -540,6 +540,8 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .nutri-otro-kcal ul { list-style: none; margin: 0 0 .2rem; padding: 0; }
 .nutri-otro-kcal li { display: flex; justify-content: space-between; gap: .6rem; padding: .1rem 0; border-bottom: 1px dashed var(--line); }
 .nutri-otro-kcal .nowrap { white-space: nowrap; }
+.nutri-toma .seg.nutri-cantidad { flex-wrap: nowrap; gap: .25rem; }
+.nutri-toma .seg.nutri-cantidad button { min-width: 0; padding: .5rem .25rem; white-space: nowrap; }
 .nutri-toma .seg button.on.e-no { background: #fbe4e4; border-color: var(--red); color: var(--red); }
 .nutri-toma .seg button.on.e-media { background: #fdf5dd; border-color: var(--amber); color: var(--text); }
 .nutri-horas { display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin-top: .6rem; }

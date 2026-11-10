@@ -31,9 +31,9 @@ const TEXTURES = [
   { value: 'triturado', label: '🥣 Triturado' },
   { value: 'liquido', label: '🥤 Líquido' },
 ]
-/** Cuánto se tomó. Comida y cena: Hecha / No (la cantidad sale del plato). El resto: Entera / ¾ / Media / No. */
-const ESTADOS: [number, string][] = [[1, 'Entera'], [0.75, '¾'], [0.5, 'Media'], [0, 'No']]
-const ESTADOS_PLATO: [number, string][] = [[1, 'Hecha'], [0, 'No']]
+/** Cuánto se tomó, igual en las cinco tomas (v0.44.0): Entera / ¾ / Media / Casi nada / No.
+ *  «Casi nada» cuenta como un 10 % (escala de la foto del plato en hospital: 90 % que queda). */
+const ESTADOS: [number, string][] = [[1, 'Entera'], [0.75, '¾'], [0.5, 'Media'], [0.1, 'Casi nada'], [0, 'No']]
 const PLACEHOLDER: Record<string, string> = {
   desayuno: 'Lo que ha tomado: tortitas, huevo, yogur…',
   comida: 'Lo que ha tomado: dorada, patata, calabacín…',
@@ -221,9 +221,8 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
 }) {
   const f = m?.fraction
   const no = f === 0
-  const estados = t.plato ? ESTADOS_PLATO : ESTADOS
-  // Un día antiguo de comida o cena puede tener ¾ o Media: se enseña también ese botón.
-  const lista = t.plato && f != null && f > 0 && f < 1 ? [...estados.slice(0, 1), [f, f === 0.75 ? '¾' : f === 0.5 ? 'Media' : '¼'] as [number, string], ...estados.slice(1)] : estados
+  // Un día antiguo puede tener ¼: se enseña también ese botón.
+  const lista: [number, string][] = f === 0.25 ? [...ESTADOS.slice(0, 3), [0.25, '¼'], ...ESTADOS.slice(3)] : ESTADOS
   const check = m && t.plato ? mealTraffic(m, { cisplatin, date }) : null
   const k: KcalToma | null = m && tomada(m) ? kcalToma(m, menu) : null
   const conPlato = !!t.plato && !no
@@ -236,14 +235,16 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
   const hm = hora ? Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5)) : null
   const pendiente = esHoy && !tomada(m) && !no && hm != null && ahora > hm + 30
   return (
-    <div className={'card nutri-toma ' + (no ? 'no' : f === 0.5 ? 'media' : f != null ? 'hecha' : tomada(m) ? 'hecha' : '')}>
+    <div className={'card nutri-toma ' + (no ? 'no' : f != null && f > 0 && f <= 0.5 ? 'media' : f != null ? 'hecha' : tomada(m) ? 'hecha' : '')}>
       <div className="row between">
         <h3>{check && <span className={'dot ' + check.level} />}{t.label}{t.batido && <span className="muted small"> · batido</span>}{hora && <span className="muted small"> · sobre las {hora}</span>}</h3>
         {pendiente && <span className="tag rojo">Pendiente</span>}
         {no && <span className="tag rojo">No hecha</span>}
         {f === 0.5 && <span className="tag ambar">Media</span>}
         {f === 0.75 && <span className="tag verde">¾</span>}
-        {f === 1 && <span className="tag verde">{t.plato ? 'Hecha' : 'Entera'}</span>}
+        {f === 0.25 && <span className="tag ambar">¼</span>}
+        {f === 0.1 && <span className="tag rojo">Casi nada</span>}
+        {f === 1 && <span className="tag verde">Entera</span>}
         {f == null && tomada(m) && <span className="tag verde">Anotada</span>}
       </div>
       {t.batido && (
@@ -296,7 +297,7 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
             : !k.platos.length ? null
             : t.plato ? (m?.macros && (m.macros.veg != null || m.macros.prot != null || m.macros.starch != null)
               ? <>Según el plato, cuenta unas <strong>{fmtKcal(k.total - (k.postre?.total ?? 0))} kcal</strong> de {fmtKcal(tocaba.reduce((s, p) => s + (p.k ?? 0), 0))}.</>
-              : <>Sin marcar el plato, cuenta entero: unas {fmtKcal(k.total - (k.postre?.total ?? 0))} kcal. Toca cada parte si comió menos o más.</>)
+              : <>Sin marcar el plato, cuenta {f != null && f > 0 && f < 1 ? <>{f === 0.1 ? 'casi nada (un 10 %)' : f === 0.75 ? '¾' : f === 0.5 ? 'la mitad' : '¼'}</> : 'entero'}: unas {fmtKcal(k.total - (k.postre?.total ?? 0))} kcal. Toca cada parte si comió menos o más de alguna.</>)
             : <>Cuenta lo del menú: unas {fmtKcal(k.total - (k.postre?.total ?? 0))} kcal.</>}
         </p>
       )}
@@ -308,9 +309,9 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
         </label>
       )}
       {t.plato && !no && k?.postre && <PostreKcal p={k.postre} />}
-      <div className="seg" role="group" aria-label={`Cómo ha ido: ${t.label}`}>
+      <div className="seg nutri-cantidad" role="group" aria-label={`Cómo ha ido: ${t.label}`}>
         {lista.map(([v, l]) => (
-          <button type="button" key={l} className={(f === v ? 'on ' : '') + (v === 0 ? 'e-no' : v === 0.5 ? 'e-media' : '')} aria-pressed={f === v} aria-label={l === '¾' ? 'Tres cuartos' : l} onClick={() => marcar(v)}>{l}</button>
+          <button type="button" key={l} className={(f === v ? 'on ' : '') + (v === 0 || v === 0.1 ? 'e-no' : v === 0.5 || v === 0.25 ? 'e-media' : '')} aria-pressed={f === v} aria-label={l === '¾' ? 'Tres cuartos' : l} onClick={() => marcar(v)}>{l}</button>
         ))}
       </div>
       {conPlato && (
