@@ -164,6 +164,9 @@ export interface Meal {
   taken?: Record<string, 'si' | 'no' | null>
   /** Comida y cena: el postre que ha tomado, escrito por los cuidadores (cuenta sus kcal aparte). */
   dessert?: string
+  /** Alimentos proteicos de la ingesta con su peso cocinado en g (la leche en ml), 0.47.0. Sin valor: en los batidos
+   *  cuenta la proteína de guisante de siempre (30 g media mañana, 15 g media tarde); en las principales, nada. */
+  prot?: { food: string; g: number }[]
   fraction?: Fraction
   carb?: Carb
   texture?: Texture

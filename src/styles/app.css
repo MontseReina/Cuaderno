@@ -711,3 +711,34 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .gas-label { font-size: .85rem; text-align: center; line-height: 1.2; }
 .gas-count { position: absolute; top: .35rem; right: .45rem; min-width: 1.6rem; height: 1.6rem; padding: 0 .35rem; border-radius: 999px; background: #3D4126; color: #fff; font-weight: 700; font-size: .9rem; display: flex; align-items: center; justify-content: center; }
 .gas-menos { align-self: center; border: none; background: none; color: #6b6b6b; font: inherit; font-size: .85rem; padding: .15rem .6rem; cursor: pointer; text-decoration: underline; }
+
+/* Control de proteína (0.47.0) */
+.prot-dia { border: 2px solid var(--primary); display: flex; flex-direction: column; gap: .35rem; }
+.prot-titulo { font-size: 1.05rem; color: var(--ink-deep); }
+.prot-cifra strong { font-size: 1.9rem; line-height: 1.1; }
+.prot-pill { font-size: .75rem; font-weight: 700; padding: .15rem .6rem; border-radius: 999px; color: #fff; background: var(--muted); white-space: nowrap; }
+.prot-pill.verde { background: var(--green); } .prot-pill.amarillo { background: var(--amber); } .prot-pill.rojo { background: var(--red); } .prot-pill.curso { background: var(--primary); }
+.prot-barra-dia { position: relative; height: 16px; border-radius: 8px; background: var(--line); overflow: hidden; }
+.prot-barra-dia .prot-franja { position: absolute; top: 0; bottom: 0; background: var(--primary-soft); }
+.prot-barra-dia i { position: absolute; left: 0; top: 3px; bottom: 3px; border-radius: 5px; background: var(--primary); }
+.prot-barra-dia i.verde { background: var(--green); } .prot-barra-dia i.amarillo { background: var(--amber); } .prot-barra-dia i.rojo { background: var(--red); }
+.prot-marcas { position: relative; height: 1rem; font-size: .72rem; color: var(--muted); }
+.prot-marcas span { position: absolute; top: 0; transform: translateX(-50%); }
+.prot-principales { border-top: 1px solid var(--line); padding-top: .5rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; }
+.prot-casillas { display: flex; gap: .35rem; }
+.prot-casilla { flex: 1 1 0; text-align: center; font-size: .78rem; font-weight: 700; padding: .35rem .2rem; border-radius: 8px; color: #fff; }
+.prot-casilla.verde { background: var(--green); } .prot-casilla.amarillo { background: var(--amber); } .prot-casilla.rojo { background: var(--red); } .prot-casilla.gris { background: #efeadf; color: var(--muted); }
+.prot-toma { background: var(--bg); border-radius: 10px; padding: .6rem .7rem; margin: .5rem 0; display: flex; flex-direction: column; gap: .4rem; }
+.prot-barra { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.prot-barra i { display: block; height: 100%; border-radius: 4px; background: var(--muted); }
+.prot-barra i.verde { background: var(--green); } .prot-barra i.amarillo { background: var(--amber); } .prot-barra i.rojo { background: var(--red); }
+.prot-item { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: .3rem .3rem .3rem .6rem; display: flex; flex-direction: column; gap: .3rem; }
+.prot-item-fila { display: flex; align-items: center; gap: .35rem; }
+.prot-nombre { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: .95rem; }
+.prot-btn { width: 2.6rem; height: 2.6rem; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+.prot-g { min-width: 3.4rem; text-align: center; font-weight: 700; }
+.prot-quitar { width: 2.2rem; height: 2.6rem; border: none; background: transparent; color: var(--muted); cursor: pointer; }
+.prot-cazos button { min-height: 2.6rem; }
+.prot-anadir { display: flex; align-items: center; gap: .5rem; color: var(--primary); font-weight: 600; }
+.prot-anadir select { flex: 1 1 auto; height: 2.6rem; border: 1px dashed var(--muted); border-radius: 8px; background: #fff; padding: 0 .5rem; }
+.prot-anadir span { white-space: nowrap; }

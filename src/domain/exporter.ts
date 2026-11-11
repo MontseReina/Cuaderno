@@ -11,7 +11,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.46.2'
+export const APP_VERSION = '0.47.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 

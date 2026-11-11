@@ -19,6 +19,8 @@ import { pautaDelDia } from '../domain/pautas'
 import { Field, Section, Segmented } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
 import { diaTratamiento } from '../domain/diaTratamiento'
+import { PROTEINA_DESDE, proteinaDia, type ProteinaToma } from '../domain/proteina'
+import { ProteinaFicha, ProteinaResumen } from '../components/Proteina'
 
 /** Pilar 6 · Nutrición (0.33.0, como New Version): reloj del ayuno, una ficha por toma (desayuno, media mañana,
  *  comida, media tarde y cena) con cuánto se tomó, lo que se tomó escrito, el plato dibujado en comida y cena y las
@@ -62,6 +64,8 @@ export default function Nutricion() {
   const menuRow = menuActivo(menuRows)
   const menuHoy = menuDelDia(menuRow?.data, date)
   const kc = kcalDia(draft, menuHoy)
+  // Control de proteína (0.47.0): desde el 11/11/2026.
+  const prot = date >= PROTEINA_DESDE ? proteinaDia(draft.meals, TOMAS.map((t) => t.key)) : null
   const fast = fastingHours(draft, yesterday)
   const fastDet = draft.extra?.fasting_h == null ? overnightFastDetail(draft, yesterday) : null
   const [showWeights, setShowWeights] = useState(false)
@@ -109,6 +113,8 @@ export default function Nutricion() {
       <h1>Nutrición</h1>
       <DateNav date={date} base="/nutricion" sub={`${diaTratamiento(patient?.protocol_start, cycles, date)?.texto ?? 'sin ciclo'}${cisplatin && ctx.day ? ' · sigue el cisplatino' : ''}`} />
 
+      {prot && <ProteinaResumen d={prot} esHoy={esHoy} />}
+
       {esHoy && <RelojAyuno ayer={yesterday} hoy={draft} />}
 
       <div className={'card nutri-resumen ' + day.level}>
@@ -149,7 +155,7 @@ export default function Nutricion() {
 
       {tomas.map((t) => {
         const m = meal(t.key)
-        return <Ficha key={t.key} t={t} m={m} menu={menuHoy} nueva={nueva} cisplatin={cisplatin} date={date} esHoy={esHoy}
+        return <Ficha key={t.key} t={t} m={m} prot={prot?.tomas.find((x) => x.slot === t.key)} menu={menuHoy} nueva={nueva} cisplatin={cisplatin} date={date} esHoy={esHoy}
           marcar={(v) => marcar(t, v)} poner={(p) => setMeal(t.key, p)} macro={(p) => setMacro(t.key, p)} />
       })}
       <div className="muted small" style={{ margin: '-.2rem 0 .8rem' }}>Líquidos: {totalFluids(draft) ?? '—'} ml → <Link to={`/hidratacion/${date}`}>Hidratación</Link></div>
@@ -215,8 +221,8 @@ export default function Nutricion() {
 
 /** Ficha de una toma, como en New Version: lo previsto (el batido), cuánto se tomó, lo que se tomó escrito con sus
  *  kilocalorías, el plato dibujado en comida y cena, y las horas. */
-function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro }: {
-  t: TomaDef; m?: Meal; menu: MenuHoy | null; nueva: boolean; cisplatin: boolean; date: string; esHoy: boolean
+function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro }: {
+  t: TomaDef; m?: Meal; prot?: ProteinaToma; menu: MenuHoy | null; nueva: boolean; cisplatin: boolean; date: string; esHoy: boolean
   marcar: (v: number) => void; poner: (p: Partial<Meal>) => void; macro: (p: Partial<MealMacros>) => void
 }) {
   const f = m?.fraction
@@ -314,6 +320,7 @@ function Ficha({ t, m, menu, nueva, cisplatin, date, esHoy, marcar, poner, macro
           <button type="button" key={l} className={(f === v ? 'on ' : '') + (v === 0 || v === 0.1 ? 'e-no' : v === 0.5 || v === 0.25 ? 'e-media' : '')} aria-pressed={f === v} aria-label={l === '¾' ? 'Tres cuartos' : l} onClick={() => marcar(v)}>{l}</button>
         ))}
       </div>
+      {prot && !no && <ProteinaFicha slot={t.key} m={m} p={prot} poner={(items) => poner({ prot: items })} />}
       {conPlato && (
         <Plato nueva={nueva} veg={m?.macros?.veg} prot={m?.macros?.prot} starch={m?.macros?.starch} onChange={(p) => macro(p)} />
       )}
