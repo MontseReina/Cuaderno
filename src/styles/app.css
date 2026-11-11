@@ -700,3 +700,14 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .lesiontable tr.nueva td:first-child { border-left: 3px solid var(--red); }
 .lesiontable sup { color: var(--muted); margin-left: .1rem; }
 .lesionnotas { margin: .3rem 0 .4rem 1.1rem; padding: 0; }
+
+/* Gases · P2 (0.46.1): botones grandes con emoticono; cada toque suma uno */
+.gases-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .4rem; }
+.gas-btn { display: flex; flex-direction: column; align-items: stretch; gap: .25rem; }
+.gas-tap { position: relative; display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .7rem .4rem; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; cursor: pointer; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+.gas-tap:active { transform: scale(.96); }
+.gas-btn.on .gas-tap { border-color: #3D4126; background: #f3f1e8; }
+.gas-emoji { font-size: 2rem; line-height: 1; }
+.gas-label { font-size: .85rem; text-align: center; line-height: 1.2; }
+.gas-count { position: absolute; top: .35rem; right: .45rem; min-width: 1.6rem; height: 1.6rem; padding: 0 .35rem; border-radius: 999px; background: #3D4126; color: #fff; font-weight: 700; font-size: .9rem; display: flex; align-items: center; justify-content: center; }
+.gas-menos { align-self: center; border: none; background: none; color: #6b6b6b; font: inherit; font-size: .85rem; padding: .15rem .6rem; cursor: pointer; text-decoration: underline; }

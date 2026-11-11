@@ -259,18 +259,22 @@ export default function Diario() {
       </Section>
 
       <Section title={`💨 Gases · P2${gasesTotal ? ` (${gasesTotal})` : ''}`} open={gasesTotal > 0}>
-        <p className="muted small">Cuántos de cada tipo a lo largo del día. No es obligatorio: si no se apunta nada, no cuenta.</p>
-        {(['Silenciosos', 'Ruidosos'] as const).map((g) => (
-          <div key={g}>
-            <h3>{g === 'Silenciosos' ? '🤫 Silenciosos' : '📢 Ruidosos'}</h3>
-            {GAS_KINDS.filter((k) => k.grupo === g).map((k) => (
-              <div key={k.key} className="row between" style={{ margin: '.3rem 0', flexWrap: 'nowrap' }}>
-                <span>{k.olor}</span>
-                <Stepper value={gases[k.key] ?? null} onChange={(v) => setExtra({ gases: { ...gases, [k.key]: v } })} />
+        <p className="muted small">Toca el dibujo cada vez que haya uno. Si te equivocas, «−1» lo quita. No es obligatorio.</p>
+        <div className="gases-grid">
+          {GAS_KINDS.map((k) => {
+            const n = gases[k.key] ?? 0
+            return (
+              <div key={k.key} className={'gas-btn' + (n > 0 ? ' on' : '')}>
+                <button type="button" className="gas-tap" aria-label={`Sumar uno: ${k.label}`} onClick={() => setExtra({ gases: { ...gases, [k.key]: n + 1 } })}>
+                  <span className="gas-emoji" aria-hidden>{k.emoji}</span>
+                  <span className="gas-label">{k.grupo}<br />{k.olor.toLowerCase()}</span>
+                  {n > 0 && <span className="gas-count">{n}</span>}
+                </button>
+                {n > 0 && <button type="button" className="gas-menos" aria-label={`Quitar uno: ${k.label}`} onClick={() => setExtra({ gases: { ...gases, [k.key]: n - 1 || null } })}>−1</button>}
               </div>
-            ))}
-          </div>
-        ))}
+            )
+          })}
+        </div>
       </Section>
 
       <Section title={`Cuidados preventivos (${prevDone}/${preventive.length})`} open>

@@ -181,11 +181,11 @@ export const URINE_COLORS = ['#f7f6ee', '#f6efb8', '#f1df6e', '#e6c53a', '#c9962
 export const URINE_LABELS = ['Transparente', 'Muy claro', 'Amarillo', 'Amarillo oscuro', 'Ámbar', 'Marrón / rojizo']
 
 /** Gases («P2», 0.46.0): clasificación por ruido y olor, en el orden en que se muestran. */
-export const GAS_KINDS: { key: 'silencioso_sin_olor' | 'silencioso_olor' | 'ruidoso_sin_olor' | 'ruidoso_olor'; grupo: 'Silenciosos' | 'Ruidosos'; olor: string; label: string }[] = [
-  { key: 'silencioso_sin_olor', grupo: 'Silenciosos', olor: 'Sin olor', label: 'Silenciosos sin olor' },
-  { key: 'silencioso_olor', grupo: 'Silenciosos', olor: 'Huelen mal', label: 'Silenciosos que huelen mal' },
-  { key: 'ruidoso_sin_olor', grupo: 'Ruidosos', olor: 'Sin olor', label: 'Ruidosos sin olor' },
-  { key: 'ruidoso_olor', grupo: 'Ruidosos', olor: 'Con olor', label: 'Ruidosos con olor' },
+export const GAS_KINDS: { key: 'silencioso_sin_olor' | 'silencioso_olor' | 'ruidoso_sin_olor' | 'ruidoso_olor'; grupo: 'Silenciosos' | 'Ruidosos'; olor: string; label: string; emoji: string }[] = [
+  { key: 'silencioso_sin_olor', emoji: '🤫😌', grupo: 'Silenciosos', olor: 'Sin olor', label: 'Silenciosos sin olor' },
+  { key: 'silencioso_olor', emoji: '🤫🤢', grupo: 'Silenciosos', olor: 'Huelen mal', label: 'Silenciosos que huelen mal' },
+  { key: 'ruidoso_sin_olor', emoji: '📢😌', grupo: 'Ruidosos', olor: 'Sin olor', label: 'Ruidosos sin olor' },
+  { key: 'ruidoso_olor', emoji: '📢🤢', grupo: 'Ruidosos', olor: 'Con olor', label: 'Ruidosos con olor' },
 ]
 
 export const STOOL_COLORS = [
