@@ -3,7 +3,7 @@ import { ayunoDeCiclo, textoAyuno } from './ayunoAnalitica'
 import { TABLE_NAMES, type TableName } from '../store/types'
 import { addDays, fmtDate, todayStr } from './dates'
 import { corticoidText, cycleContext, dailyTraffic, hasCorticoid, isCisplatinDay, otroSintomaTexto, otrosSintomas, symptomsForToday } from './cycle'
-import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
+import { ANALYTES, BLOCK_LABELS, DRUG_LABELS, FEVER_CAUSES, GAS_KINDS, FRACTION_LABELS, MODE_LABELS, PREVENTIVE, SEVERITY_LABELS, SYMPTOMS, VOMIT_KINDS } from './catalogs'
 import { kcalDia } from './kcal'
 import { menuActivo, menuDelDia } from './menu'
 import { carbProfile, dayNutrition, fastingHours, meanIntake, mealTraffic, weekMode } from './nutrition'
@@ -11,7 +11,7 @@ import { controlDelDia, faseNausea, nauseaMax, resumenDeCiclo } from './nausea'
 import { tiposBristol } from './deposiciones'
 import { resumenEjercicio } from './ejercicio'
 
-export const APP_VERSION = '0.45.0'
+export const APP_VERSION = '0.46.0'
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'cuaderno-last-export'
 
@@ -199,6 +199,8 @@ export function buildAiReport(from: string, to: string): string {
     for (const w of backend.all('weights').filter((w) => w.at.slice(0, 10) === l.date)) c.push(`peso ${w.kg} kg (${w.source}${w.height_cm ? `, ${w.height_cm} cm` : ''})`)
     if (l.urine_color) c.push(`orina color ${l.urine_color}/6${l.urine_amount ? ` ${l.urine_amount}` : ''}${l.urine_ph ? ` pH ${l.urine_ph}` : ''}${l.urine_ml ? ` ${l.urine_ml} ml` : ''}`)
     if (l.stools_n != null) c.push(`deposiciones ${l.stools_n}${tiposBristol(l).length && l.stools_n ? ` Bristol ${tiposBristol(l).join(', ')}` : ''}${l.stool_color && l.stool_color !== 'normal' ? ` ${l.stool_color}` : ''}`)
+    const gs = GAS_KINDS.filter((k) => (l.extra?.gases?.[k.key] ?? 0) > 0).map((k) => `${k.label.toLowerCase()} ${l.extra!.gases![k.key]}`)
+    if (gs.length) c.push(`gases: ${gs.join(', ')}`)
     if (l.pain_max != null) c.push(`dolor ${l.pain_max}/10${l.pain_location ? ` (${l.pain_location})` : ''}`)
     if (l.fatigue != null) c.push(`fatiga ${l.fatigue}/4`)
     if (l.mood_child) c.push(`ánimo ${l.mood_child}/5`)

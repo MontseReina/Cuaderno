@@ -6,7 +6,7 @@ import { afterChemoGate, corticoidAlert, cycleContext, otrosSintomas, isCisplati
 import { medicationProgress, trafficWindow } from './medication'
 import { dayCompleteness } from './completeness'
 import { dayNutrition, fastingHours, isFatSlot, mealTraffic, totalFluids, weekMode } from './nutrition'
-import { FLUID_TARGET, PREVENTIVE, SEAWATER_TARGET_ML, STOOL_COLORS, SYMPTOMS, SYNC_ITEMS, URINE_LABELS, VOMIT_KINDS, CUP_ML } from './catalogs'
+import { FLUID_TARGET, GAS_KINDS, PREVENTIVE, SEAWATER_TARGET_ML, STOOL_COLORS, SYMPTOMS, SYNC_ITEMS, URINE_LABELS, VOMIT_KINDS, CUP_ML } from './catalogs'
 import { protocolPoint } from './protocol'
 import { controlDelDia, nauseaMax, resumenesRecientes } from './nausea'
 import { sesionesTratamiento } from './fases'
@@ -238,6 +238,10 @@ function signos(days: string[], logOf: (d: string) => DailyLog | undefined, data
   const alarmColor = logs.filter(([, l]) => l.stool_color === 'oscuro' || l.stool_color === 'sangre' || l.stool_color === 'palido')
   for (const [d, l] of alarmColor) alerts.push({ date: d, text: `Heces: ${STOOL_COLORS.find((s) => s.key === l.stool_color)?.label.toLowerCase()}`, block: B })
   ind.push({ label: 'Color de las heces', value: colorMode ? `${STOOL_COLORS.find((s) => s.key === colorMode)?.label}${alarmColor.length ? ` · alerta: ${alarmColor.map(([d]) => dayLabel(d)).join(', ')}` : ''}` : 'Sin datos', light: alarmColor.length ? 'rojo' : colorMode ? 'verde' : 'gris' })
+  // Gases («P2», 0.46.0): solo descriptivo, sin semáforo (no hay umbral clínico pactado).
+  const gasTot = GAS_KINDS.map((k) => ({ k, n: logs.reduce((t, [, l]) => t + (l.extra?.gases?.[k.key] ?? 0), 0) }))
+  const gasDias = logs.filter(([, l]) => GAS_KINDS.some((k) => l.extra?.gases?.[k.key] != null)).length
+  ind.push({ label: 'Gases (P2)', value: gasDias ? `${gasTot.filter((x) => x.n > 0).map((x) => `${x.k.label.toLowerCase()} ${x.n}`).join(' · ') || 'ninguno'} · apuntados ${gasDias} de ${days.length} días` : 'Sin datos', light: gasDias ? undefined : 'gris' })
   if (alarmColor.length) bump('rojo')
 
   // Fiebre

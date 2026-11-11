@@ -190,6 +190,8 @@ export interface FunctionalDaily {
 }
 /** Síntoma escrito a mano (no está en el listado): 1 leve · 2 moderado · 3 intenso. */
 export interface OtherSymptom { text: string; sev: 1 | 2 | 3 }
+/** Gases («P2», 0.46.0): cuatro tipos según ruido y olor. */
+export type GasKind = 'silencioso_sin_olor' | 'silencioso_olor' | 'ruidoso_sin_olor' | 'ruidoso_olor'
 export type WalkStop = 'no_paro' | 'dolor' | 'cansancio' | 'mareo' | 'falta_aire' | 'otro'
 export type WalkAid = 'sin_ayuda' | 'muletas' | 'andador' | 'silla'
 /** Campos añadidos en la v0.4 (columna JSONB `extra`). */
@@ -226,6 +228,8 @@ export interface DailyExtra {
   ex_no?: Partial<Record<'fuerza' | 'aerobico', string>>
   /** Ejercicios de la mano (dedos y luego bola): ✓ por ronda, clave = hora «09»…«20» (0.38.1). */
   mano?: Partial<Record<string, boolean>>
+  /** Gases del día («P2», 0.46.0): cuántos de cada tipo. No es obligatorio: si no se apunta nada, no cuenta. */
+  gases?: Partial<Record<GasKind, number | null>>
   /** Tipo de Bristol de cada deposición del día, en orden (0.28.0). */
   stools?: { bristol?: number | null }[]
   /** Registro de náuseas (0.25.0): escala de caras 0-10 por momento, impacto, arcadas y rescates. */

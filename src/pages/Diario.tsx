@@ -9,7 +9,7 @@ import { medicationProgress, trafficWindow } from '../domain/medication'
 import {
   BRISTOL_HELP, FATIGUE_LABELS, FEVER_CAUSES, MOOD_FACES, MODE_LABELS,
   PREVENTIVE, PHLEGM_COLORS, VOMIT_KINDS, SEVERITY_LABELS, STOOL_COLORS, SYMPTOMS, URINE_COLORS, URINE_LABELS, DRUG_WATCH, DRUG_LABELS,
-  LOCATIONS,
+  LOCATIONS, GAS_KINDS,
   VITAL_SLOTS,
 } from '../domain/catalogs'
 import { dayNutrition, totalFluids, weekMode } from '../domain/nutrition'
@@ -82,6 +82,8 @@ export default function Diario() {
   const groups = useMemo(() => Array.from(new Set(preventive.map((p) => p.group))), [preventive])
   const otros = draft.extra?.other_symptoms ?? []
   const symptomsMarked = Object.values(draft.symptoms).filter((v) => v > 0).length + otros.filter((o) => o.text?.trim()).length
+  const gases = draft.extra?.gases ?? {}
+  const gasesTotal = GAS_KINDS.reduce((t, k) => t + (gases[k.key] ?? 0), 0)
   const prevDone = preventive.filter((p) => draft.preventive[p.key] === true).length
 
   return (
@@ -254,6 +256,21 @@ export default function Diario() {
             ))}
           </div>
         )}
+      </Section>
+
+      <Section title={`💨 Gases · P2${gasesTotal ? ` (${gasesTotal})` : ''}`} open={gasesTotal > 0}>
+        <p className="muted small">Cuántos de cada tipo a lo largo del día. No es obligatorio: si no se apunta nada, no cuenta.</p>
+        {(['Silenciosos', 'Ruidosos'] as const).map((g) => (
+          <div key={g}>
+            <h3>{g === 'Silenciosos' ? '🤫 Silenciosos' : '📢 Ruidosos'}</h3>
+            {GAS_KINDS.filter((k) => k.grupo === g).map((k) => (
+              <div key={k.key} className="row between" style={{ margin: '.3rem 0', flexWrap: 'nowrap' }}>
+                <span>{k.olor}</span>
+                <Stepper value={gases[k.key] ?? null} onChange={(v) => setExtra({ gases: { ...gases, [k.key]: v } })} />
+              </div>
+            ))}
+          </div>
+        ))}
       </Section>
 
       <Section title={`Cuidados preventivos (${prevDone}/${preventive.length})`} open>
