@@ -191,6 +191,25 @@ export default function Diario() {
         <Field label="Color de las heces">
           <Segmented options={STOOL_COLORS.map((s) => ({ value: s.key, label: s.label }))} value={draft.stool_color ?? null} onChange={(v) => set('stool_color', v as DailyLog['stool_color'])} />
         </Field>
+        <div className="field">
+          <span>💨 Gases · P2{gasesTotal ? ` (${gasesTotal} hoy)` : ''}</span>
+          <div className="gases-grid">
+            {GAS_KINDS.map((k) => {
+              const n = gases[k.key] ?? 0
+              return (
+                <div key={k.key} className={'gas-btn' + (n > 0 ? ' on' : '')}>
+                  <button type="button" className="gas-tap" aria-label={`Sumar uno: ${k.label}`} onClick={() => setExtra({ gases: { ...gases, [k.key]: n + 1 } })}>
+                    <span className="gas-emoji" aria-hidden>{k.emoji}</span>
+                    <span className="gas-label">{k.grupo}<br />{k.olor.toLowerCase()}</span>
+                    {n > 0 && <span className="gas-count">{n}</span>}
+                  </button>
+                  {n > 0 && <button type="button" className="gas-menos" aria-label={`Quitar uno: ${k.label}`} onClick={() => setExtra({ gases: { ...gases, [k.key]: n - 1 || null } })}>−1</button>}
+                </div>
+              )
+            })}
+          </div>
+          <div className="muted small">Toca el dibujo cada vez que haya uno. Si te equivocas, «−1» lo quita. No es obligatorio.</div>
+        </div>
         <Field label={`Dolor máximo del día: ${draft.pain_max ?? '—'} / 10`}>
           <input type="range" min={0} max={10} value={draft.pain_max ?? 0} onChange={(e) => set('pain_max', Number(e.target.value))} style={{ width: '100%' }} />
           <input type="text" placeholder="¿Dónde?" value={draft.pain_location ?? ''} onChange={(e) => set('pain_location', e.target.value)} />
@@ -256,25 +275,6 @@ export default function Diario() {
             ))}
           </div>
         )}
-      </Section>
-
-      <Section title={`💨 Gases · P2${gasesTotal ? ` (${gasesTotal})` : ''}`} open={gasesTotal > 0}>
-        <p className="muted small">Toca el dibujo cada vez que haya uno. Si te equivocas, «−1» lo quita. No es obligatorio.</p>
-        <div className="gases-grid">
-          {GAS_KINDS.map((k) => {
-            const n = gases[k.key] ?? 0
-            return (
-              <div key={k.key} className={'gas-btn' + (n > 0 ? ' on' : '')}>
-                <button type="button" className="gas-tap" aria-label={`Sumar uno: ${k.label}`} onClick={() => setExtra({ gases: { ...gases, [k.key]: n + 1 } })}>
-                  <span className="gas-emoji" aria-hidden>{k.emoji}</span>
-                  <span className="gas-label">{k.grupo}<br />{k.olor.toLowerCase()}</span>
-                  {n > 0 && <span className="gas-count">{n}</span>}
-                </button>
-                {n > 0 && <button type="button" className="gas-menos" aria-label={`Quitar uno: ${k.label}`} onClick={() => setExtra({ gases: { ...gases, [k.key]: n - 1 || null } })}>−1</button>}
-              </div>
-            )
-          })}
-        </div>
       </Section>
 
       <Section title={`Cuidados preventivos (${prevDone}/${preventive.length})`} open>
