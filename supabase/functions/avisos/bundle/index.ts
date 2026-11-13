@@ -272,6 +272,100 @@ function nowLocalInput() {
 	return (/* @__PURE__ */ new Date(d.getTime() - off * 6e4)).toISOString().slice(0, 16);
 }
 //#endregion
+//#region src/domain/protocol.ts
+/** Anclas del protocolo (0.39.1, 08/11/2026): el inicio (semana 0) y cada sesión registrada en Tratamiento
+*  con su semana del protocolo. El hospital numera las semanas por la secuencia del protocolo, no por el
+*  calendario: si una sesión se retrasa (p. ej. la semana 9 fue el 05/11 en vez del 28/10), las semanas
+*  siguientes se corren con ella. */
+function anclasProtocolo(start, cycles = []) {
+	if (!start) return [];
+	const out = /* @__PURE__ */ new Map([[0, start.slice(0, 10)]]);
+	for (const c of cycles) {
+		if (c.deleted_at || c.protocol_week == null) continue;
+		out.set(c.protocol_week, (c.start_at ?? c.planned_date).slice(0, 10));
+	}
+	return [...out.entries()].map(([week, date]) => ({
+		week,
+		date
+	})).sort((a, b) => a.week - b.week);
+}
+/** Fecha de una semana del protocolo: la registrada si la hay; si no, la última sesión registrada
+*  anterior + 7 días por semana. */
+function fechaSemana(start, cycles, week) {
+	const a = anclasProtocolo(start, cycles).filter((x) => x.week <= week).pop();
+	return a ? addDays(a.date, (week - a.week) * 7) : null;
+}
+/** Nombre completo de cada sesión del Anexo 2 (para el calendario). */
+const PLAN_NOMBRE = {
+	"MTX": {
+		corto: "MTX",
+		largo: "Metotrexato",
+		tipo: "mtx"
+	},
+	"CDP + ADM": {
+		corto: "CDDP + ADM",
+		largo: "Cisplatino y Adriamicina",
+		tipo: "cddp"
+	},
+	"CDP": {
+		corto: "CDDP",
+		largo: "Cisplatino",
+		tipo: "cddp"
+	},
+	"ADM*": {
+		corto: "ADM",
+		largo: "Adriamicina (tras la cirugía)",
+		tipo: "adm"
+	},
+	"Cirugía": {
+		corto: "Cirugía",
+		largo: "Cirugía (posible)",
+		tipo: "cirugia"
+	}
+};
+/** Días de quimio y cirugía del protocolo, por fecha. Si en Tratamiento hay una sesión con esa semana
+*  del protocolo, manda su fecha real; si no, se calcula desde la última sesión registrada (fechaSemana). */
+function calendarioTratamiento(start, cycles) {
+	const out = /* @__PURE__ */ new Map();
+	if (!start) return out;
+	for (const p of PROTOCOL_34) {
+		const n = PLAN_NOMBRE[p.label] ?? {
+			corto: p.label,
+			largo: p.label,
+			tipo: "mtx"
+		};
+		const reg = cycles.find((c) => c.protocol_week === p.week);
+		const date = reg ? (reg.start_at ?? reg.planned_date).slice(0, 10) : fechaSemana(start, cycles, p.week) ?? addDays(start, p.week * 7);
+		out.set(date, {
+			week: p.week,
+			...n,
+			registrada: !!reg,
+			ciclo: null
+		});
+	}
+	const regDates = cycles.filter((c) => (c.drugs ?? []).some((d) => [
+		"MTX",
+		"CDDP",
+		"ADM",
+		"HDIFO"
+	].includes(d))).map((c) => (c.start_at ?? c.planned_date).slice(0, 10));
+	const pendientes = Array.from(out.entries()).filter(([, d]) => d.tipo !== "cirugia" && !d.registrada).map(([date]) => date);
+	const todas = [...regDates.map((date) => ({
+		date,
+		reg: true
+	})), ...pendientes.map((date) => ({
+		date,
+		reg: false
+	}))].sort((a, b) => a.date.localeCompare(b.date) || (a.reg === b.reg ? 0 : a.reg ? -1 : 1));
+	for (const [date, d] of out) {
+		if (d.tipo === "cirugia") continue;
+		const reg = d.registrada ? cycles.find((c) => c.protocol_week === d.week) : void 0;
+		const i = todas.findIndex((x) => x.date === date && x.reg === d.registrada);
+		d.ciclo = reg?.number ?? (i >= 0 ? i + 1 : null);
+	}
+	return out;
+}
+//#endregion
 //#region src/domain/fases.ts
 const KIND = {
 	"MTX": "mtx",
@@ -300,7 +394,7 @@ function sesionesTratamiento(start, cycles) {
 	}
 	if (start) for (const p of PROTOCOL_34) {
 		if (usadas.has(p.week)) continue;
-		const date = addDays(start, p.week * 7);
+		const date = fechaSemana(start, cycles, p.week) ?? addDays(start, p.week * 7);
 		out.push({
 			date,
 			end: date,
@@ -346,65 +440,6 @@ function faseDelDia(start, cycles, date, sesiones) {
 		tramo: d <= 14 ? "nadir" : null,
 		dia: d
 	};
-}
-//#endregion
-//#region src/domain/protocol.ts
-/** Nombre completo de cada sesión del Anexo 2 (para el calendario). */
-const PLAN_NOMBRE = {
-	"MTX": {
-		corto: "MTX",
-		largo: "Metotrexato",
-		tipo: "mtx"
-	},
-	"CDP + ADM": {
-		corto: "CDDP + ADM",
-		largo: "Cisplatino y Adriamicina",
-		tipo: "cddp"
-	},
-	"CDP": {
-		corto: "CDDP",
-		largo: "Cisplatino",
-		tipo: "cddp"
-	},
-	"ADM*": {
-		corto: "ADM",
-		largo: "Adriamicina (tras la cirugía)",
-		tipo: "adm"
-	},
-	"Cirugía": {
-		corto: "Cirugía",
-		largo: "Cirugía (posible)",
-		tipo: "cirugia"
-	}
-};
-/** Días de quimio y cirugía del protocolo, por fecha. La quimio es siempre en miércoles
-*  (día 1 = inicio del tratamiento + 7 × semana). Si en Tratamiento hay una sesión con esa semana
-*  del protocolo, manda su fecha real (por si hubo retraso). */
-function calendarioTratamiento(start, cycles) {
-	const out = /* @__PURE__ */ new Map();
-	if (!start) return out;
-	for (const p of PROTOCOL_34) {
-		const n = PLAN_NOMBRE[p.label] ?? {
-			corto: p.label,
-			largo: p.label,
-			tipo: "mtx"
-		};
-		const reg = cycles.find((c) => c.protocol_week === p.week);
-		const date = reg ? (reg.start_at ?? reg.planned_date).slice(0, 10) : addDays(start, p.week * 7);
-		const ciclo = n.tipo === "cirugia" ? null : reg?.number ?? {
-			0: 1,
-			1: 1,
-			4: 2,
-			5: 2
-		}[p.week] ?? null;
-		out.set(date, {
-			week: p.week,
-			...n,
-			registrada: !!reg,
-			ciclo
-		});
-	}
-	return out;
 }
 //#endregion
 //#region src/domain/cycle.ts
@@ -1353,6 +1388,13 @@ ALIMENTOS.flatMap((a) => a.s.map((s) => {
 		largo: w.join(" ").length
 	};
 })).sort((x, y) => y.largo - x.largo);
+//#endregion
+//#region src/domain/batido.ts
+/** Líquido del batido si no se escribe nada en «Líquido» (13/11/2026): 200 ml media mañana, 100 ml media tarde. */
+const BATIDO_ML_TOMA = {
+	media_manana: 200,
+	merienda: 100
+};
 ALIMENTOS.find((a) => a.id === "batido");
 /** ¿Cuenta esta toma como tomada? Marcada con algo distinto de «No», o con algo escrito o una hora. */
 const tomada = (m) => !!m && m.fraction !== 0 && (m.fraction != null || !!m.note?.trim() || !!m.dessert?.trim() || !!m.time || !!m.end);
@@ -1662,9 +1704,10 @@ function aguaALaHora(hhmm, despertar = "08:00") {
 	}
 	return AGUA_DIA_ML;
 }
-/** Mililitros de líquido de media mañana y media tarde. Lo escrito en «Líquido (ml)» manda; si no hay nada,
-*  media mañana con el batido (no el snack del menú ni otra cosa escrita) cuenta 250 ml por la parte tomada y
-*  media tarde no cuenta nada, porque su batido no siempre es igual (19/10/2026). */
+BATIDO_ML_TOMA.media_manana;
+/** Mililitros de líquido de media mañana y media tarde. Lo escrito en «Líquido (ml)» manda; si no hay nada, el
+*  batido (no el snack del menú ni otra cosa escrita) cuenta por la parte tomada: 200 ml media mañana y 100 ml
+*  media tarde (13/11/2026; antes 250 y nada). */
 function batidoMl(log) {
 	let total = 0;
 	for (const m of log?.meals ?? []) {
@@ -1673,8 +1716,9 @@ function batidoMl(log) {
 			total += Math.max(0, m.liquid_ml);
 			continue;
 		}
-		if (m.slot !== "media_manana" || m.choice === "menu" || m.note?.trim()) continue;
-		total += 250 * (m.fraction != null && m.fraction > 0 ? m.fraction : 1);
+		const ml = BATIDO_ML_TOMA[m.slot];
+		if (!ml || m.choice === "menu" || m.note?.trim()) continue;
+		total += ml * (m.fraction != null && m.fraction > 0 ? m.fraction : 1);
 	}
 	return Math.round(total);
 }

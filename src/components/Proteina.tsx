@@ -98,7 +98,7 @@ export function ProteinaFicha({ p }: { p: ProteinaToma }) {
         </span>
       </div>
       {p.principal && <div className="prot-barra"><i className={p.nivel} style={{ width: (p.registrada ? pct : 0) + '%' }} /></div>}
-      {!p.registrada && p.principal && <p className="small muted">{p.slot === 'desayuno' ? (p.previsto ? `Si se come entero, el menú lleva unos ${p.previsto} g.` : 'Se calcula al marcar cuánto ha comido.') : 'La proteína se pesa: 120 g cocinados en el plato. Cuenta lo que coma de ella.'}</p>}
+      {!p.registrada && p.principal && <p className="small muted">La proteína se pesa: 120 g cocinados. Cuenta lo que coma de ella.</p>}
       {p.registrada && desglose && <p className="small muted">{desglose}</p>}
       {p.registrada && !desglose && p.sinDato.length === 0 && <p className="small muted">Sin alimentos proteicos{p.fuente === 'escrito' ? ' en lo escrito' : ''}.</p>}
       {p.sinDato.length > 0 && <p className="small muted"><span className="dot amarillo" />Sin dato de proteína en el menú: {p.sinDato.join(', ')}.</p>}

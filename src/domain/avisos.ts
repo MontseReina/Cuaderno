@@ -16,6 +16,7 @@ import { dayCompleteness } from './completeness'
 import { medicationProgress } from './medication'
 import { totalFluids, weekMode } from './nutrition'
 import { tomada } from './kcal'
+import { BATIDO_ML_TOMA } from './batido'
 
 /** Momentos del día en que se revisa el ritmo. */
 export type Momento = '12' | '16' | '19'
@@ -88,19 +89,20 @@ export function aguaALaHora(hhmm: string, despertar = '08:00'): number {
   return AGUA_DIA_ML
 }
 
-/** Volumen del batido de media mañana (un vaso grande). Cuenta como líquido (Montserrate, 18 y 19/10/2026). */
-export const BATIDO_ML = 250
-/** Mililitros de líquido de media mañana y media tarde. Lo escrito en «Líquido (ml)» manda; si no hay nada,
- *  media mañana con el batido (no el snack del menú ni otra cosa escrita) cuenta 250 ml por la parte tomada y
- *  media tarde no cuenta nada, porque su batido no siempre es igual (19/10/2026). */
+/** Volumen del batido de media mañana. Cuenta como líquido (Montserrate, 18/10; 200 ml desde el 13/11/2026). */
+export const BATIDO_ML = BATIDO_ML_TOMA.media_manana ?? 200
+/** Mililitros de líquido de media mañana y media tarde. Lo escrito en «Líquido (ml)» manda; si no hay nada, el
+ *  batido (no el snack del menú ni otra cosa escrita) cuenta por la parte tomada: 200 ml media mañana y 100 ml
+ *  media tarde (13/11/2026; antes 250 y nada). */
 export function batidoMl(log?: DailyLog): number {
   let total = 0
   for (const m of log?.meals ?? []) {
     const t = TOMAS.find((x) => x.key === m.slot)
     if (!t?.batido || !tomada(m)) continue
     if (m.liquid_ml != null) { total += Math.max(0, m.liquid_ml); continue }
-    if (m.slot !== 'media_manana' || m.choice === 'menu' || m.note?.trim()) continue
-    total += BATIDO_ML * (m.fraction != null && m.fraction > 0 ? m.fraction : 1)
+    const ml = BATIDO_ML_TOMA[m.slot]
+    if (!ml || m.choice === 'menu' || m.note?.trim()) continue
+    total += ml * (m.fraction != null && m.fraction > 0 ? m.fraction : 1)
   }
   return Math.round(total)
 }

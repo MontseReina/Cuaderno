@@ -8,9 +8,8 @@ import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { dayNutrition, fastingHours, mealTraffic, overnightFastDetail, totalFluids, weekMode, fatCount } from '../domain/nutrition'
 import { AYUNO_MAX_H, FAT_EXAMPLES, MEAL_SLOTS, MODE_LABELS, TOMAS, WEIGHT_SOURCES, pautaNueva, type TomaDef } from '../domain/catalogs'
 import { fmtKcal, kcalDia, kcalToma, tomada, type KcalToma } from '../domain/kcal'
-import { EXTRAS_BATIDO, kcalBatido } from '../domain/batido'
+import { BATIDO_ML_TOMA, EXTRAS_BATIDO, kcalBatido } from '../domain/batido'
 import { aplicarAjuste, leerAjuste, leerMenu, menuActivo, menuDelDia, type MenuHoy } from '../domain/menu'
-import { BATIDO_ML } from '../domain/avisos'
 import { DateNav } from '../components/DateNav'
 import { Plato } from '../components/Plato'
 import { RelojAyuno } from '../components/RelojAyuno'
@@ -321,7 +320,7 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
       )}
       {!no && otro && k && <OtroKcal o={k} />}
       {t.batido && !no && tomada(m) && (
-        <p className="small nutri-otro-kcal muted">💧 Cuenta en Hidratación: {m?.liquid_ml != null ? `${m.liquid_ml} ml` : t.key === 'media_manana' && !snack && !otro ? `${Math.round(BATIDO_ML * (f != null && f > 0 ? f : 1))} ml del batido` : 'nada (escribe los ml en «Líquido»)'}.</p>
+        <p className="small nutri-otro-kcal muted">💧 Cuenta en Hidratación: {m?.liquid_ml != null ? `${m.liquid_ml} ml` : BATIDO_ML_TOMA[t.key as MealSlot] && !snack && !otro ? `${Math.round(BATIDO_ML_TOMA[t.key as MealSlot]! * (f != null && f > 0 ? f : 1))} ml del batido` : 'nada (escribe los ml en «Líquido»)'}.</p>
       )}
       {!no && !otro && k?.fuente && (k.fuente === 'batido' || k.platos.length > 0) && (
         <p className="small nutri-otro-kcal muted">
@@ -359,7 +358,7 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
             <label className="nutri-hora nutri-liquido">
               <span className="muted small">Líquido</span>
               <input type="number" inputMode="numeric" min={0} step={10} aria-label={`Líquido en ${t.label} (ml)`}
-                placeholder={t.key === 'media_manana' && !snack && !otro ? String(BATIDO_ML) : 'ml'}
+                placeholder={BATIDO_ML_TOMA[t.key as MealSlot] && !snack && !otro ? String(BATIDO_ML_TOMA[t.key as MealSlot]) : 'ml'}
                 value={m?.liquid_ml ?? ''} onChange={(e) => poner({ liquid_ml: e.target.value === '' ? null : Number(e.target.value) })} />
               <span className="muted small">ml</span>
             </label>

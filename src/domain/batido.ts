@@ -4,8 +4,8 @@
  *  - Media mañana: 30 g de proteína de guisante y ½ plátano. Media tarde: 15 g de proteína y ⅓ de plátano.
  *  - A veces, 1 cucharadita de aceite de coco o de ghee, y un poco de calabaza o de boniato (se marca en la ficha;
  *    «un poco» = unos 50 g cocidos, supuesto de Claude).
- *  - La bebida de almendras (sin azúcar) cuenta por los ml escritos en «Líquido»; sin escribir, 250 ml a media
- *    mañana y la mitad, 125 ml, a media tarde (13/11; solo para las kcal: en Hidratación no cambia).
+ *  - La bebida de almendras (sin azúcar) cuenta por los ml escritos en «Líquido»; sin escribir, 200 ml a media
+ *    mañana y la mitad, 100 ml, a media tarde (13/11). Esos mismos ml cuentan en Hidratación (`BATIDO_ML_TOMA`).
  *
  *  Kilocalorías aproximadas (tablas de composición y etiquetas habituales, redondeadas): bebida de almendras sin
  *  azúcar 14 kcal/100 ml, proteína de guisante en polvo 380 kcal/100 g, plátano 90 kcal/100 g (plátano mediano
@@ -27,9 +27,12 @@ export const EXTRAS_BATIDO = [
 
 export interface RecetaBatido { guisante_g: number; platano: number; platanoTxt: string; ml: number }
 export const RECETA_BATIDO: Partial<Record<MealSlot, RecetaBatido>> = {
-  media_manana: { guisante_g: 30, platano: 1 / 2, platanoTxt: '½ plátano', ml: 250 },
-  merienda: { guisante_g: 15, platano: 1 / 3, platanoTxt: '⅓ de plátano', ml: 125 },
+  media_manana: { guisante_g: 30, platano: 1 / 2, platanoTxt: '½ plátano', ml: 200 },
+  merienda: { guisante_g: 15, platano: 1 / 3, platanoTxt: '⅓ de plátano', ml: 100 },
 }
+
+/** Líquido del batido si no se escribe nada en «Líquido» (13/11/2026): 200 ml media mañana, 100 ml media tarde. */
+export const BATIDO_ML_TOMA: Partial<Record<MealSlot, number>> = { media_manana: 200, merienda: 100 }
 
 export interface LineaBatido { n: string; k: number }
 export interface KcalBatido { lineas: LineaBatido[]; entero: number; total: number }

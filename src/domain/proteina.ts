@@ -5,11 +5,10 @@
  *  - Mínimo 120 g en cada ingesta principal (desayuno, comida y cena). Proteína del día: suma de las 5 ingestas,
  *    ideal 360-400 g.
  *  - Se calcula sola, sin que la familia añada ni elija alimentos:
- *    · comida y cena: la proteína se pesa, 120 g cocinados en el plato (13/11); cuenta 120 g por la parte tomada
- *      (la parte de proteína marcada en el plato dibujado o, si no, Entera / ¾ / Media / Casi nada). El resto del
- *      plato (patata, macarrones…) no suma;
- *    · desayuno y snack del menú: si se cumple el menú, cada plato suma su proteína total (dato del menú, `prot_g`,
- *      sacado de la receta) por la parte tomada;
+ *    · desayuno, comida y cena: la proteína se pesa, 120 g cocinados (13/11); cuenta 120 g por la parte tomada
+ *      (en comida y cena, la parte de proteína marcada en el plato dibujado o, si no, Entera / ¾ / Media / Casi
+ *      nada). El resto del plato (patata, macarrones…) no suma;
+ *    · snack del menú: cada plato suma su proteína total (dato del menú, `prot_g`, si se ha cargado) por la parte;
  *    · si se escribe otra cosa en «Otro», cuenta lo que se reconoce de lo escrito (raciones caseras);
  *    · el postre escrito suma lo que tenga de queso, yogur, etc.;
  *    · los batidos suman su proteína de guisante (30 g media mañana, 15 g media tarde) por la parte tomada. */
@@ -27,7 +26,7 @@ export const DIA_MIN = 360
 export const DIA_MAX = 400
 /** Por debajo de esto (⅔ de la meta) la barra de una principal va en rojo; entre esto y la meta, en ámbar. */
 export const UMBRAL_AMBAR = 80
-/** Comida y cena: la proteína se pesa, 120 g cocinados. */
+/** Desayuno, comida y cena: la proteína se pesa, 120 g cocinados. */
 export const PESADA_G = 120
 
 /** Gramos de alimento proteico de una unidad casera de lo que se escribe en «Otro» o «Postre». Solo los grupos que
@@ -89,7 +88,7 @@ export function proteinaToma(m: Meal | undefined, slot: MealSlot, menu: MenuHoy 
   const delMenu = m ? platosDeToma(m, menu) : menu?.platos(slot) ?? []
   const snack = !!t?.batido && m?.choice === 'menu'
   if (receta && !snack) r.previsto = receta.guisante_g
-  else if (t?.plato) r.previsto = PESADA_G
+  else if (t?.principal) r.previsto = PESADA_G
   else r.previsto = delMenu.reduce((s, d) => s + (gDe(d, data) ?? 0), 0)
 
   if (!registrada || f === 0) { r.nivel = principal && f === 0 ? 'rojo' : 'gris'; return r }
@@ -101,9 +100,9 @@ export function proteinaToma(m: Meal | undefined, slot: MealSlot, menu: MenuHoy 
   } else if (receta && !snack) {
     r.fuente = 'batido'
     r.lineas = [{ n: 'Proteína de guisante', g: Math.round(receta.guisante_g * parte) }]
-  } else if (t?.plato) {
+  } else if (t?.principal) {
     r.fuente = 'menu'
-    r.lineas = [{ n: 'Proteína pesada (120 g en el plato)', g: Math.round(PESADA_G * fPlato) }]
+    r.lineas = [{ n: 'Proteína pesada (120 g)', g: Math.round(PESADA_G * fPlato) }]
   } else {
     r.fuente = 'menu'
     delMenu.forEach((d, i) => {
