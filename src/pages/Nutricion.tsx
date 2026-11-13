@@ -8,7 +8,7 @@ import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { dayNutrition, fastingHours, mealTraffic, overnightFastDetail, totalFluids, weekMode, fatCount } from '../domain/nutrition'
 import { AYUNO_MAX_H, FAT_EXAMPLES, MEAL_SLOTS, MODE_LABELS, TOMAS, WEIGHT_SOURCES, pautaNueva, type TomaDef } from '../domain/catalogs'
 import { fmtKcal, kcalDia, kcalToma, tomada, type KcalToma } from '../domain/kcal'
-import { kcalBatido } from '../domain/batido'
+import { EXTRAS_BATIDO, kcalBatido } from '../domain/batido'
 import { aplicarAjuste, leerAjuste, leerMenu, menuActivo, menuDelDia, type MenuHoy } from '../domain/menu'
 import { BATIDO_ML } from '../domain/avisos'
 import { DateNav } from '../components/DateNav'
@@ -273,9 +273,16 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
         </ul>
       )}
       {t.batido && !no && !snack && !otro && (
-        <div className="seg nutri-eleccion" role="group" aria-label={`Grasa en el batido de ${t.label}`}>
-          <button type="button" className={!m?.fat_tsp ? 'on' : ''} aria-pressed={!m?.fat_tsp} onClick={() => poner({ fat_tsp: undefined })}>Sin grasa añadida</button>
-          <button type="button" className={m?.fat_tsp ? 'on' : ''} aria-pressed={!!m?.fat_tsp} onClick={() => poner({ fat_tsp: true })}>+ 1 cdta. coco o ghee</button>
+        <div className="nutri-extras" role="group" aria-label={`Lo que lleva de más el batido de ${t.label}`}>
+          <span className="muted small">Hoy lleva además:</span>
+          <div className="seg nutri-eleccion">
+            <button type="button" className={m?.fat_tsp ? 'on' : ''} aria-pressed={!!m?.fat_tsp} onClick={() => poner({ fat_tsp: m?.fat_tsp ? undefined : true })}>+ 1 cdta. coco o ghee</button>
+            {EXTRAS_BATIDO.map((e) => {
+              const on = !!m?.batido_extra?.includes(e.id)
+              return <button type="button" key={e.id} className={on ? 'on' : ''} aria-pressed={on}
+                onClick={() => { const set = new Set(m?.batido_extra ?? []); if (on) set.delete(e.id); else set.add(e.id); poner({ batido_extra: set.size ? [...set] : undefined }) }}>+ {e.label}</button>
+            })}
+          </div>
         </div>
       )}
       {t.batido && tocaba.length > 0 && !no && (

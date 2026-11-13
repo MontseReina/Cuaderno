@@ -745,3 +745,5 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 /* 0.48.0 · Nutrición: tarjeta de arriba como el «Balance» de New Version y receta del batido. */
 .nutri-balance-kcal { border-top: 1px solid var(--line); padding-top: .55rem; margin-top: .25rem; display: flex; flex-direction: column; gap: .3rem; }
 .nutri-receta { display: block; margin-top: .15rem; }
+.nutri-extras { display: flex; flex-direction: column; gap: .3rem; margin: .3rem 0; }
+.nutri-extras .seg { flex-wrap: wrap; }

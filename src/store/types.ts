@@ -169,6 +169,8 @@ export interface Meal {
   prot?: { food: string; g: number }[]
   /** Batidos (0.48.0): lleva 1 cucharadita de aceite de coco o ghee (suma sus kcal). */
   fat_tsp?: boolean
+  /** Batidos (0.48.0): lo que se añade a veces, un poco de calabaza o de boniato (suma sus kcal). */
+  batido_extra?: ('calabaza' | 'boniato')[]
   fraction?: Fraction
   carb?: Carb
   texture?: Texture
