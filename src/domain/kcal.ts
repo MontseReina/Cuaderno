@@ -8,6 +8,7 @@ import { ALIMENTOS, leerAlimentos, type Grupo, type Leido } from './alimentos'
 import { MEAL_SLOTS, TOMAS } from './catalogs'
 import type { DailyLog, Meal, MenuDish } from '../store/types'
 import type { MenuHoy } from './menu'
+import { kcalBatido, kcalBatidoPrevisto } from './batido'
 
 /** Cantidad de cada parte del plato dibujado: nada, poca, la que toca y (hidratos) más de la que toca. */
 const FACTOR_PLATO = { veg: [0, 0.5, 1], prot: [0, 0.5, 1], starch: [0, 0.5, 1, 1.5] } as const
@@ -88,8 +89,10 @@ function kcalTomaSinPostre(m: Meal, menu: MenuHoy | null): KcalToma {
   if (!m.note?.trim()) {
     const platos = platosDeToma(m, menu)
     if (t?.batido && m.choice !== 'menu') {
-      const k = Math.round(BATIDO.k * deToma)
-      return { ...vacio(), total: k, fuente: 'batido', platos: [{ n: 'Batido de siempre', k }] }
+      // 0.48.0: el batido con su receta (bebida de almendras, proteína de guisante, plátano y, a veces, grasa).
+      const b = kcalBatido(m.slot, m)
+      const k = b ? b.total : Math.round(BATIDO.k * deToma)
+      return { ...vacio(), total: k, fuente: 'batido', platos: [{ n: 'Batido', k }] }
     }
     const cuentan = platos.filter((p, i) => i === 0 || m.taken?.[p.id] !== 'no')
     if (!cuentan.length || cuentan.some((p) => p.k == null)) return vacio()
@@ -136,7 +139,7 @@ export function kcalDia(log: DailyLog | undefined, menu: MenuHoy | null = null):
   if (menu) {
     previsto = 0
     for (const t of TOMAS) {
-      if (t.batido) { previsto += BATIDO.k; continue }
+      if (t.batido) { previsto += kcalBatidoPrevisto(t.key); continue }
       const ps = menu.platos(t.key)
       if (!ps.length || ps.some((p) => p.k == null)) { previsto = null; break }
       previsto += ps.reduce((s, p) => s + p.k!, 0)

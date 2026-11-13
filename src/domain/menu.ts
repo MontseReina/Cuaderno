@@ -28,7 +28,7 @@ export function menuDelDia(m: MenuData | null | undefined, date: string): MenuHo
     indice, semana,
     platos: (slot) => (dia[slot as MealSlot] ?? [])
       .filter((r) => typeof r === 'string' || !r.semana || r.semana === semana)
-      .map((r) => { const id = typeof r === 'string' ? r : r.id; const p = m.platos[id]; return { id, n: p?.nombre ?? id, k: p?.kcal, p: p?.partes } }),
+      .map((r) => { const id = typeof r === 'string' ? r : r.id; const p = m.platos[id]; return { id, n: p?.nombre ?? id, k: p?.kcal, p: p?.partes, g: p?.prot_g } }),
     hora: (slot) => m.horas?.[slot as MealSlot] ?? null,
   }
 }
@@ -48,4 +48,33 @@ export function leerMenu(texto: string): MenuData | null {
     }
   }
   return x as unknown as MenuData
+}
+
+/** 0.48.0 · Archivo de ajuste: la proteína total de cada plato, por su nombre, para añadirla al menú que ya está
+ *  cargado sin cambiar nada más. `{ "huma_menu_ajuste": 1, "prot_g": { "Libritos de lomo": 175, … } }`. */
+export interface AjusteMenu { huma_menu_ajuste: 1; prot_g: Record<string, number>; nota?: string }
+export function leerAjuste(texto: string): AjusteMenu | null {
+  let x: unknown
+  try { x = JSON.parse(texto) } catch { return null }
+  if (!esObj(x) || x.huma_menu_ajuste !== 1 || !esObj(x.prot_g)) return null
+  if (Object.values(x.prot_g).some((v) => typeof v !== 'number' || v < 0)) return null
+  return x as unknown as AjusteMenu
+}
+const clave = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/⭐/g, '').replace(/\([^)]*\)/g, ' ')
+  .toLowerCase().replace(/[^a-zñ0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+/** Añade la proteína a los platos del menú: por nombre exacto (sin tildes ni paréntesis) o, si no, por el
+ *  principio del nombre. Devuelve el menú nuevo y los platos que se han quedado sin dato. */
+export function aplicarAjuste(m: MenuData, a: AjusteMenu): { data: MenuData; con: number; sin: string[] } {
+  const tabla = Object.entries(a.prot_g).map(([n, g]) => ({ k: clave(n), g }))
+  const platos: MenuData['platos'] = {}
+  const sin: string[] = []
+  let con = 0
+  for (const [id, p] of Object.entries(m.platos)) {
+    const k = clave(p.nombre)
+    const tres = (x: string) => x.split(' ').slice(0, 3).join(' ')
+    const porTres = tabla.filter((t) => tres(t.k) === tres(k) && tres(k).split(' ').length === 3)
+    const hit = tabla.find((t) => t.k === k) ?? tabla.find((t) => t.k.length >= 6 && (k.startsWith(t.k) || t.k.startsWith(k))) ?? (porTres.length === 1 ? porTres[0] : undefined)
+    if (hit) { platos[id] = { ...p, prot_g: hit.g }; con++ } else { platos[id] = p; if (p.prot_g == null) sin.push(p.nombre) }
+  }
+  return { data: { ...m, platos }, con, sin }
 }

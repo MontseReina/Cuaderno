@@ -167,6 +167,8 @@ export interface Meal {
   /** Alimentos proteicos de la ingesta con su peso cocinado en g (la leche en ml), 0.47.0. Sin valor: en los batidos
    *  cuenta la proteína de guisante de siempre (30 g media mañana, 15 g media tarde); en las principales, nada. */
   prot?: { food: string; g: number }[]
+  /** Batidos (0.48.0): lleva 1 cucharadita de aceite de coco o ghee (suma sus kcal). */
+  fat_tsp?: boolean
   fraction?: Fraction
   carb?: Carb
   texture?: Texture
@@ -572,7 +574,8 @@ export interface Tables {
   avisos: AvisoRow
 }
 /** Menú de la nutricionista (0.33.0). Vive en la base de datos, nunca en el código (el repositorio es público). */
-export interface MenuDish { id: string; n: string; k?: number; p?: { veg?: number; prot?: number; hid?: number } }
+/** `g` (0.48.0): gramos de alimento proteico de una ración, en cocinado («proteína total»). */
+export interface MenuDish { id: string; n: string; k?: number; p?: { veg?: number; prot?: number; hid?: number }; g?: number }
 export interface MenuPlato {
   nombre: string
   /** Kilocalorías estimadas de una ración. */
@@ -581,6 +584,9 @@ export interface MenuPlato {
   partes?: { veg?: number; prot?: number; hid?: number }
   favorito?: boolean
   estimado?: boolean
+  /** 0.48.0 · Proteína total de una ración: gramos de carne, pescado, marisco, huevo, leche, queso, yogur y jamón,
+   *  en cocinado (sale de la receta). Sin valor: el plato no suma proteína. */
+  prot_g?: number
 }
 /** Un plato del menú: su id o, si se turna por semanas, el id y la semana (1 o 2). */
 export type MenuRef = string | { id: string; semana?: number }

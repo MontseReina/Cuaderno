@@ -7,8 +7,9 @@ import { addDays, fmtDate, fmtWall, nowLocalInput, toLocalInput, todayStr } from
 import { cycleContext, isCisplatinDay } from '../domain/cycle'
 import { dayNutrition, fastingHours, mealTraffic, overnightFastDetail, totalFluids, weekMode, fatCount } from '../domain/nutrition'
 import { AYUNO_MAX_H, FAT_EXAMPLES, MEAL_SLOTS, MODE_LABELS, TOMAS, WEIGHT_SOURCES, pautaNueva, type TomaDef } from '../domain/catalogs'
-import { BATIDO, fmtKcal, kcalDia, kcalToma, tomada, type KcalToma } from '../domain/kcal'
-import { leerMenu, menuActivo, menuDelDia, type MenuHoy } from '../domain/menu'
+import { fmtKcal, kcalDia, kcalToma, tomada, type KcalToma } from '../domain/kcal'
+import { kcalBatido } from '../domain/batido'
+import { aplicarAjuste, leerAjuste, leerMenu, menuActivo, menuDelDia, type MenuHoy } from '../domain/menu'
 import { BATIDO_ML } from '../domain/avisos'
 import { DateNav } from '../components/DateNav'
 import { Plato } from '../components/Plato'
@@ -20,7 +21,7 @@ import { Field, Section, Segmented } from '../components/ui'
 import { confirmar } from '../components/Confirmar'
 import { diaTratamiento } from '../domain/diaTratamiento'
 import { PROTEINA_DESDE, proteinaDia, type ProteinaToma } from '../domain/proteina'
-import { ProteinaFicha, ProteinaResumen } from '../components/Proteina'
+import { Balance, ProteinaFicha } from '../components/Proteina'
 
 /** Pilar 6 · Nutrición (0.33.0, como New Version): reloj del ayuno, una ficha por toma (desayuno, media mañana,
  *  comida, media tarde y cena) con cuánto se tomó, lo que se tomó escrito, el plato dibujado en comida y cena y las
@@ -42,6 +43,19 @@ const PLACEHOLDER: Record<string, string> = {
   cena: 'Lo que ha tomado: pollo, arroz, brócoli…',
 }
 const horaAhora = () => new Date().toTimeString().slice(0, 5)
+/** 0.48.0: una ingesta principal dura media hora. Al poner la hora de empezar, la de terminar se pone sola. */
+const DURACION_MIN = 30
+const sumarMin = (h: string, min: number) => {
+  const t = (((Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5)) + min) % 1440) + 1440) % 1440
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+}
+/** La hora de terminar = empezar + 30 min, si estaba vacía o seguía siendo la que se puso sola. Una hora de terminar
+ *  escrita a mano no se toca. */
+function finAuto(m: Meal | undefined, ini: string | null): Partial<Meal> {
+  if (!ini) return {}
+  if (m?.end && (!m.time || m.end !== sumarMin(m.time, DURACION_MIN))) return {}
+  return { end: sumarMin(ini, DURACION_MIN) }
+}
 
 export default function Nutricion() {
   const params = useParams()
@@ -64,8 +78,8 @@ export default function Nutricion() {
   const menuRow = menuActivo(menuRows)
   const menuHoy = menuDelDia(menuRow?.data, date)
   const kc = kcalDia(draft, menuHoy)
-  // Control de proteína (0.47.0): desde el 11/11/2026.
-  const prot = date >= PROTEINA_DESDE ? proteinaDia(draft.meals, TOMAS.map((t) => t.key)) : null
+  // Proteína total (0.48.0): desde el 11/11/2026, calculada sola con el menú, lo escrito y el batido.
+  const prot = date >= PROTEINA_DESDE ? proteinaDia(draft.meals, menuHoy, menuRow?.data) : null
   const fast = fastingHours(draft, yesterday)
   const fastDet = draft.extra?.fasting_h == null ? overnightFastDetail(draft, yesterday) : null
   const [showWeights, setShowWeights] = useState(false)
@@ -94,8 +108,9 @@ export default function Nutricion() {
     const ps = menuHoy?.platos(t.key) ?? []
     if (!m?.dishes && ps.length) patch.dishes = ps
     // Solo si no hay ninguna hora escrita: si la familia rellena más tarde, no se pisa la hora que haya puesto.
+    // En las principales se marca al acabar: termina ahora y empezó media hora antes (0.48.0).
     if (v > 0 && esHoy && !m?.time && !m?.end) {
-      if (t.principal) patch.end = horaAhora()
+      if (t.principal) { patch.end = horaAhora(); patch.time = sumarMin(patch.end, -DURACION_MIN) }
       else patch.time = horaAhora()
     }
     setMeal(t.key, patch)
@@ -113,9 +128,9 @@ export default function Nutricion() {
       <h1>Nutrición</h1>
       <DateNav date={date} base="/nutricion" sub={`${diaTratamiento(patient?.protocol_start, cycles, date)?.texto ?? 'sin ciclo'}${cisplatin && ctx.day ? ' · sigue el cisplatino' : ''}`} />
 
-      {prot && <ProteinaResumen d={prot} esHoy={esHoy} />}
-
       {esHoy && <RelojAyuno ayer={yesterday} hoy={draft} />}
+
+      <Balance d={prot} kc={kc} esHoy={esHoy} />
 
       <div className={'card nutri-resumen ' + day.level}>
         <div className="row between">
@@ -124,13 +139,6 @@ export default function Nutricion() {
         </div>
         <div className="barra"><i className={day.level} style={{ width: Math.min(100, Math.round((hechas / day.target) * 100)) + '%' }} /></div>
         {day.reasons.length > 0 && <div className="small muted">{day.reasons.join(' · ')}</div>}
-        <div className="small nutri-kcal">
-          {kc.porToma.length
-            ? <>Unas <strong>{fmtKcal(kc.total)} kcal</strong> {esHoy ? 'hoy' : 'ese día'}{kc.previsto != null ? <> de unas {fmtKcal(kc.previsto)} previstas en el menú</> : ' (estimadas)'}</>
-            : <span className="muted">{kc.previsto != null ? `Previstas en el menú: unas ${fmtKcal(kc.previsto)} kcal. ` : ''}Se cuentan al marcar cada toma o escribir lo que ha tomado.</span>}
-          {kc.sinDato.length > 0 && <span className="muted"> · sin contar: {kc.sinDato.join(', ').toLowerCase()}</span>}
-          {kc.enParte.length > 0 && <span className="muted"> · en parte: {kc.enParte.join(', ').toLowerCase()}</span>}
-        </div>
       </div>
 
       {nueva && (
@@ -240,6 +248,7 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
   const ahora = new Date().getHours() * 60 + new Date().getMinutes()
   const hm = hora ? Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5)) : null
   const pendiente = esHoy && !tomada(m) && !no && hm != null && ahora > hm + 30
+  const batido = t.batido ? kcalBatido(t.key as MealSlot, m) : null
   return (
     <div className={'card nutri-toma ' + (no ? 'no' : f != null && f > 0 && f <= 0.5 ? 'media' : f != null ? 'hecha' : tomada(m) ? 'hecha' : '')}>
       <div className="row between">
@@ -255,9 +264,19 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
       </div>
       {t.batido && (
         <ul className="nutri-platos">
-          <li className={otro || snack ? 'tachado' : ''}><span>Batido de siempre <span className="muted small">· ≈ {fmtKcal(BATIDO.k)} kcal</span></span></li>
+          <li className={otro || snack ? 'tachado' : ''}>
+            <span>Batido <span className="muted small">· ≈ {fmtKcal(batido?.entero ?? 0)} kcal el vaso entero</span>
+              {batido && <span className="muted small nutri-receta">{batido.lineas.map((l) => `${l.n} (${l.k})`).join(' · ')}</span>}
+            </span>
+          </li>
           {tocaba.length > 0 && <li className={otro || !snack ? 'tachado' : ''}><span>Snack del menú: {tocaba.map((p) => p.n).join(' + ')}{tocaba.every((p) => p.k != null) && <span className="muted small"> · {fmtKcal(tocaba.reduce((s, p) => s + p.k!, 0))} kcal</span>}</span></li>}
         </ul>
+      )}
+      {t.batido && !no && !snack && !otro && (
+        <div className="seg nutri-eleccion" role="group" aria-label={`Grasa en el batido de ${t.label}`}>
+          <button type="button" className={!m?.fat_tsp ? 'on' : ''} aria-pressed={!m?.fat_tsp} onClick={() => poner({ fat_tsp: undefined })}>Sin grasa añadida</button>
+          <button type="button" className={m?.fat_tsp ? 'on' : ''} aria-pressed={!!m?.fat_tsp} onClick={() => poner({ fat_tsp: true })}>+ 1 cdta. coco o ghee</button>
+        </div>
       )}
       {t.batido && tocaba.length > 0 && !no && (
         <div className="seg nutri-eleccion" role="group" aria-label={`Qué ha tomado en ${t.label}`}>
@@ -299,7 +318,7 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
       )}
       {!no && !otro && k?.fuente && (k.fuente === 'batido' || k.platos.length > 0) && (
         <p className="small nutri-otro-kcal muted">
-          {k.fuente === 'batido' ? <>Cuenta el batido: unas {fmtKcal(k.total)} kcal.</>
+          {k.fuente === 'batido' ? <>Cuenta el batido{f != null && f > 0 && f < 1 ? ' por la parte tomada' : ''}: unas {fmtKcal(k.total)} kcal.</>
             : !k.platos.length ? null
             : t.plato ? (m?.macros && (m.macros.veg != null || m.macros.prot != null || m.macros.starch != null)
               ? <>Según el plato, cuenta unas <strong>{fmtKcal(k.total - (k.postre?.total ?? 0))} kcal</strong> de {fmtKcal(tocaba.reduce((s, p) => s + (p.k ?? 0), 0))}.</>
@@ -320,14 +339,14 @@ function Ficha({ t, m, prot, menu, nueva, cisplatin, date, esHoy, marcar, poner,
           <button type="button" key={l} className={(f === v ? 'on ' : '') + (v === 0 || v === 0.1 ? 'e-no' : v === 0.5 || v === 0.25 ? 'e-media' : '')} aria-pressed={f === v} aria-label={l === '¾' ? 'Tres cuartos' : l} onClick={() => marcar(v)}>{l}</button>
         ))}
       </div>
-      {prot && !no && <ProteinaFicha slot={t.key} m={m} p={prot} poner={(items) => poner({ prot: items })} />}
+      {prot && !no && <ProteinaFicha p={prot} />}
       {conPlato && (
         <Plato nueva={nueva} veg={m?.macros?.veg} prot={m?.macros?.prot} starch={m?.macros?.starch} onChange={(p) => macro(p)} />
       )}
       {check && check.level !== 'verde' && !no && <div className="muted small">Falta: {check.missing.join(', ')}</div>}
       {!no && (
         <div className="nutri-horas">
-          <Hora label={t.principal ? 'Empiezo' : 'Hora'} nombre={t.label} value={m?.time} esHoy={esHoy} onChange={(v) => poner({ time: v ?? undefined })} />
+          <Hora label={t.principal ? 'Empiezo' : 'Hora'} nombre={t.label} value={m?.time} esHoy={esHoy} onChange={(v) => poner({ time: v ?? undefined, ...(t.principal ? finAuto(m, v) : {}) })} />
           {t.principal && <Hora label="Termino" nombre={t.label} value={m?.end} esHoy={esHoy} onChange={(v) => poner({ end: v ?? undefined })} />}
           {t.batido && (
             <label className="nutri-hora nutri-liquido">
@@ -513,6 +532,17 @@ function CargarMenu({ actual }: { actual: MenuRow | null }) {
   const [aviso, setAviso] = useState('')
   const falta = faltaTabla('menus')
   const cargar = async (texto: string) => {
+    // 0.48.0: archivo de ajuste con la proteína total de cada plato, para el menú que ya está cargado.
+    const ajuste = leerAjuste(texto)
+    if (ajuste) {
+      if (!actual) { setAviso('Primero hay que cargar el menú.'); return }
+      const r = aplicarAjuste(actual.data, ajuste)
+      try {
+        await save('menus', { ...actual, data: r.data })
+        setAviso(`Proteína añadida a ${r.con} platos del menú.${r.sin.length ? ` Sin dato: ${r.sin.join(', ')}.` : ''}`)
+      } catch { setAviso('No se ha podido guardar. Revisa la conexión y vuelve a probar.') }
+      return
+    }
     const data = leerMenu(texto)
     if (!data) { setAviso('Ese archivo no es un menú de Huma. No se ha cambiado nada.'); return }
     try {

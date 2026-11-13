@@ -1,9 +1,8 @@
-/** Control de proteína en Nutrición (0.47.0): la tarjeta del día (arriba del todo) y el bloque de cada ingesta. */
-import type { Meal, MealSlot } from '../store/types'
-import {
-  ALIMENTOS_PROTEICOS, CAZOS, DIA_MAX, DIA_MIN, META_PRINCIPAL, alimentoProteico, itemsDe,
-  type ItemProteico, type ProteinaDia, type ProteinaToma,
-} from '../domain/proteina'
+/** Nutrición (0.48.0, como New Version): la tarjeta de arriba con la proteína total y las kilocalorías del día, y la
+ *  barra de proteína de cada ingesta. Todo se calcula solo, a partir del menú, lo escrito y el batido. */
+import type { MealSlot } from '../store/types'
+import { DIA_MAX, DIA_MIN, META_PRINCIPAL, type ProteinaDia, type ProteinaToma } from '../domain/proteina'
+import { fmtKcal, type KcalDia } from '../domain/kcal'
 
 const NOMBRE: Partial<Record<MealSlot, string>> = { desayuno: 'Desayuno', comida: 'Comida', cena: 'Cena' }
 
@@ -14,8 +13,32 @@ const ESTADO_DIA: Record<ProteinaDia['estado'], { txt: string; cls: string }> = 
   debajo: { txt: 'Por debajo', cls: 'rojo' },
 }
 
-/** Tarjeta de arriba: proteína del día (5 ingestas, ideal 360-400 g) y, aparte, el mínimo de 120 g en cada principal. */
-export function ProteinaResumen({ d, esHoy }: { d: ProteinaDia; esHoy: boolean }) {
+/** Tarjeta de arriba, como el «Balance» de New Version: proteína total del día (ideal 360-400 g), el mínimo de
+ *  120 g en cada principal y, debajo, las kilocalorías frente a lo previsto en el menú. */
+export function Balance({ d, kc, esHoy }: { d: ProteinaDia | null; kc: KcalDia; esHoy: boolean }) {
+  return (
+    <div className="card prot-dia nutri-balance">
+      {d && <ProteinaDelDia d={d} esHoy={esHoy} />}
+      <div className={d ? 'nutri-balance-kcal' : ''}>
+        <div className="row between">
+          <strong className="prot-titulo">Kilocalorías</strong>
+          <span className="vaso-total"><strong>{fmtKcal(kc.total)}</strong>{kc.previsto != null ? <> de {fmtKcal(kc.previsto)}</> : null}</span>
+        </div>
+        {kc.previsto != null && kc.previsto > 0 && (
+          <div className="prot-barra"><i className={kc.total >= kc.previsto * 0.9 ? 'verde' : 'amarillo'} style={{ width: Math.min(100, Math.round((kc.total / kc.previsto) * 100)) + '%' }} /></div>
+        )}
+        <div className="small muted">
+          {kc.porToma.length ? <>Unas {fmtKcal(kc.total)} kcal {esHoy ? 'hoy' : 'ese día'}</> : 'Se cuentan al marcar cada ingesta'}
+          {kc.previsto != null ? <> · previstas en el menú (con los batidos): unas {fmtKcal(kc.previsto)}</> : ''}
+          {kc.sinDato.length > 0 && <> · sin contar: {kc.sinDato.join(', ').toLowerCase()}</>}
+          {kc.enParte.length > 0 && <> · en parte: {kc.enParte.join(', ').toLowerCase()}</>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProteinaDelDia({ d, esHoy }: { d: ProteinaDia; esHoy: boolean }) {
   const escala = Math.max(DIA_MAX * 1.1, d.total)
   const pos = (v: number) => Math.round((v / escala) * 1000) / 10
   const e = ESTADO_DIA[d.estado]
@@ -27,9 +50,9 @@ export function ProteinaResumen({ d, esHoy }: { d: ProteinaDia; esHoy: boolean }
   const ps = d.tomas.filter((t) => t.principal)
   const metaCls = d.principalesEnMeta === 3 ? 'verde' : d.principalesRegistradas < 3 ? 'curso' : d.principalesEnMeta === 2 ? 'amarillo' : 'rojo'
   return (
-    <div className="card prot-dia">
+    <>
       <div className="row between">
-        <strong className="prot-titulo">Proteína del día</strong>
+        <strong className="prot-titulo">Proteína total</strong>
         <span className={'prot-pill ' + e.cls}>{e.txt}</span>
       </div>
       <div className="prot-cifra"><strong>{d.total} g</strong> <span className="muted">ideal {DIA_MIN}–{DIA_MAX} g</span></div>
@@ -41,8 +64,7 @@ export function ProteinaResumen({ d, esHoy }: { d: ProteinaDia; esHoy: boolean }
         <span style={{ left: pos(DIA_MIN) + '%' }}>{DIA_MIN}</span>
         <span style={{ left: pos(DIA_MAX) + '%' }}>{DIA_MAX}</span>
       </div>
-      <div className="small muted">{sub} · ≈ {d.proteina} g de proteína</div>
-      <div className="small muted">Suma las 5 ingestas, batidos incluidos.</div>
+      <div className="small muted">{sub}. Peso cocinado de carne, pescado, marisco, huevo, leche, queso, yogur, jamón y proteína de guisante; suma las 5 ingestas.</div>
       <div className="prot-principales">
         <div className="row between">
           <strong className="small">Mínimo {META_PRINCIPAL} g en cada principal</strong>
@@ -56,67 +78,30 @@ export function ProteinaResumen({ d, esHoy }: { d: ProteinaDia; esHoy: boolean }
           ))}
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
-/** Bloque dentro de cada ingesta: alimentos proteicos con su peso y, en las principales, la barra frente a 120 g. */
-export function ProteinaFicha({ slot, m, p, poner }: { slot: MealSlot; m?: Meal; p: ProteinaToma; poner: (items: ItemProteico[]) => void }) {
-  const { items, anotado } = itemsDe(m, slot)
-  const cambiar = (i: number, it: ItemProteico | null) => {
-    const next = [...items]
-    if (it) next[i] = it
-    else next.splice(i, 1)
-    poner(next)
-  }
+/** Dentro de cada ingesta: la barra de proteína (principales, frente a 120 g) y de dónde sale. Sin añadir ni elegir:
+ *  se calcula con lo marcado (Entera, ¾, Media, Casi nada) y el plato dibujado. */
+export function ProteinaFicha({ p }: { p: ProteinaToma }) {
   const pct = Math.min(100, Math.round((p.tomado / META_PRINCIPAL) * 100))
+  const desglose = p.lineas.filter((l) => l.g > 0).map((l) => `${l.n} ${l.g} g`).join(' · ')
   return (
     <div className="prot-toma">
       <div className="row between">
-        <strong className="small">🥚 Proteína {p.principal ? '' : 'del batido'}</strong>
+        <strong className="small">🥚 Proteína total{p.principal ? '' : ' del batido'}</strong>
         <span className="small">
           {p.principal
             ? <><strong>{p.registrada ? p.tomado : '—'}</strong> / {META_PRINCIPAL} g</>
-            : <>{p.registrada ? <><strong>{p.tomado} g</strong> al día</> : 'suma al día al marcarlo'}</>}
+            : p.registrada ? <><strong>{p.tomado} g</strong></> : <span className="muted">{p.previsto ? `${p.previsto} g si se toma entero` : '—'}</span>}
         </span>
       </div>
-      {p.principal && (
-        <div className="prot-barra"><i className={p.nivel} style={{ width: pct + '%' }} /></div>
-      )}
-      {items.map((it, i) => {
-        const a = alimentoProteico(it.food)
-        if (!a) return null
-        return (
-          <div key={i} className="prot-item">
-            <div className="prot-item-fila">
-              <span className="prot-nombre">{a.label}<span className="muted small"> · {a.hint}</span></span>
-              {!a.cazo && <button type="button" className="prot-btn" aria-label={`Restar 10 ${a.unit} de ${a.label}`} onClick={() => cambiar(i, { ...it, g: Math.max(5, it.g - 10) })}>−</button>}
-              <span className="prot-g">{it.g} {a.unit}</span>
-              {!a.cazo && <button type="button" className="prot-btn" aria-label={`Sumar 10 ${a.unit} de ${a.label}`} onClick={() => cambiar(i, { ...it, g: it.g + 10 })}>+</button>}
-              <button type="button" className="prot-quitar" aria-label={`Quitar ${a.label}`} onClick={() => cambiar(i, null)}>✕</button>
-            </div>
-            {a.cazo && (
-              <div className="seg prot-cazos" role="group" aria-label="Cantidad de proteína de guisante">
-                {CAZOS.map((c) => (
-                  <button type="button" key={c.label} className={it.g === c.g ? 'on' : ''} aria-pressed={it.g === c.g} onClick={() => cambiar(i, { ...it, g: c.g })}>{c.label} · {c.g} g</button>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-      })}
-      {!items.length && <p className="small muted">{p.principal ? 'Añade los alimentos proteicos que lleva (peso cocinado).' : 'Sin parte proteica anotada.'}</p>}
-      <label className="prot-anadir">
-        <span className="small">+ Añadir</span>
-        <select aria-label="Añadir alimento proteico" value="" onChange={(e) => {
-          const a = alimentoProteico(e.target.value)
-          if (a) poner([...items, { food: a.id, g: a.def }])
-        }}>
-          <option value="">Elegir alimento…</option>
-          {ALIMENTOS_PROTEICOS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
-        </select>
-      </label>
-      {p.registrada && p.servido > 0 && <p className="small muted">Servido {p.servido} g · tomado {p.tomado} g · ≈ {p.proteina} g de proteína{!anotado && !p.principal ? ' · lo de siempre' : ''}</p>}
+      {p.principal && <div className="prot-barra"><i className={p.nivel} style={{ width: (p.registrada ? pct : 0) + '%' }} /></div>}
+      {!p.registrada && p.principal && <p className="small muted">{p.previsto ? `Si se come entero, el menú lleva unos ${p.previsto} g.` : 'Se calcula al marcar cuánto ha comido.'}</p>}
+      {p.registrada && desglose && <p className="small muted">{desglose}</p>}
+      {p.registrada && !desglose && p.sinDato.length === 0 && <p className="small muted">Sin alimentos proteicos{p.fuente === 'escrito' ? ' en lo escrito' : ''}.</p>}
+      {p.sinDato.length > 0 && <p className="small muted"><span className="dot amarillo" />Sin dato de proteína en el menú: {p.sinDato.join(', ')}.</p>}
     </div>
   )
 }
