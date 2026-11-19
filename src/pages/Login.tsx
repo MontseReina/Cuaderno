@@ -46,7 +46,9 @@ export default function Login() {
           <button className="btn block" disabled={code.trim().length < 6} onClick={async () => {
             const v = code.trim()
             const { error } = /^\d{6}$/.test(v) ? await sb.signInWithCode(email.trim(), v) : await sb.signInWithLink(v)
-            if (error) setErr(error.message)
+            if (error) setErr(/invalid or has expired/i.test(error.message) ? 'Ese enlace ya se ha usado o ha caducado (cada enlace sirve una sola vez). Cierra Huma y vuelve a abrirla: si ya habías entrado, se abrirá sola. Si no, pide un enlace nuevo.' : error.message)
+            // 0.50.4 · Al entrar bien, recargar para abrir la app (antes se quedaba en esta pantalla y, al volver a pulsar, el enlace ya gastado daba error).
+            else location.reload()
           }}>Entrar</button>
           {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
           <button className="btn block secondary" style={{ marginTop: '.5rem' }} onClick={() => { setSent(false); setCode(''); setErr('') }}>Volver</button>
