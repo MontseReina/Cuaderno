@@ -35,7 +35,7 @@ export default function Login() {
       <p className="muted">Acceso solo por invitación. Escribe tu correo y te llegará un enlace para entrar.</p>
       {sent ? (
         <>
-          <p className="small">Te hemos enviado un correo a <strong>{email}</strong>.</p>
+          {email.includes('@') && <p className="small">Te hemos enviado un correo a <strong>{email}</strong>.</p>}
           <p className="small muted">Si estás en el navegador, pulsa el enlace del correo y ya está. Si has abierto <strong>Huma desde el icono del móvil</strong>, el enlace abre el navegador y no la app: mantén pulsado el enlace en el correo, elige <strong>Copiar</strong> y pégalo aquí.</p>
           <Field label="Pega aquí el enlace del correo">
             <input type="text" value={code} onChange={(e) => { setCode(e.target.value); setErr('') }} placeholder="https://…" />
@@ -57,12 +57,20 @@ export default function Login() {
             className="btn block"
             disabled={!email.includes('@')}
             onClick={async () => {
+              setErr('')
               const { error } = await sb.signInWithEmail(email.trim())
-              if (error) alert(error.message)
-              else setSent(true)
+              if (!error) { setSent(true); return }
+              setErr(/rate limit/i.test(error.message)
+                ? 'Se han pedido demasiados correos en la última hora (como mucho 2 por hora entre todos los usuarios). Espera una hora antes de pedir otro. Si ya tienes un enlace del correo, pulsa «Ya tengo el enlace del correo».'
+                : error.message)
             }}
           >
             Enviarme el enlace
+          </button>
+          {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
+          {/* 0.50.2 · Para pegar un enlace pedido antes (p. ej. desde el navegador) sin pedir otro correo. */}
+          <button className="btn block secondary" style={{ marginTop: '.5rem' }} onClick={() => { setErr(''); setSent(true) }}>
+            Ya tengo el enlace del correo
           </button>
         </>
       )}
