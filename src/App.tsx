@@ -27,6 +27,7 @@ import Login from './pages/Login'
 import Setup from './pages/Setup'
 import Datos from './pages/Datos'
 import Informes from './pages/Informes'
+import Parte from './pages/Parte'
 import { AvisoVersion } from './components/AvisoVersion'
 import { ConfirmarHost } from './components/Confirmar'
 import PinGate from './pages/PinGate'
@@ -156,6 +157,8 @@ function Shell() {
           <Route path="/biblioteca" element={<Biblioteca />} />
           <Route path="/datos" element={<Datos />} />
           <Route path="/informes" element={<Informes />} />
+          <Route path="/parte" element={<Parte />} />
+          <Route path="/parte/:date" element={<Parte />} />
           <Route path="/informes/:kind" element={<Informes />} />
           <Route path="/informes/:kind/:date" element={<Informes />} />
         </Routes>

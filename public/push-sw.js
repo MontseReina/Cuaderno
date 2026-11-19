@@ -18,8 +18,12 @@ self.addEventListener('notificationclick', (event) => {
   const url = new URL((event.notification.data && event.notification.data.url) || './', self.registration.scope).href
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    // 0.50.0: si Huma ya está abierta, se lleva a la pantalla del aviso (p. ej. el parte del día).
     for (const w of wins) {
-      if ('focus' in w) { await w.focus(); return }
+      if ('focus' in w) {
+        try { if ('navigate' in w && url) await w.navigate(url) } catch (e) { /* sigue */ }
+        await w.focus(); return
+      }
     }
     if (self.clients.openWindow) await self.clients.openWindow(url)
   })())

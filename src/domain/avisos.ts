@@ -56,6 +56,13 @@ export const AYUNO_AVISO_H = 11
 export const AYUNO_MAX_AVISO_H = 12
 /** Hora a partir de la que se pueden mandar los avisos de ayuno (para no despertar a nadie). */
 export const AYUNO_DESDE = '07:00'
+/** 0.50.0 · Hora del parte de la mañana (Montserrate, 19/11/2026). */
+export const PARTE_HORA = '08:00'
+/** Perfil de cada móvil: «cuidador» recibe todo (recordatorios del día y parte); «parte» solo el parte de la mañana
+ *  (y, cuando estén, los avisos de tendencia). Montserrate: solo el parte (19/11/2026). */
+export type PerfilAvisos = 'cuidador' | 'parte'
+/** Momentos que reciben también los móviles con perfil «parte». */
+export const MOMENTOS_PARTE = (momento: string) => momento === 'parte' || momento.startsWith('tendencia')
 export const AYUNO_HASTA = '13:00'
 
 export const min = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + (m || 0) }
@@ -290,6 +297,7 @@ export const TITULOS: Record<string, string> = {
   mano: 'Huma · Ejercicios de la mano ✋',
   ayuno11: 'Huma · Buenos días 🌅',
   ayuno12: 'Huma · Buenos días 🌅',
+  parte: 'Huma · Parte del día 🌅',
   prueba: 'Huma · Aviso de prueba',
 }
 
@@ -428,10 +436,12 @@ export function avisoAyuno(d: DatosDia, ahora: string, yaMandados: Set<string>):
 
 /** Qué toca hacer en este minuto (hora de Madrid). El servidor lo llama cada 5 minutos; cada momento se hace una
  *  sola vez al día (se guarda en la tabla `avisos`). */
-export type Tarea = { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: 'caminar' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' } | { tipo: 'mano'; momento: string }
+export type Tarea = { tipo: 'parte' } | { tipo: 'momento'; momento: Momento } | { tipo: '21' } | { tipo: 'cama' } | { tipo: 'caminar' } | { tipo: '2130' } | { tipo: 'ayuno' } | { tipo: 'cierre' } | { tipo: 'mano'; momento: string }
 export function tareasALaHora(ahora: string): Tarea[] {
   const out: Tarea[] = []
   const entre = (a: string, b: string) => ahora >= a && ahora < b
+  // 0.50.0 · Parte de la mañana del día anterior (ya cerrado a las 00:00) para los tres destinatarios.
+  if (entre(PARTE_HORA, '09:30')) out.push({ tipo: 'parte' })
   if (entre('12:00', '12:45')) out.push({ tipo: 'momento', momento: '12' })
   if (entre('16:00', '16:45')) out.push({ tipo: 'momento', momento: '16' })
   if (entre('19:00', '19:45')) out.push({ tipo: 'momento', momento: '19' })

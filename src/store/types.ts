@@ -618,6 +618,8 @@ export interface PushSubscriptionRow extends BaseRow {
   auth: string
   /** «iPhone», «Android»… para reconocerlo en la lista. */
   device?: string | null
+  /** 0.50.0 · «cuidador» (todos los avisos) o «parte» (solo el parte de la mañana). Sin valor = cuidador. */
+  perfil?: 'cuidador' | 'parte' | null
   last_ok_at?: string | null
   last_error?: string | null
 }

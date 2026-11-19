@@ -10,10 +10,11 @@ import { setDatos } from './store-stub'
 import { sendPush, type VapidKeys } from './webpush'
 import {
   avisoAyuno, avisoCama, avisoCaminar, avisoCierre, avisoDelMomento, avisoParaManana, controlesDelMomento, controlesFinales, modoDelDia,
-  pendientesDelDia, tareasALaHora, avisoMano, TITULOS, type Aviso, type Control, type DatosDia,
+  pendientesDelDia, tareasALaHora, avisoMano, MOMENTOS_PARTE, TITULOS, type Aviso, type Control, type DatosDia,
 } from '../../../src/domain/avisos'
+import { avisoParte, buildParte } from '../../../src/domain/parte'
 import { addDays } from '../../../src/domain/dates'
-import type { Cycle, DailyLog, Intake, Patient, Product, WeightEntry } from '../../../src/store/types'
+import type { Cycle, DailyLog, Intake, MenuRow, Patient, Product, WeightEntry } from '../../../src/store/types'
 
 export interface Env {
   url: string
@@ -22,7 +23,7 @@ export interface Env {
   vapid: VapidKeys
 }
 
-interface SubRow { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }
+interface SubRow { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; perfil?: string | null }
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -62,11 +63,11 @@ function db(env: Env, fetchFn: typeof fetch) {
   return { get, insert, patch }
 }
 
-async function enviar(env: Env, fetchFn: typeof fetch, subs: SubRow[], aviso: Aviso, tag: string) {
+async function enviar(env: Env, fetchFn: typeof fetch, subs: SubRow[], aviso: Aviso, tag: string, url = './#/') {
   const d = db(env, fetchFn)
   const res = await Promise.all(subs.map(async (s) => {
     try {
-      const r = await sendPush(s, { title: aviso.title, body: aviso.body, tag, url: './#/' }, env.vapid, fetchFn)
+      const r = await sendPush(s, { title: aviso.title, body: aviso.body, tag, url }, env.vapid, fetchFn)
       if (r.ok) await d.patch('push_subscriptions', `id=eq.${s.id}`, { last_ok_at: new Date().toISOString(), last_error: null }).catch(() => {})
       else await d.patch('push_subscriptions', `id=eq.${s.id}`, r.gone ? { deleted_at: new Date().toISOString(), last_error: `${r.status}` } : { last_error: `${r.status} ${r.text ?? ''}`.slice(0, 300) }).catch(() => {})
       return r
@@ -117,7 +118,8 @@ export async function tick(env: Env, fetchFn: typeof fetch, date: string, hhmm: 
   setDatos('patients', [patient])
   const pid = patient.id
   const ayer = addDays(date, -1)
-  const [cycles, logs, weights, products, intakes, hechos, subs] = await Promise.all([
+  const conParte = tareas.some((t) => t.tipo === 'parte')
+  const [cycles, logs, weights, products, intakes, hechos, subs, menus] = await Promise.all([
     d.get<Cycle>(`cycles?select=*&patient_id=eq.${pid}&deleted_at=is.null`),
     d.get<DailyLog>(`daily_logs?select=*&patient_id=eq.${pid}&deleted_at=is.null&date=gte.${addDays(date, -16)}`),
     d.get<WeightEntry>(`weights?select=*&patient_id=eq.${pid}&deleted_at=is.null&at=gte.${addDays(date, -40)}`),
@@ -125,7 +127,10 @@ export async function tick(env: Env, fetchFn: typeof fetch, date: string, hhmm: 
     d.get<Intake>(`intakes?select=*&patient_id=eq.${pid}&deleted_at=is.null&date=in.(${ayer},${date})`),
     d.get<{ date: string; momento: string }>(`avisos?select=date,momento&patient_id=eq.${pid}&area=eq.envio&date=in.(${ayer},${date})`),
     d.get<SubRow>(`push_subscriptions?select=*&patient_id=eq.${pid}&deleted_at=is.null`),
+    conParte ? d.get<MenuRow>(`menus?select=*&patient_id=eq.${pid}&active=eq.true&deleted_at=is.null&order=created_at.desc&limit=1`).catch(() => []) : Promise.resolve([] as MenuRow[]),
   ])
+  /** Móviles que reciben este momento: los de perfil «parte» (Montserrate) solo el parte y las tendencias. */
+  const subsDe = (momento: string) => subs.filter((s) => (s.perfil ?? 'cuidador') !== 'parte' || MOMENTOS_PARTE(momento))
   const ya = new Set(hechos.map((h) => `${h.date}|${h.momento}`))
   const datos = (dia: string): DatosDia => ({
     date: dia,
@@ -149,15 +154,22 @@ export async function tick(env: Env, fetchFn: typeof fetch, date: string, hhmm: 
     ya.add(`${dia}|${momento}`)
     return filas.length > 0
   }
-  const mandar = async (dia: string, momento: string, aviso: Aviso) => {
-    if (dry || !subs.length) return { enviados: 0, total: subs.length, errores: [] as string[] }
-    const r = await enviar(env, fetchFn, subs, aviso, momento)
+  const mandar = async (dia: string, momento: string, aviso: Aviso, url?: string) => {
+    const destino = subsDe(momento)
+    if (dry || !destino.length) return { enviados: 0, total: destino.length, errores: [] as string[] }
+    const r = await enviar(env, fetchFn, destino, aviso, momento, url)
     await d.patch('avisos', `patient_id=eq.${pid}&date=eq.${dia}&momento=eq.${momento}&area=eq.envio`, { enviados: r.enviados, errores: r.errores.length ? r.errores.join(' | ').slice(0, 500) : null })
     return r
   }
 
   for (const t of tareas) {
-    if (t.tipo === 'momento') {
+    if (t.tipo === 'parte') {
+      // Parte del día de AYER (cerrado a las 00:00). Se guarda con la fecha del día del que habla.
+      const parte = buildParte(ayer, { logs, cycles, products, intakes, weights, menu: menus[0]?.data ?? null, patient })
+      const aviso = avisoParte(parte)
+      if (!(await candado(ayer, 'parte', aviso, { valor: parte.rojos * 100 + parte.naranjas }))) continue
+      hecho.push({ momento: 'parte', dia: ayer, aviso, envio: await mandar(ayer, 'parte', aviso, `./#/parte/${ayer}`) })
+    } else if (t.tipo === 'momento') {
       const dd = datos(date)
       const cs = controlesDelMomento(t.momento, dd)
       const aviso = avisoDelMomento(t.momento, cs)

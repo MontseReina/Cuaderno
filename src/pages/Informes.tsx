@@ -75,10 +75,10 @@ function Portada() {
         <span><strong>Informe semanal para Imohe</strong><div className="muted small">De lunes a domingo: qué no se hizo y qué no se registró, cada apartado con su meta y su semáforo, y las tres desviaciones principales. Se descarga en PDF.</div></span>
       </Link>
       <Link to="/informes/semanal-anterior" className="small muted" style={{ display: 'block', margin: '-.2rem 0 .6rem .2rem' }}>Ver el informe semanal anterior</Link>
-      <div className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', opacity: 0.55 }}>
+      <Link to="/parte" className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
         <span style={{ fontSize: '1.5rem' }}>📅</span>
-        <span><strong>Informe diario</strong><div className="muted small">En espera</div></span>
-      </div>
+        <span><strong>Parte del día</strong><div className="muted small">El día anterior ya cerrado: signos en naranja y rojo, medicación de rescate, ayuno, proteína, ingestas, líquidos, descanso y lo que quedó sin rellenar. Llega al móvil a las 8:00.</div></span>
+      </Link>
       <div className="card tight" style={{ display: 'flex', gap: '.7rem', alignItems: 'center', opacity: 0.55 }}>
         <span style={{ fontSize: '1.5rem' }}>📆</span>
         <span><strong>Informe mensual</strong><div className="muted small">En espera</div></span>

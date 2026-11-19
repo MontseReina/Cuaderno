@@ -132,6 +132,124 @@ async function sendPush(sub, data, keys, fetchFn = fetch) {
 		text
 	};
 }
+//#endregion
+//#region src/domain/catalogs.ts
+const SYMPTOMS = [
+	{
+		key: "fiebre",
+		label: "Fiebre o escalofríos",
+		when: "siempre",
+		redAt3: true
+	},
+	{
+		key: "mucositis",
+		label: "Boca: llagas o dolor al comer",
+		when: "siempre",
+		redAt3: true,
+		help: "Leve: le molesta · Moderado: come menos por el dolor · Intenso: no puede comer ni beber"
+	},
+	{
+		key: "piel",
+		label: "Piel seca, enrojecida o con heridas",
+		when: "siempre"
+	},
+	{
+		key: "cabello",
+		label: "Caída del cabello / cuero cabelludo molesto",
+		when: "siempre"
+	},
+	{
+		key: "sangrado",
+		label: "Sangrado o hematomas",
+		when: "siempre",
+		redAt3: true,
+		help: "Intenso: no cede o hematomas extensos"
+	},
+	{
+		key: "hormigueo",
+		label: "Hormigueos o calambres",
+		when: "siempre"
+	},
+	{
+		key: "oido",
+		label: "Oye peor o pitidos",
+		when: "siempre"
+	},
+	{
+		key: "disnea",
+		label: "Dificultad para respirar o dolor en el pecho",
+		when: "siempre",
+		redAt3: true
+	},
+	{
+		key: "flemas",
+		label: "Flemas",
+		when: "siempre",
+		help: "Leve: alguna vez al día · Moderado: le cuesta echarlas · Intenso: constantes o le dificultan respirar"
+	},
+	{
+		key: "somnolencia",
+		label: "Somnolencia o confusión inusual",
+		when: "siempre",
+		redAt3: true
+	},
+	{
+		key: "mareo",
+		label: "Mareo o inestabilidad",
+		when: "siempre",
+		help: "Leve: se marea al levantarse · Moderado: necesita sentarse o apoyarse · Intenso: no se sostiene o se ha desmayado",
+		redAt3: true
+	},
+	{
+		key: "nauseas",
+		label: "Náuseas",
+		when: "siempre",
+		help: "Escala de caras 0-10 por la mañana, la tarde y la noche; impacto en comer, arcadas y rescates"
+	},
+	{
+		key: "vomitos",
+		label: "Vómitos",
+		when: "siempre",
+		redAt3: true,
+		help: "Intenso: no retiene líquidos"
+	},
+	{
+		key: "distension",
+		label: "Plenitud o tripa hinchada",
+		when: "ciclo"
+	},
+	{
+		key: "estrenimiento",
+		label: "Estreñimiento",
+		when: "ciclo"
+	},
+	{
+		key: "reaccion_infusion",
+		label: "Reacción en el brazo / picor durante la perfusión",
+		when: "ciclo"
+	},
+	{
+		key: "apetito",
+		label: "Menos apetito que la semana pasada",
+		when: "fuera"
+	},
+	{
+		key: "infeccion",
+		label: "Signos de infección (catéter rojo, tos, mocos, dolor al orinar, diarrea)",
+		when: "fuera",
+		redAt3: true
+	},
+	{
+		key: "energia",
+		label: "Menos energía que la semana pasada",
+		when: "fuera"
+	},
+	{
+		key: "sueno_alterado",
+		label: "Sueño alterado",
+		when: "fuera"
+	}
+];
 const pautaNueva = (date) => !!date && date >= "2026-10-18";
 /** Las tomas del día, como en New Version: desayuno, media mañana (batido), comida, media tarde (batido) y cena. */
 const TOMAS = [
@@ -161,6 +279,101 @@ const TOMAS = [
 		label: "Cena",
 		principal: true,
 		plato: true
+	}
+];
+/** Tipos de vómito por lo que se ve. Los marcados con alerta son señal roja por sí solos. */
+const VOMIT_KINDS = [
+	{
+		value: "alimentario",
+		label: "Alimentario",
+		help: "Comida sin digerir, poco después de comer"
+	},
+	{
+		value: "acuoso",
+		label: "Acuoso o mucoso",
+		help: "Líquido claro, saliva o moco; con el estómago vacío"
+	},
+	{
+		value: "bilioso",
+		label: "Bilioso",
+		help: "Amarillo-verdoso y amargo (bilis); típico tras varios vómitos seguidos"
+	},
+	{
+		value: "espumoso",
+		label: "Espumoso",
+		help: "Con espuma; suele ser saliva y aire"
+	},
+	{
+		value: "sangre",
+		label: "Con sangre roja",
+		help: "Sangre roja fresca: avisar al equipo",
+		alerta: true
+	},
+	{
+		value: "posos",
+		label: "En posos de café",
+		help: "Marrón oscuro, como posos: sangre digerida. Avisar al equipo",
+		alerta: true
+	},
+	{
+		value: "escopetazo",
+		label: "En escopetazo",
+		help: "A chorro y sin náusea previa; si se repite, sobre todo con dolor de cabeza, avisar al equipo",
+		alerta: true
+	},
+	{
+		value: "fecaloideo",
+		label: "Fecaloideo",
+		help: "Olor a heces: señal de obstrucción. Avisar al equipo",
+		alerta: true
+	}
+];
+const STOOL_COLORS = [
+	{
+		key: "normal",
+		label: "Normal"
+	},
+	{
+		key: "oscuro",
+		label: "Muy oscuro / negro"
+	},
+	{
+		key: "sangre",
+		label: "Con sangre"
+	},
+	{
+		key: "palido",
+		label: "Pálido"
+	},
+	{
+		key: "verdoso",
+		label: "Verdoso"
+	}
+];
+const LOCATIONS = [
+	{
+		value: "casa",
+		label: "Casa",
+		short: "En casa",
+		emoji: "🏠"
+	},
+	{
+		value: "ingreso",
+		label: "Ingreso",
+		short: "Ingresado",
+		emoji: "🏥"
+	},
+	{
+		value: "hospital_dia",
+		label: "Hospital de día",
+		short: "Hospital de día",
+		emoji: "💉"
+	},
+	{
+		value: "urgencias",
+		label: "Urgencias",
+		short: "En urgencias",
+		emoji: "🚑"
 	}
 ];
 /** Anexo 2 del protocolo ISG-GEIS-OS-2, pacientes ABCB1/P-glicoproteína negativos: 34 semanas. */
@@ -517,6 +730,11 @@ function cycleContext(cycles, date) {
 		phase: inCycle ? "en_ciclo" : nadir ? "valle" : day < 0 ? "previo" : "recuperacion",
 		fase: faseDelDia(start, cycles, date)?.fase ?? null
 	};
+}
+/** Semáforo diario. Regla propuesta, pendiente de validación por oncología. */
+/** Otros síntomas escritos a mano (0.42.0): solo los que tienen texto. */
+function otrosSintomas(log) {
+	return (log?.extra?.other_symptoms ?? []).filter((o) => o.text?.trim());
 }
 /** Fecha (YYYY-MM-DD) del final de la última quimio iniciada hasta `date` (fin de la infusión o, si no consta, inicio). */
 function lastChemoDate(cycles, date) {
@@ -1374,12 +1592,29 @@ const ALIMENTOS = [
 ];
 /** Minúsculas y sin tildes (la ñ se queda). */
 const normalizar = (t) => t.toLowerCase().replace(/(.)\1{2,}/g, "$1$1").replace(/ñ/g, "\0").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\u0000/g, "ñ");
+const NUMEROS = {
+	un: 1,
+	una: 1,
+	uno: 1,
+	dos: 2,
+	tres: 3,
+	cuatro: 4,
+	cinco: 5,
+	seis: 6,
+	medio: .5,
+	media: .5,
+	"un poco de": .5,
+	poco: .5,
+	"un par de": 2,
+	par: 2
+};
 const UNIDADES = "rebanadas?|lonchas?|cucharadas?|cucharaditas?|cdas?|cdtas?|pu(?:ñ|n)ados?|vasos?|tazas?|piezas?|filetes?|trozos?|latas?|unidades?|uds?|raciones?|platos?|cuencos?|bolas?|onzas?|lomos?|rodajas?|tajadas?|porciones?|cacitos?|chorritos?|hojas?";
-new RegExp(`(?:^|\\s)(\\d+\\/\\d+|\\d+(?:[.,]\\d+)?|un par de|un poco de|un|una|uno|dos|tres|cuatro|cinco|seis|medio|media|poco|par)\\s+(?:(?:${UNIDADES})\\s+)?(?:de\\s+)?$`);
-new RegExp(`^(?:${UNIDADES})$`);
-new Set("un una uno unos unas dos tres cuatro cinco seis medio media poco mucho algo par de del con sin y e o al a la el los las lo en para por mas menos tambien solo sola siempre habitual plancha horno vapor asado asada asados asadas cocido cocida cocidos cocidas hervido hervida frito frita fritos fritas salteado salteada guisado guisada estofado estofada casero casera natural integral grande pequeño pequeña mediano mediana buen buena trocitos troceado microondas papillote rebozado rebozada gratinado gratinada crudo cruda tibio tibia caliente frio fria resto mitad entero entera mio mia albahaca perejil oregano tomillo romero cilantro eneldo especias especia sal pimienta pimenton curcuma comino canela jengibre vinagre suravitasan".split(" "));
+const RE_CANT = new RegExp(`(?:^|\\s)(\\d+\\/\\d+|\\d+(?:[.,]\\d+)?|un par de|un poco de|un|una|uno|dos|tres|cuatro|cinco|seis|medio|media|poco|par)\\s+(?:(?:${UNIDADES})\\s+)?(?:de\\s+)?$`);
+const RE_UNIDAD = new RegExp(`^(?:${UNIDADES})$`);
+/** Palabras que no son alimentos y no hace falta reconocer. */
+const RELLENO = new Set("un una uno unos unas dos tres cuatro cinco seis medio media poco mucho algo par de del con sin y e o al a la el los las lo en para por mas menos tambien solo sola siempre habitual plancha horno vapor asado asada asados asadas cocido cocida cocidos cocidas hervido hervida frito frita fritos fritas salteado salteada guisado guisada estofado estofada casero casera natural integral grande pequeño pequeña mediano mediana buen buena trocitos troceado microondas papillote rebozado rebozada gratinado gratinada crudo cruda tibio tibia caliente frio fria resto mitad entero entera mio mia albahaca perejil oregano tomillo romero cilantro eneldo especias especia sal pimienta pimenton curcuma comino canela jengibre vinagre suravitasan".split(" "));
 const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-ALIMENTOS.flatMap((a) => a.s.map((s) => {
+const PATRONES = ALIMENTOS.flatMap((a) => a.s.map((s) => {
 	const w = normalizar(s).split(/\s+/);
 	const cuerpo = w.map((x) => escapar(x) + "(?:es|s)?").join("\\s+");
 	return {
@@ -1388,16 +1623,139 @@ ALIMENTOS.flatMap((a) => a.s.map((s) => {
 		largo: w.join(" ").length
 	};
 })).sort((x, y) => y.largo - x.largo);
+/** Lee los alimentos de un texto libre. Devuelve lo reconocido y los trozos que no se han reconocido. */
+function leerAlimentos(texto) {
+	const original = normalizar(texto ?? "");
+	let resto = original;
+	const hallados = [];
+	for (const p of PATRONES) {
+		p.re.lastIndex = 0;
+		let m;
+		while (m = p.re.exec(resto)) {
+			hallados.push({
+				ini: m.index,
+				fin: m.index + m[0].length,
+				a: p.a,
+				txt: m[0]
+			});
+			resto = resto.slice(0, m.index) + " ".repeat(m[0].length) + resto.slice(m.index + m[0].length);
+		}
+	}
+	hallados.sort((x, y) => x.ini - y.ini);
+	const leidos = hallados.map((h) => {
+		const antes = original.slice(0, h.ini).split(/[,;+\-]|\.(?!\d)|\s(?:y|con|e)\s/).pop() ?? "";
+		const c = RE_CANT.exec(antes);
+		let unidades, conNumero = false;
+		if (c) {
+			const v = c[1].replace(",", ".");
+			const fr = /^(\d+)\/(\d+)$/.exec(v);
+			unidades = fr ? Number(fr[1]) / Math.max(1, Number(fr[2])) : NUMEROS[v] ?? Number(v);
+			conNumero = true;
+		} else unidades = /s$/.test(h.txt) && !h.a.s.some((s) => normalizar(s) === h.txt) && h.a.np ? h.a.np : h.a.n ?? 1;
+		return {
+			alimento: h.a,
+			texto: h.txt,
+			unidades,
+			conNumero,
+			kcal: Math.round(h.a.k * unidades),
+			ini: h.ini,
+			fin: h.fin
+		};
+	});
+	for (let i = leidos.length - 1; i > 0; i--) {
+		const a = leidos[i - 1], b = leidos[i], entre = original.slice(a.fin, b.ini).trim();
+		if (b.alimento.id === "huevo" && (a.alimento.id === "tortilla" || a.alimento.id === "huevos_revueltos") && /^(?:de)?(?:\s*\S+)?$/.test(entre) && (entre === "" || entre === "de" || b.conNumero)) {
+			const n = b.conNumero ? b.unidades : 2;
+			a.unidades = a.alimento.id === "tortilla" ? n / 2 : n;
+			a.conNumero = true;
+			a.kcal = Math.round(a.alimento.k * a.unidades);
+			leidos.splice(i, 1);
+		} else if (a.alimento.id === "fruta" && b.alimento.grupo === "fruta" && entre === "") leidos.splice(i - 1, 1);
+		else if (b.alimento.id === "harina" && !b.conNumero && (a.alimento.id === "tortitas" || a.alimento.id === "pan" || a.alimento.id === "bizcocho") && (entre === "" || entre === "de")) leidos.splice(i, 1);
+	}
+	return {
+		leidos,
+		sinReconocer: resto.split(/[,;+.\n\-\/]|\s(?:y|con|e)\s/).map((x) => x.trim().replace(/\s+/g, " ")).filter((x) => x && !x.split(" ").every((w) => RELLENO.has(w) || RELLENO.has(w.replace(/e?s$/, "")) || RELLENO.has(w.replace(/s$/, "")) || /^\d+(?:[.,/]\d+)?$/.test(w) || RE_UNIDAD.test(w)))
+	};
+}
 //#endregion
 //#region src/domain/batido.ts
+const RECETA_BATIDO = {
+	media_manana: {
+		guisante_g: 30,
+		platano: 1 / 2,
+		platanoTxt: "½ plátano",
+		ml: 200
+	},
+	merienda: {
+		guisante_g: 15,
+		platano: 1 / 3,
+		platanoTxt: "⅓ de plátano",
+		ml: 100
+	}
+};
 /** Líquido del batido si no se escribe nada en «Líquido» (13/11/2026): 200 ml media mañana, 100 ml media tarde. */
 const BATIDO_ML_TOMA = {
 	media_manana: 200,
 	merienda: 100
 };
+//#endregion
+//#region src/domain/kcal.ts
+/** Kilocalorías estimadas (0.33.0, como New Version).
+*  - Si se escribe algo en «Otro», sustituye al menú: cada alimento reconocido cuenta por su ración casera (o por el
+*    número escrito) y por la cantidad marcada (en comida y cena, la parte del plato dibujado; si no, Entera,
+*    ¾, Media o Casi nada).
+*  - Si no se escribe nada, cuentan los platos del menú de ese día (o el batido en media mañana y media tarde).
+*  Son una estimación para saber más o menos cuánto come al día: ni un tope ni un objetivo. */
+/** Cantidad de cada parte del plato dibujado: nada, poca, la que toca y (hidratos) más de la que toca. */
+const FACTOR_PLATO = {
+	veg: [
+		0,
+		.5,
+		1
+	],
+	prot: [
+		0,
+		.5,
+		1
+	],
+	starch: [
+		0,
+		.5,
+		1,
+		1.5
+	]
+};
 ALIMENTOS.find((a) => a.id === "batido");
 /** ¿Cuenta esta toma como tomada? Marcada con algo distinto de «No», o con algo escrito o una hora. */
 const tomada = (m) => !!m && m.fraction !== 0 && (m.fraction != null || !!m.note?.trim() || !!m.dessert?.trim() || !!m.time || !!m.end);
+/** Parte que se tomó de cada zona del plato dibujado y la media para el resto (aceite, salsas). Lo que no se
+*  marca en el plato toma la cantidad de Entera / ¾ / Media / Casi nada (1 si tampoco hay). */
+function factoresPlato(m) {
+	const base = m?.fraction != null && m.fraction > 0 ? m.fraction : 1;
+	const f = (k) => {
+		const n = m?.macros?.[k];
+		return n == null ? null : FACTOR_PLATO[k][n] ?? 1;
+	};
+	const veg = f("veg"), prot = f("prot"), hid = f("starch");
+	const marcados = [
+		veg,
+		prot,
+		hid
+	].filter((v) => v != null);
+	const resto = marcados.length ? marcados.reduce((s, v) => s + v, 0) / marcados.length : base;
+	return {
+		veg: veg ?? base,
+		prot: prot ?? base,
+		hid: hid ?? base,
+		resto
+	};
+}
+/** Platos del menú que cuentan en una toma: los guardados al marcarla o, si no, los del menú del día. */
+function platosDeToma(m, menu) {
+	if (m.dishes?.length) return m.dishes;
+	return menu?.platos(m.slot) ?? [];
+}
 //#endregion
 //#region src/domain/completeness.ts
 /** ¿Está el registro del día completo? Diario + comidas y líquidos + actividad del día.
@@ -1600,6 +1958,56 @@ function medicationProgress(products, intakes, cycles, date, soloMomentos) {
 }
 //#endregion
 //#region src/domain/nutrition.ts
+function hoursDiff(a, b) {
+	const [ah, am] = a.split(":").map(Number);
+	const [bh, bm] = b.split(":").map(Number);
+	return Math.round((bh * 60 + bm - (ah * 60 + am)) / 60 * 10) / 10;
+}
+/** ¿En esta comida comió algo? Si está marcada "Nada" (o todo a cero) no cuenta
+*  para el ayuno: si no cenó, la última ingesta es la merienda o la comida. */
+/** Hora de empezar y de terminar de una toma (si solo hay una, vale para las dos). */
+const iniDe = (m) => m.time || m.end || null;
+const finDe = (m) => m.end || m.time || null;
+function comio(m) {
+	if (!iniDe(m)) return false;
+	if (m.fraction === 0) return false;
+	if (m.fraction != null && m.fraction > 0) return true;
+	const mc = m.macros;
+	if (mc && (mc.veg || mc.prot || mc.starch || mc.fat)) return true;
+	if (m.carb || m.texture || m.note || m.amount) return true;
+	return m.fraction == null && !mc;
+}
+/** Comidas que cuentan para el ayuno, ordenadas por hora. */
+function ingestas(log) {
+	return (log?.meals ?? []).filter(comio).sort((x, y) => (iniDe(x) ?? "").localeCompare(iniDe(y) ?? ""));
+}
+/** Ayuno nocturno con el detalle de qué comidas se han usado. */
+function overnightFastDetail(today, yesterday) {
+	const last = ingestas(yesterday).sort((x, y) => (finDe(x) ?? "").localeCompare(finDe(y) ?? "")).pop();
+	const first = ingestas(today)[0];
+	const lt = last && finDe(last), ft = first && iniDe(first);
+	if (!lt || !ft) return null;
+	return {
+		hours: Math.round((24 - hoursDiff("00:00", lt) + hoursDiff("00:00", ft)) * 10) / 10,
+		last: {
+			...last,
+			time: lt
+		},
+		first: {
+			...first,
+			time: ft
+		}
+	};
+}
+/** Ayuno nocturno: desde la última ingesta real de ayer hasta la primera de hoy. */
+function overnightFast(today, yesterday) {
+	return overnightFastDetail(today, yesterday)?.hours ?? null;
+}
+/** Horas de ayuno del día: las tecleadas a mano tienen prioridad; si no, se calculan. */
+function fastingHours(today, yesterday) {
+	if (today?.extra?.fasting_h != null) return today.extra.fasting_h;
+	return overnightFast(today, yesterday);
+}
 /** Modo de la semana: manual si se ha elegido; si no, "quimio" en ciclo o D0-D6 y "nadir" desde D7. */
 /** Modo de la semana (comidas de quimio o de nadir). Decisión 28/09/2026: sigue la misma regla que las pautas
 *  de alimentación y el calendario: **semana nadir desde el 8.º día del cisplatino** hasta la siguiente quimio;
@@ -1667,6 +2075,8 @@ const DE_LA = {
 	cena: "de la cena"
 };
 const enCasa = (log) => !log?.location || log.location === "casa";
+/** Momentos que reciben también los móviles con perfil «parte». */
+const MOMENTOS_PARTE = (momento) => momento === "parte" || momento.startsWith("tendencia");
 const min = (hhmm) => {
 	const [h, m] = hhmm.split(":").map(Number);
 	return h * 60 + (m || 0);
@@ -1676,7 +2086,7 @@ const hhmmDe = (mins) => {
 	return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 };
 /** «08:40» → «8:40». */
-const hora = (hhmm) => hhmm.replace(/^0(\d)/, "$1");
+const hora$1 = (hhmm) => hhmm.replace(/^0(\d)/, "$1");
 const ml = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 /** Hora de despertar de ese día (Biohacking); si no está apuntada, las 8:00. */
 function horaDespertar(log) {
@@ -1842,7 +2252,7 @@ function controlesDelMomento(m, d) {
 			valor: ok ? 1 : 0,
 			meta: 1,
 			ok,
-			linea: ok ? void 0 : `🌙 La cena, como tarde a las ${hora(CENA_LIMITE)}, para que a las 21:30 pueda dormir bien.`
+			linea: ok ? void 0 : `🌙 La cena, como tarde a las ${hora$1(CENA_LIMITE)}, para que a las 21:30 pueda dormir bien.`
 		});
 	}
 	if (m === "19") {
@@ -1869,6 +2279,7 @@ const TITULOS = {
 	mano: "Huma · Ejercicios de la mano ✋",
 	ayuno11: "Huma · Buenos días 🌅",
 	ayuno12: "Huma · Buenos días 🌅",
+	parte: "Huma · Parte del día 🌅",
 	prueba: "Huma · Aviso de prueba"
 };
 /** Aviso de las 12, 16 o 19 h: solo las líneas de lo que va por detrás; null si todo va bien. */
@@ -1954,11 +2365,11 @@ function avisoParaManana(d) {
 		title: TITULOS["2130"],
 		body: "🌅 Apuntad la hora de la cena y Huma os dirá a qué hora desayunar mañana."
 	};
-	const limite = hora(hhmmDe(min(u.at) + 720));
+	const limite = hora$1(hhmmDe(min(u.at) + 720));
 	const que = u.meal.slot === "cena" ? "La cena fue" : "La última toma fue";
 	return {
 		title: TITULOS["2130"],
-		body: `🌅 ${que} a las ${hora(u.at)}. Mañana, desayuno antes de las ${limite}.`
+		body: `🌅 ${que} a las ${hora$1(u.at)}. Mañana, desayuno antes de las ${limite}.`
 	};
 }
 /** Aviso de ir a la cama: 2 h después de terminar la cena. Con `conDesayuno`, añade la hora límite del desayuno
@@ -1970,7 +2381,7 @@ function avisoCama(d, ahora, conDesayuno) {
 	if (!at || at < "17:00") return null;
 	if (min(ahora) < min(at) + 120) return null;
 	const lineas = [`🌙 Han pasado 2 horas desde la cena: buen momento para irse a la cama.`];
-	if (conDesayuno) lineas.push(`🌅 Mañana, desayuno antes de las ${hora(hhmmDe(min(at) + 720))}.`);
+	if (conDesayuno) lineas.push(`🌅 Mañana, desayuno antes de las ${hora$1(hhmmDe(min(at) + 720))}.`);
 	return {
 		title: TITULOS.cama,
 		body: lineas.join("\n")
@@ -2039,7 +2450,7 @@ function avisoAyuno(d, ahora, yaMandados) {
 		horas: a.horas,
 		aviso: {
 			title: TITULOS.ayuno11,
-			body: `Buenos días 🌅. Mejor desayunar antes de las ${hora(a.limite)} para que no pase de 12 h de ayuno.`
+			body: `Buenos días 🌅. Mejor desayunar antes de las ${hora$1(a.limite)} para que no pase de 12 h de ayuno.`
 		}
 	};
 	return null;
@@ -2047,6 +2458,7 @@ function avisoAyuno(d, ahora, yaMandados) {
 function tareasALaHora(ahora) {
 	const out = [];
 	const entre = (a, b) => ahora >= a && ahora < b;
+	if (entre("08:00", "09:30")) out.push({ tipo: "parte" });
 	if (entre("12:00", "12:45")) out.push({
 		tipo: "momento",
 		momento: "12"
@@ -2071,6 +2483,699 @@ function tareasALaHora(ahora) {
 		momento: `mano_${h}`
 	});
 	return out;
+}
+//#endregion
+//#region src/domain/deposiciones.ts
+/** Deposiciones con un tipo de Bristol por cada una (0.28.0, pedido de Montserrate: «ayer fueron 3 cacas y de formato
+*  diferente»). Se guardan en `extra.stools`; la columna `bristol` guarda el tipo más alejado del 4 (el que más avisa
+*  de estreñimiento o diarrea), para que informes y semáforos sigan funcionando igual. */
+function tiposBristol(l) {
+	if (!l) return [];
+	const lista = l.extra?.stools;
+	if (lista?.length) {
+		const n = l.stools_n ?? lista.length;
+		return lista.slice(0, Math.max(n, 1)).map((s) => s.bristol).filter((b) => b != null);
+	}
+	return l.bristol != null ? [l.bristol] : [];
+}
+//#endregion
+//#region src/domain/informeSignosEjercicio.ts
+const RANGOS_SIGNOS = {
+	fiebre: 38,
+	febricula: 37.5,
+	sys: [86, 110],
+	diaMax: 73,
+	pulso: [75, 118],
+	satOk: 95,
+	satRojo: 94,
+	dolorAmbar: 4,
+	dolorRojo: 7
+};
+const SLOT = {
+	manana: "mañana",
+	tarde: "tarde",
+	noche: "noche"
+};
+const es$1 = (x) => String(x).replace(".", ",");
+function buildSignos(days, logs, patient) {
+	const byDate = new Map(logs.map((l) => [l.date, l]));
+	const logOf = (d) => byDate.get(d);
+	const A = [];
+	const add = (nivel, dia, titulo, hora, detalle) => A.push({
+		nivel,
+		dia,
+		titulo,
+		hora,
+		detalle
+	});
+	const usual = patient?.usual_voids ?? null;
+	const filas = [];
+	const sinTemp = [], sinDolor = [];
+	let tomasT = 0;
+	const menosOrinaDias = [];
+	for (const d of days) {
+		const l = logOf(d);
+		const vit = Object.entries(l?.extra?.vitals ?? {}).filter((x) => !!x[1]);
+		const temps = vit.filter(([, v]) => v.temp != null).map(([s, v]) => ({
+			s,
+			t: v.temp
+		}));
+		if (l?.temp_max != null && !temps.some((x) => x.t === l.temp_max)) temps.push({
+			s: "",
+			t: l.temp_max
+		});
+		const tmax = temps.length ? Math.max(...temps.map((x) => x.t)) : null;
+		const n = l ? temperaturasApuntadas(l) : 0;
+		tomasT += Math.min(n, 2);
+		if (l && n < 2) sinTemp.push(d);
+		const fiebre = temps.filter((x) => x.t >= RANGOS_SIGNOS.fiebre);
+		const feb = temps.filter((x) => x.t >= RANGOS_SIGNOS.febricula && x.t < RANGOS_SIGNOS.fiebre);
+		if (fiebre.length) {
+			const x = fiebre.sort((a, b) => b.t - a.t)[0];
+			add("rojo", d, `Fiebre ${es$1(x.t)} °C`, SLOT[x.s], l?.extra?.fever_cause ? `foco marcado: ${l.extra.fever_cause.replace("_", " ")}` : void 0);
+		} else if (feb.length >= 2) add("rojo", d, `37,5 °C o más repetida (${feb.map((x) => es$1(x.t)).join(" y ")} °C)`);
+		else if (feb.length === 1) add("ambar", d, `Febrícula ${es$1(feb[0].t)} °C`, SLOT[feb[0].s]);
+		let ta = null, pulso = null, sat = null;
+		for (const [s, v] of vit) {
+			if (v.sys != null) {
+				const mal = v.sys < RANGOS_SIGNOS.sys[0] || v.sys > RANGOS_SIGNOS.sys[1] || v.dia != null && v.dia > RANGOS_SIGNOS.diaMax;
+				if (!ta || mal && !ta.mal) ta = {
+					txt: `${v.sys}/${v.dia ?? "—"}`,
+					mal
+				};
+				if (mal) add("ambar", d, `Tensión ${v.sys}/${v.dia ?? "—"}`, SLOT[s], "rango: sistólica 86–110, diastólica hasta 73");
+			}
+			if (v.pulse != null) {
+				const mal = v.pulse < RANGOS_SIGNOS.pulso[0] || v.pulse > RANGOS_SIGNOS.pulso[1];
+				if (!pulso || mal && !pulso.mal || mal === pulso.mal && Math.abs(v.pulse - 96) > Math.abs(pulso.v - 96)) pulso = {
+					v: v.pulse,
+					mal
+				};
+				if (mal) add("ambar", d, `Pulso ${v.pulse} lpm`, SLOT[s], "rango: 75–118 en reposo");
+			}
+			if (v.spo2 != null) {
+				sat = sat == null ? v.spo2 : Math.min(sat, v.spo2);
+				if (v.spo2 < RANGOS_SIGNOS.satRojo) add("rojo", d, `Saturación ${v.spo2} %`, SLOT[s]);
+				else if (v.spo2 < RANGOS_SIGNOS.satOk) add("ambar", d, `Saturación ${v.spo2} %`, SLOT[s]);
+			}
+		}
+		const dolor = l?.pain_max ?? null;
+		if (l && dolor == null) sinDolor.push(d);
+		if (dolor != null && dolor >= RANGOS_SIGNOS.dolorRojo) add("rojo", d, `Dolor ${dolor}/10`, void 0, l?.pain_location || void 0);
+		else if (dolor != null && dolor >= RANGOS_SIGNOS.dolorAmbar) add("ambar", d, `Dolor ${dolor}/10`, void 0, l?.pain_location || void 0);
+		for (const e of l?.extra?.vomits ?? []) {
+			const k = VOMIT_KINDS.find((x) => x.value === e.kind);
+			if (k?.alerta) add("rojo", d, `Vómito ${k.label.toLowerCase()}`, e.time || void 0);
+		}
+		if (l?.extra?.vomit_no_liquids) add("rojo", d, "No retiene ni líquidos");
+		if (l?.stool_color === "oscuro" || l?.stool_color === "sangre" || l?.stool_color === "palido") add("rojo", d, `Heces: ${STOOL_COLORS.find((x) => x.key === l.stool_color)?.label.toLowerCase()}`);
+		if (tiposBristol(l).some((b) => b >= 6) && (l?.stools_n ?? 0) >= 3) add((tmax ?? 0) >= RANGOS_SIGNOS.fiebre ? "rojo" : "ambar", d, (tmax ?? 0) >= RANGOS_SIGNOS.fiebre ? "Diarrea con fiebre" : "Diarrea");
+		if (l?.extra?.phlegm_color === "verde" || l?.extra?.phlegm_color === "rojo") add("rojo", d, `Flemas ${l.extra.phlegm_color === "rojo" ? "con sangre" : "verdes"}`);
+		for (const [k, v] of Object.entries(l?.symptoms ?? {})) {
+			if (k === "nauseas" || k === "vomitos" || k === "fiebre") continue;
+			const def = SYMPTOMS.find((s) => s.key === k);
+			const label = def?.label ?? k.replace(/^dx_/, "").replace(/_/g, " ");
+			if (v >= 3 && def?.redAt3) add("rojo", d, `${label}: intenso`);
+			else if (v >= 2) add("ambar", d, `${label}: moderado`);
+		}
+		for (const o of otrosSintomas(l)) add("ambar", d, `Otro síntoma: ${o.text.trim()}`, void 0, [
+			"",
+			"leve",
+			"moderado",
+			"intenso"
+		][o.sev]);
+		if ((l?.fatigue ?? 0) >= 3) add("ambar", d, `Cansancio ${l.fatigue}/4`, void 0, "descansa más de lo normal o casi todo el día tumbado");
+		if (l?.mood_child != null && l.mood_child <= 2) add("ambar", d, `Ánimo ${l.mood_child}/5`);
+		const menos = l?.urine_amount === "menos" || usual != null && l?.urine_count != null && l.urine_count < usual;
+		if (menos) menosOrinaDias.push(d);
+		filas.push({
+			d,
+			tempMax: tmax,
+			tempTomas: n,
+			ta,
+			pulso,
+			sat,
+			dolor,
+			fatiga: l?.fatigue ?? null,
+			animo: l?.mood_child ?? null,
+			micciones: l?.urine_count ?? null,
+			menosOrina: menos
+		});
+	}
+	if (menosOrinaDias.length >= 2) add("ambar", menosOrinaDias[0], `Orina menos de lo habitual ${menosOrinaDias.length} días`, void 0, usual != null ? `lo habitual: ${usual} micciones` : void 0);
+	const keys = /* @__PURE__ */ new Set();
+	for (const d of days) for (const k of Object.keys(logOf(d)?.symptoms ?? {})) keys.add(k);
+	const sintomas = [];
+	for (const k of keys) {
+		if (k === "nauseas" || k === "vomitos") continue;
+		const vals = days.map((d) => logOf(d)?.symptoms?.[k] ?? 0).filter((v) => v > 0);
+		if (!vals.length) continue;
+		const label = SYMPTOMS.find((s) => s.key === k)?.label ?? k.replace(/^dx_/, "").replace(/_/g, " ");
+		sintomas.push(`${label} (${vals.length} día${vals.length > 1 ? "s" : ""}, máx. ${[
+			"",
+			"leve",
+			"moderado",
+			"intenso"
+		][Math.max(...vals)]})`);
+	}
+	const otrosSem = /* @__PURE__ */ new Map();
+	for (const d of days) for (const o of otrosSintomas(logOf(d))) {
+		const k = o.text.trim().toLowerCase();
+		const x = otrosSem.get(k) ?? {
+			txt: o.text.trim(),
+			dias: 0,
+			max: 0
+		};
+		x.dias++;
+		x.max = Math.max(x.max, o.sev);
+		otrosSem.set(k, x);
+	}
+	for (const x of otrosSem.values()) sintomas.push(`${x.txt} [otro] (${x.dias} día${x.dias > 1 ? "s" : ""}, máx. ${[
+		"",
+		"leve",
+		"moderado",
+		"intenso"
+	][x.max]})`);
+	A.sort((a, b) => a.nivel === b.nivel ? a.dia.localeCompare(b.dia) : a.nivel === "rojo" ? -1 : 1);
+	const conDatos = days.some((d) => logOf(d));
+	return {
+		alertas: A,
+		filas,
+		sintomas,
+		tempTomas: tomasT,
+		tempPrevistas: days.filter((d) => logOf(d)).length * 2,
+		sem: !conDatos ? "gris" : A.some((a) => a.nivel === "rojo") ? "rojo" : A.length ? "ambar" : "verde",
+		huecos: [...sinTemp.length ? [{
+			que: `Tomas de temperatura (menos de 2 al día)`,
+			dias: sinTemp
+		}] : [], ...sinDolor.length ? [{
+			que: "Dolor (0–10)",
+			dias: sinDolor
+		}] : []]
+	};
+}
+/** Gramos de alimento proteico de una unidad casera de lo que se escribe en «Otro» o «Postre». Solo los grupos que
+*  cuentan; lo demás (verdura, hidratos, bebida vegetal, tofu…) no suma. */
+const G_UNIDAD = {
+	pollo: 130,
+	pollo_muslo: 150,
+	codorniz: 100,
+	bacon: 30,
+	pavo: 130,
+	pavo_fiambre: 50,
+	jamon: 30,
+	jamon_york: 30,
+	ternera: 140,
+	carne_picada: 130,
+	hamburguesa: 120,
+	cerdo: 130,
+	cordero: 130,
+	conejo: 150,
+	salmon: 150,
+	salmon_ahumado: 40,
+	atun: 150,
+	atun_lata: 60,
+	sardinas: 150,
+	caballa: 150,
+	boquerones: 150,
+	anchoas: 20,
+	merluza: 150,
+	lubina: 150,
+	dorada: 150,
+	trucha: 150,
+	marisco: 100,
+	mejillones: 150,
+	calamar: 150,
+	huevo: 55,
+	huevos_revueltos: 55,
+	tortilla: 110,
+	proteina_polvo: 25,
+	yogur: 125,
+	yogur_griego: 125,
+	queso: 30,
+	queso_fresco: 60,
+	queso_crema: 30,
+	requeson: 50,
+	parmesano: 10,
+	leche: 250
+};
+const esPrincipal = (slot) => !!TOMAS.find((t) => t.key === slot)?.principal;
+/** Proteína total de un plato del menú: la guardada al marcar o, si no la tiene, la del menú cargado. */
+const gDe = (d, data) => d.g ?? data?.platos[d.id]?.prot_g ?? null;
+/** Lo que se reconoce como alimento proteico en un texto, por unidades caseras. */
+function protEscrito(texto, factor) {
+	if (!texto?.trim()) return [];
+	return leerAlimentos(texto).leidos.filter((l) => G_UNIDAD[l.alimento.id] != null).map((l) => ({
+		n: l.alimento.nombre,
+		g: Math.round(G_UNIDAD[l.alimento.id] * l.unidades * factor(l.alimento.grupo, l.conNumero))
+	}));
+}
+function proteinaToma(m, slot, menu, data) {
+	const t = TOMAS.find((x) => x.key === slot);
+	const principal = esPrincipal(slot);
+	const f = m?.fraction;
+	const registrada = f != null || tomada(m);
+	const parte = f != null && f > 0 ? f : f === 0 ? 0 : 1;
+	const r = {
+		slot,
+		principal,
+		registrada,
+		previsto: 0,
+		tomado: 0,
+		lineas: [],
+		sinDato: [],
+		fuente: null,
+		nivel: "gris"
+	};
+	const receta = t?.batido ? RECETA_BATIDO[slot] : void 0;
+	const delMenu = m ? platosDeToma(m, menu) : menu?.platos(slot) ?? [];
+	const snack = !!t?.batido && m?.choice === "menu";
+	if (receta && !snack) r.previsto = receta.guisante_g;
+	else if (t?.principal) r.previsto = 120;
+	else r.previsto = delMenu.reduce((s, d) => s + (gDe(d, data) ?? 0), 0);
+	if (!registrada || f === 0) {
+		r.nivel = principal && f === 0 ? "rojo" : "gris";
+		return r;
+	}
+	const fPlato = t?.plato ? factoresPlato(m).prot : parte;
+	if (m?.note?.trim()) {
+		r.fuente = "escrito";
+		r.lineas = protEscrito(m.note, (grupo, conNumero) => conNumero ? 1 : grupo === "proteina" ? fPlato : parte);
+	} else if (receta && !snack) {
+		r.fuente = "batido";
+		r.lineas = [{
+			n: "Proteína de guisante",
+			g: Math.round(receta.guisante_g * parte)
+		}];
+	} else if (t?.principal) {
+		r.fuente = "menu";
+		r.lineas = [{
+			n: "Proteína pesada (120 g)",
+			g: Math.round(120 * fPlato)
+		}];
+	} else {
+		r.fuente = "menu";
+		delMenu.forEach((d, i) => {
+			if (i > 0 && m?.taken?.[d.id] === "no") return;
+			const g = gDe(d, data);
+			if (g == null) {
+				r.sinDato.push(d.n);
+				return;
+			}
+			if (g > 0) r.lineas.push({
+				n: d.n,
+				g: Math.round(g * fPlato)
+			});
+		});
+	}
+	if (t?.plato) r.lineas.push(...protEscrito(m?.dessert, () => 1).map((l) => ({
+		...l,
+		n: `${l.n} (postre)`
+	})));
+	r.tomado = r.lineas.reduce((s, l) => s + l.g, 0);
+	r.nivel = r.tomado >= 120 ? "verde" : r.tomado >= 80 ? "amarillo" : "rojo";
+	return r;
+}
+function proteinaDia(meals, menu, data) {
+	const tomas = TOMAS.map((t) => proteinaToma(meals.find((m) => m.slot === t.key), t.key, menu, data));
+	const total = tomas.reduce((s, t) => s + t.tomado, 0);
+	const pendientes = tomas.filter((t) => !t.registrada).length;
+	const estado = total > 400 ? "encima" : total >= 360 ? "rango" : pendientes > 0 ? "curso" : "debajo";
+	const ps = tomas.filter((t) => t.principal);
+	return {
+		tomas,
+		total,
+		pendientes,
+		estado,
+		principalesEnMeta: ps.filter((t) => t.nivel === "verde").length,
+		principalesRegistradas: ps.filter((t) => t.registrada).length
+	};
+}
+//#endregion
+//#region src/domain/menu.ts
+/** Platos de un día. `null` si no hay menú o el día es anterior al menú o a la pauta del 18/10. */
+function menuDelDia(m, date) {
+	if (!m || !m.dias?.length) return null;
+	if (date < "2026-10-18") return null;
+	const indice = ((/* @__PURE__ */ new Date(date + "T12:00:00")).getDay() + 6) % 7;
+	const semana = (Math.floor(diffDays(date, m.desde) / 7) % 2 + 2) % 2 === 0 ? 1 : 2;
+	const dia = m.dias[indice % m.dias.length] ?? {};
+	return {
+		indice,
+		semana,
+		platos: (slot) => (dia[slot] ?? []).filter((r) => typeof r === "string" || !r.semana || r.semana === semana).map((r) => {
+			const id = typeof r === "string" ? r : r.id;
+			const p = m.platos[id];
+			return {
+				id,
+				n: p?.nombre ?? id,
+				k: p?.kcal,
+				p: p?.partes,
+				g: p?.prot_g
+			};
+		}),
+		hora: (slot) => m.horas?.[slot] ?? null
+	};
+}
+//#endregion
+//#region src/domain/nausea.ts
+/** Máximo del día en la escala 0-10 (null si no se ha apuntado ninguna cara). */
+function nauseaMax(n) {
+	const vs = Object.values(n?.score ?? {}).filter((v) => v != null);
+	return vs.length ? Math.max(...vs) : null;
+}
+//#endregion
+//#region src/domain/parte.ts
+const PUNTO = {
+	verde: "🟢",
+	naranja: "🟠",
+	rojo: "🔴",
+	gris: "⚪"
+};
+/** Medicación de rescate (a demanda). Se reconoce por el nombre del producto en Medicación. */
+const RESCATE = [
+	{
+		key: "nausealiv",
+		nombre: "Nausealiv",
+		re: /nausea\s*liv/i
+	},
+	{
+		key: "homeopatia",
+		nombre: "Ipeca + Nux vómica + Arsenicum",
+		re: /nux|arsenicum|ipeca/i
+	},
+	{
+		key: "paracetamol",
+		nombre: "Paracetamol",
+		re: /paracetamol|apiretal|dalsy|termalgin/i
+	},
+	{
+		key: "ondansetron",
+		nombre: "Ondansetrón",
+		re: /ondansetr|zofran|yatrox/i
+	}
+];
+/** Horas de sueño recomendadas a su edad (6-12 años: 9-12 h; AASM, Paruthi et al., J Clin Sleep Med 2016). */
+const SUENO_H = [9, 12];
+const es = (n, dec = 1) => String(Math.round(n * 10 ** dec) / 10 ** dec).replace(".", ",");
+const hora = (hhmm) => hhmm.slice(0, 5).replace(/^0(\d)/, "$1");
+const minDe = (hhmm) => {
+	const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? "");
+	return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+const MOMENTO = {
+	ayunas: "ayunas",
+	manana: "mañana",
+	media_manana: "media mañana",
+	comida: "comida",
+	media_tarde: "media tarde",
+	cena: "cena",
+	dormir: "al dormir"
+};
+const DOW = [
+	"domingo",
+	"lunes",
+	"martes",
+	"miércoles",
+	"jueves",
+	"viernes",
+	"sábado"
+];
+const fechaCorta = (d) => {
+	const x = /* @__PURE__ */ new Date(d + "T12:00");
+	return `${DOW[x.getDay()]} ${x.getDate()}`;
+};
+const vigente = (p, d) => !p.deleted_at && (!p.start_date || p.start_date <= d) && (!p.end_date || p.end_date > d);
+function buildParte(date, data) {
+	const byDate = new Map(data.logs.map((l) => [l.date, l]));
+	const log = byDate.get(date);
+	const vispera = byDate.get(addDays(date, -1));
+	const modo = modoDelDia(log, data.cycles, date);
+	const loc = LOCATIONS.find((x) => x.value === (log?.location ?? "casa"));
+	const out = {
+		date,
+		fase: modo === "quimio" ? "Semana de quimio" : "Semana nadir",
+		lugar: loc ? `${loc.emoji} ${loc.short}` : "",
+		sinDatos: !log,
+		sinRellenar: [],
+		signos: [],
+		deposiciones: null,
+		rescate: [],
+		rescatesNausea: [],
+		nutricion: [],
+		proteina: null,
+		hidratacion: null,
+		descanso: [],
+		otros: [],
+		notas: null,
+		rojos: 0,
+		naranjas: 0
+	};
+	out.sinRellenar = (log?.extra && log.extra.cierre?.sin_rellenar) ?? pendientesDelDia({
+		date,
+		log,
+		ayer: vispera,
+		logs: data.logs,
+		weights: data.weights,
+		cycles: data.cycles,
+		products: data.products,
+		intakes: data.intakes.filter((i) => i.date === date)
+	});
+	if (!log) return out;
+	const sg = buildSignos([date], data.logs, data.patient);
+	const conHora = (a) => a.hora ? `${a.titulo} (${a.hora})` : a.titulo;
+	out.signos = sg.alertas.map((a) => ({
+		color: a.nivel === "rojo" ? "rojo" : "naranja",
+		texto: conHora(a),
+		detalle: a.detalle
+	}));
+	const vom = log.extra?.vomits ?? [];
+	if (vom.length && !out.signos.some((s) => /^Vómito/.test(s.texto))) out.signos.push({
+		color: vom.length >= 3 ? "rojo" : "naranja",
+		texto: `${vom.length} ${vom.length === 1 ? "vómito" : "vómitos"}`,
+		detalle: vom.map((v) => v.time).filter(Boolean).join(", ") || void 0
+	});
+	const nm = nauseaMax(log.extra?.nausea);
+	if (nm != null && nm >= 5) out.signos.push({
+		color: nm >= 8 ? "rojo" : "naranja",
+		texto: `Náuseas ${nm}/10`
+	});
+	const tipos = tiposBristol(log);
+	const color = STOOL_COLORS.find((x) => x.key === log.stool_color)?.label.toLowerCase();
+	if (log.stools_n == null) out.deposiciones = {
+		color: "gris",
+		texto: "Deposiciones sin registrar"
+	};
+	else if (log.stools_n === 0) out.deposiciones = {
+		color: "verde",
+		texto: "Sin deposición"
+	};
+	else out.deposiciones = {
+		color: tipos.some((b) => b <= 2 || b >= 5) ? "naranja" : "verde",
+		texto: `${log.stools_n} ${log.stools_n === 1 ? "deposición" : "deposiciones"}${tipos.length ? ` · Bristol ${tipos.join(", ")}` : ""}${color && log.stool_color !== "normal" ? ` · ${color}` : ""}`
+	};
+	const intakesDia = data.intakes.filter((i) => i.date === date && !i.deleted_at);
+	for (const r of RESCATE) {
+		const prods = data.products.filter((p) => r.re.test(p.name) && vigente(p, date));
+		if (!prods.length) continue;
+		const ids = new Set(prods.map((p) => p.id));
+		const tomas = intakesDia.filter((i) => ids.has(i.product_id));
+		const dadas = tomas.filter((i) => i.status === "dada" || i.status == null && i.taken);
+		const noDadas = tomas.filter((i) => i.status === "no_dada");
+		const np = tomas.filter((i) => i.status === "no_precisa");
+		out.rescate.push({
+			nombre: r.nombre,
+			estado: dadas.length ? "dada" : noDadas.length ? "no_dada" : np.length ? "np" : "sin_marcar",
+			veces: dadas.length,
+			momentos: dadas.map((i) => MOMENTO[i.moment] ?? i.moment),
+			motivo: noDadas.map((i) => i.reason).filter(Boolean).join("; ") || void 0
+		});
+	}
+	out.rescatesNausea = (log.extra?.nausea?.rescates ?? []).map((x) => `${x.med}${x.time ? ` a las ${hora(x.time)}` : ""}${x.efecto ? ` (${x.efecto === "si" ? "funcionó" : x.efecto === "algo" ? "funcionó algo" : "no funcionó"})` : ""}`);
+	const ay = fastingHours(log, vispera);
+	if (ay == null) out.nutricion.push({
+		color: "gris",
+		texto: "Ayuno de la noche: faltan horas para calcularlo"
+	});
+	else out.nutricion.push({
+		color: ay <= 12 ? "verde" : "naranja",
+		texto: `Ayuno de la noche: ${es(ay)} h`,
+		detalle: `máximo 12 h`
+	});
+	const meta = tomasMetaDelDia(log, data.cycles, date);
+	const hechas = tomasHechas(log);
+	out.nutricion.push({
+		color: hechas >= meta ? "verde" : hechas >= meta - 1 ? "naranja" : "rojo",
+		texto: `Ingestas: ${hechas} de ${meta}`
+	});
+	const cena = log.meals.find((m) => m.slot === "cena");
+	const cenaFin = cena && tomada(cena) ? finDe(cena) : null;
+	if (cena && cena.fraction === 0) out.nutricion.push({
+		color: "naranja",
+		texto: "No cenó"
+	});
+	else if (cenaFin) out.nutricion.push({
+		color: cenaFin.slice(0, 5) <= "19:30" ? "verde" : "naranja",
+		texto: `Cena terminada a las ${hora(cenaFin)}`,
+		detalle: `como tarde ${hora(CENA_LIMITE)}`
+	});
+	else out.nutricion.push({
+		color: "gris",
+		texto: "Hora de la cena sin registrar"
+	});
+	if (date >= "2026-11-11") {
+		const p = proteinaDia(log.meals, menuDelDia(data.menu, date), data.menu);
+		out.proteina = {
+			total: Math.round(p.total),
+			color: p.total >= 360 ? "verde" : p.total >= 240 ? "naranja" : "rojo",
+			tomas: p.tomas.filter((t) => t.principal).map((t) => ({
+				label: TOMAS.find((x) => x.key === t.slot)?.label ?? t.slot,
+				g: Math.round(t.tomado),
+				color: !t.registrada ? "gris" : t.nivel === "verde" ? "verde" : t.nivel === "amarillo" ? "naranja" : "rojo",
+				registrada: t.registrada
+			}))
+		};
+	}
+	if (!(totalFluids(log) != null || batidoMl(log) > 0)) out.hidratacion = {
+		color: "gris",
+		texto: "Líquidos sin registrar"
+	};
+	else {
+		const v = liquidosDelDia(log);
+		out.hidratacion = {
+			color: v >= 1500 ? "verde" : v >= 900 ? "naranja" : "rojo",
+			texto: `${ml(v)} ml de ${ml(AGUA_DIA_ML)}`
+		};
+	}
+	if (log.fatigue != null) out.descanso.push({
+		color: log.fatigue >= 3 ? "naranja" : "verde",
+		texto: `Cansancio ${log.fatigue}/4`,
+		detalle: [
+			"juega normal",
+			"algo cansado",
+			"descansa más de lo normal",
+			"casi todo el día tumbado",
+			"no se levanta"
+		][log.fatigue]
+	});
+	else out.descanso.push({
+		color: "gris",
+		texto: "Cansancio sin registrar"
+	});
+	if (log.mood_child != null) out.descanso.push({
+		color: log.mood_child <= 2 ? "naranja" : "verde",
+		texto: `Ánimo ${log.mood_child}/5`
+	});
+	const ini = minDe(log.sleep_start), fin = minDe(log.sleep_end);
+	if (ini != null && fin != null) {
+		const h = (fin - ini + 1440) % 1440 / 60;
+		out.descanso.push({
+			color: h >= SUENO_H[0] && h <= SUENO_H[1] ? "verde" : "naranja",
+			texto: `Sueño de la noche: ${es(h)} h (${hora(log.sleep_start)}–${hora(log.sleep_end)})`,
+			detalle: `recomendado ${SUENO_H[0]}–${SUENO_H[1]} h${log.wakeups ? ` · ${log.wakeups} despertares` : ""}`
+		});
+		const cenaV = vispera?.meals.find((m) => m.slot === "cena");
+		const cv = cenaV && tomada(cenaV) ? minDe(finDe(cenaV)) : null;
+		if (cv != null) {
+			const g = (ini - cv + 1440) % 1440 / 60;
+			out.descanso.push({
+				color: g >= 2 ? "verde" : "naranja",
+				texto: `Entre la cena y dormir: ${es(g)} h`,
+				detalle: `mínimo 2 h, ideal 3 h`
+			});
+		}
+	} else out.descanso.push({
+		color: "gris",
+		texto: "Sueño sin registrar"
+	});
+	const luz = [
+		log.daylight_morning && "mañana",
+		log.daylight_afternoon && "tarde",
+		log.sun_exposure && "sol directo"
+	].filter(Boolean);
+	out.descanso.push(luz.length ? {
+		color: "verde",
+		texto: `Luz del día: ${luz.join(", ")}`
+	} : {
+		color: "naranja",
+		texto: "Sin luz del día apuntada"
+	});
+	const pesos = [...data.weights.filter((w) => !w.deleted_at).map((w) => ({
+		d: w.at.slice(0, 10),
+		kg: w.kg
+	})), ...data.logs.filter((l) => l.weight != null).map((l) => ({
+		d: l.date,
+		kg: l.weight
+	}))].sort((a, b) => a.d.localeCompare(b.d));
+	const hoyP = pesos.filter((p) => p.d === date).pop();
+	if (hoyP) {
+		const ant = pesos.filter((p) => p.d < date).pop();
+		const dif = ant ? hoyP.kg - ant.kg : null;
+		const pctDif = ant && dif != null ? dif / ant.kg * 100 : null;
+		out.otros.push({
+			color: pctDif != null && pctDif <= -2 ? "naranja" : "verde",
+			texto: `Peso ${es(hoyP.kg, 2)} kg${dif != null ? ` (${dif >= 0 ? "+" : ""}${es(dif, 2)} kg desde el ${fechaCorta(ant.d)})` : ""}`
+		});
+	}
+	const mano = MANO_HORAS.filter((h) => log.extra?.mano?.[h]).length;
+	out.otros.push({
+		color: mano >= MANO_HORAS.length / 2 ? "verde" : mano > 0 ? "naranja" : "gris",
+		texto: `Ejercicios de la mano: ${mano} de ${MANO_HORAS.length} rondas`
+	});
+	if (enCasa(log)) {
+		const princ = PRINCIPALES.filter((s) => tomada(log.meals.find((m) => m.slot === s)));
+		if (princ.length) {
+			const n = princ.filter((s) => log.extra?.move_after?.[s]).length;
+			out.otros.push({
+				color: n >= princ.length ? "verde" : "naranja",
+				texto: `Caminar tras comer: ${n} de ${princ.length}`
+			});
+		}
+	}
+	out.notas = log.notes?.trim() || null;
+	const todas = [
+		...out.signos,
+		...out.deposiciones ? [out.deposiciones] : [],
+		...out.nutricion,
+		...out.hidratacion ? [out.hidratacion] : [],
+		...out.descanso,
+		...out.otros
+	];
+	if (out.proteina) todas.push({
+		color: out.proteina.color,
+		texto: ""
+	}, ...out.proteina.tomas.map((t) => ({
+		color: t.color,
+		texto: ""
+	})));
+	out.rojos = todas.filter((l) => l.color === "rojo").length;
+	out.naranjas = todas.filter((l) => l.color === "naranja").length;
+	return out;
+}
+/** Título y texto del aviso de las 8:00 (corto: el detalle está en la app). */
+function avisoParte(p) {
+	const title = `Huma · Parte del ${fechaCorta(p.date)} 🌅`;
+	if (p.sinDatos) return {
+		title,
+		body: "Ayer no se registró nada en Huma."
+	};
+	const lineas = [];
+	const alertas = p.signos.filter((s) => s.color === "rojo").concat(p.signos.filter((s) => s.color === "naranja"));
+	lineas.push(alertas.length ? alertas.slice(0, 3).map((s) => `${PUNTO[s.color]} ${s.texto}`).join(" · ") + (alertas.length > 3 ? ` (+${alertas.length - 3})` : "") : "🟢 Sin signos fuera de lo normal");
+	const dadas = p.rescate.filter((r) => r.estado === "dada");
+	lineas.push(dadas.length ? `💊 Rescate: ${dadas.map((r) => `${r.nombre}${r.veces > 1 ? ` ×${r.veces}` : ""}`).join(", ")}` : "💊 Sin medicación de rescate");
+	const nut = [];
+	if (p.proteina) nut.push(`${PUNTO[p.proteina.color]} Proteína ${p.proteina.total} g`);
+	if (p.hidratacion && p.hidratacion.color !== "gris") nut.push(`${PUNTO[p.hidratacion.color]} Líquidos ${p.hidratacion.texto.replace(/ de .*/, "")}`);
+	const ay = p.nutricion.find((l) => l.texto.startsWith("Ayuno") && l.color !== "gris");
+	if (ay) nut.push(`${PUNTO[ay.color]} ${ay.texto.replace("Ayuno de la noche: ", "Ayuno ")}`);
+	if (nut.length) lineas.push(nut.join(" · "));
+	if (p.deposiciones && p.deposiciones.color === "naranja") lineas.push(`${PUNTO.naranja} ${p.deposiciones.texto}`);
+	if (p.sinRellenar.length) lineas.push(`⚪ Sin rellenar: ${p.sinRellenar.join(", ")}`);
+	return {
+		title,
+		body: lineas.join("\n")
+	};
 }
 //#endregion
 //#region supabase/functions/avisos/handler.ts
@@ -2152,7 +3257,7 @@ function db(env, fetchFn) {
 		patch
 	};
 }
-async function enviar(env, fetchFn, subs, aviso, tag) {
+async function enviar(env, fetchFn, subs, aviso, tag, url = "./#/") {
 	const d = db(env, fetchFn);
 	const res = await Promise.all(subs.map(async (s) => {
 		try {
@@ -2160,7 +3265,7 @@ async function enviar(env, fetchFn, subs, aviso, tag) {
 				title: aviso.title,
 				body: aviso.body,
 				tag,
-				url: "./#/"
+				url
 			}, env.vapid, fetchFn);
 			if (r.ok) await d.patch("push_subscriptions", `id=eq.${s.id}`, {
 				last_ok_at: (/* @__PURE__ */ new Date()).toISOString(),
@@ -2254,15 +3359,19 @@ async function tick(env, fetchFn, date, hhmm, dry = false) {
 	setDatos("patients", [patient]);
 	const pid = patient.id;
 	const ayer = addDays(date, -1);
-	const [cycles, logs, weights, products, intakes, hechos, subs] = await Promise.all([
+	const conParte = tareas.some((t) => t.tipo === "parte");
+	const [cycles, logs, weights, products, intakes, hechos, subs, menus] = await Promise.all([
 		d.get(`cycles?select=*&patient_id=eq.${pid}&deleted_at=is.null`),
 		d.get(`daily_logs?select=*&patient_id=eq.${pid}&deleted_at=is.null&date=gte.${addDays(date, -16)}`),
 		d.get(`weights?select=*&patient_id=eq.${pid}&deleted_at=is.null&at=gte.${addDays(date, -40)}`),
 		d.get(`products?select=*&patient_id=eq.${pid}&deleted_at=is.null`),
 		d.get(`intakes?select=*&patient_id=eq.${pid}&deleted_at=is.null&date=in.(${ayer},${date})`),
 		d.get(`avisos?select=date,momento&patient_id=eq.${pid}&area=eq.envio&date=in.(${ayer},${date})`),
-		d.get(`push_subscriptions?select=*&patient_id=eq.${pid}&deleted_at=is.null`)
+		d.get(`push_subscriptions?select=*&patient_id=eq.${pid}&deleted_at=is.null`),
+		conParte ? d.get(`menus?select=*&patient_id=eq.${pid}&active=eq.true&deleted_at=is.null&order=created_at.desc&limit=1`).catch(() => []) : Promise.resolve([])
 	]);
+	/** Móviles que reciben este momento: los de perfil «parte» (Montserrate) solo el parte y las tendencias. */
+	const subsDe = (momento) => subs.filter((s) => (s.perfil ?? "cuidador") !== "parte" || MOMENTOS_PARTE(momento));
 	const ya = new Set(hechos.map((h) => `${h.date}|${h.momento}`));
 	const datos = (dia) => ({
 		date: dia,
@@ -2308,20 +3417,39 @@ async function tick(env, fetchFn, date, hhmm, dry = false) {
 		ya.add(`${dia}|${momento}`);
 		return filas.length > 0;
 	};
-	const mandar = async (dia, momento, aviso) => {
-		if (dry || !subs.length) return {
+	const mandar = async (dia, momento, aviso, url) => {
+		const destino = subsDe(momento);
+		if (dry || !destino.length) return {
 			enviados: 0,
-			total: subs.length,
+			total: destino.length,
 			errores: []
 		};
-		const r = await enviar(env, fetchFn, subs, aviso, momento);
+		const r = await enviar(env, fetchFn, destino, aviso, momento, url);
 		await d.patch("avisos", `patient_id=eq.${pid}&date=eq.${dia}&momento=eq.${momento}&area=eq.envio`, {
 			enviados: r.enviados,
 			errores: r.errores.length ? r.errores.join(" | ").slice(0, 500) : null
 		});
 		return r;
 	};
-	for (const t of tareas) if (t.tipo === "momento") {
+	for (const t of tareas) if (t.tipo === "parte") {
+		const parte = buildParte(ayer, {
+			logs,
+			cycles,
+			products,
+			intakes,
+			weights,
+			menu: menus[0]?.data ?? null,
+			patient
+		});
+		const aviso = avisoParte(parte);
+		if (!await candado(ayer, "parte", aviso, { valor: parte.rojos * 100 + parte.naranjas })) continue;
+		hecho.push({
+			momento: "parte",
+			dia: ayer,
+			aviso,
+			envio: await mandar(ayer, "parte", aviso, `./#/parte/${ayer}`)
+		});
+	} else if (t.tipo === "momento") {
 		const dd = datos(date);
 		const cs = controlesDelMomento(t.momento, dd);
 		const aviso = avisoDelMomento(t.momento, cs);

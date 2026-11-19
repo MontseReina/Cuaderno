@@ -747,3 +747,15 @@ i.fz { background: #6E7650; } i.ae { background: #D07A4A; } i.pa { background: #
 .nutri-receta { display: block; margin-top: .15rem; }
 .nutri-extras { display: flex; flex-direction: column; gap: .3rem; margin: .3rem 0; }
 .nutri-extras .seg { flex-wrap: wrap; }
+
+/* 0.50.0 · Parte del día */
+.parte-lineas { list-style: none; padding: 0; margin: .3rem 0; }
+.parte-lineas li { padding: .25rem 0; border-bottom: 1px solid var(--line); }
+.parte-lineas li:last-child { border-bottom: 0; }
+.parte-resumen { display: grid; gap: .3rem; }
+.parte-cuadros { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin-top: .4rem; }
+.parte-cuadro { border-radius: 8px; padding: .4rem .5rem; text-align: center; border: 1px solid var(--line); }
+.parte-cuadro.parte-verde { background: #e3eef0; border-color: #3F6E78; }
+.parte-cuadro.parte-naranja { background: #fbeccc; border-color: #d99a2b; }
+.parte-cuadro.parte-rojo { background: #f7dcd8; border-color: #b8433a; }
+.parte-cuadro.parte-gris { background: #f2efe8; }

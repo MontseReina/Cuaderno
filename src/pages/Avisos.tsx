@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { backend, currentPatientId, faltaTabla, isDemo, save, remove, useRows } from '../store'
 import { SupabaseBackend } from '../store/supabase'
-import { AGUA_DIA_ML, DIAS_SIN_DEPOSICION, DIAS_SIN_PESO, ml } from '../domain/avisos'
+import { AGUA_DIA_ML, BATIDO_ML, DIAS_SIN_DEPOSICION, DIAS_SIN_PESO, ml, type PerfilAvisos } from '../domain/avisos'
 import { fmtDateTime } from '../domain/dates'
 
 /** Clave pública VAPID de Huma (la privada vive solo en los secretos de la función del servidor). */
@@ -36,6 +36,7 @@ export default function Avisos() {
   const [permiso, setPermiso] = useState<NotificationPermission | 'no'>(soportado() ? Notification.permission : 'no')
   const [msg, setMsg] = useState<{ txt: string; ok: boolean } | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [perfilNuevo, setPerfilNuevo] = useState<PerfilAvisos>('cuidador')
   const yo = backend.currentUserId()
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function Avisos() {
         p256dh: b64url(sub.getKey('p256dh')),
         auth: b64url(sub.getKey('auth')),
         device: nombreMovil(),
+        perfil: ex?.perfil ?? perfilNuevo,
         last_error: null,
       } as never)
       setEndpoint(sub.endpoint)
@@ -100,12 +102,25 @@ export default function Avisos() {
     } finally { setOcupado(false) }
   }
 
+  const cambiarPerfil = async (perfil: PerfilAvisos) => {
+    if (!mia) return
+    setOcupado(true)
+    try {
+      await save('push_subscriptions', { ...mia, perfil } as never)
+      setMsg({ ok: true, txt: perfil === 'parte' ? 'Este móvil recibirá solo el parte de la mañana.' : 'Este móvil recibirá todos los avisos.' })
+    } catch (e) {
+      setMsg({ ok: false, txt: 'No se ha podido cambiar: ' + (e instanceof Error ? e.message : String(e)) })
+    } finally { setOcupado(false) }
+  }
+  const perfilActual: PerfilAvisos = mia ? (mia.perfil ?? 'cuidador') : perfilNuevo
+  const elegirPerfil = (p: PerfilAvisos) => (mia ? cambiarPerfil(p) : setPerfilNuevo(p))
+
   const nombre = (id: string) => profiles.find((p) => p.id === id)?.name ?? 'Usuario'
 
   return (
     <div className="avisos-movil">
       <h1>🔔 Avisos al móvil</h1>
-      <p className="muted">Huma avisa cuando, a una hora concreta, el día va por detrás de lo que tocaría. Si todo va bien, no llega nada.</p>
+      <p className="muted">Huma avisa cuando, a una hora concreta, el día va por detrás de lo que tocaría (si todo va bien, no llega nada), y cada mañana manda el parte del día anterior.</p>
 
       <div className="card">
         <h3>Este móvil</h3>
@@ -120,6 +135,11 @@ export default function Avisos() {
           ) : (
             <>
               <p className="small">{activo ? <>✅ <strong>Activados</strong> en este móvil ({mia?.device}).</> : permiso === 'denied' ? '⛔ Este móvil tiene los avisos de Huma bloqueados.' : 'Los avisos no están activados en este móvil.'}</p>
+              <fieldset className="small" style={{ border: 0, padding: 0, margin: '.3rem 0 .6rem' }}>
+                <legend><strong>Qué recibe este móvil</strong></legend>
+                <label style={{ display: 'block' }}><input type="radio" name="perfil" checked={perfilActual === 'cuidador'} disabled={ocupado} onChange={() => elegirPerfil('cuidador')} /> Todos los avisos: recordatorios del día y parte de la mañana</label>
+                <label style={{ display: 'block' }}><input type="radio" name="perfil" checked={perfilActual === 'parte'} disabled={ocupado} onChange={() => elegirPerfil('parte')} /> Solo el parte de la mañana (8:00)</label>
+              </fieldset>
               <div className="row wrap" style={{ gap: '.5rem' }}>
                 {!activo && <button className="btn" disabled={ocupado} onClick={activar}>Activar avisos en este móvil</button>}
                 {activo && <button className="btn" disabled={ocupado} onClick={prueba}>Enviar aviso de prueba</button>}
@@ -136,7 +156,7 @@ export default function Avisos() {
           <ul className="lista-simple small">
             {subs.map((s) => (
               <li key={s.id}>
-                <strong>{nombre(s.user_id)}</strong> · {s.device ?? 'móvil'}{s.endpoint === endpoint ? ' (este)' : ''}
+                <strong>{nombre(s.user_id)}</strong> · {s.device ?? 'móvil'}{s.endpoint === endpoint ? ' (este)' : ''} · {s.perfil === 'parte' ? 'solo el parte' : 'todos los avisos'}
                 <span className="muted"> · {s.last_ok_at ? `último aviso recibido ${fmtDateTime(s.last_ok_at)}` : 'aún sin avisos'}</span>
                 {s.last_error && <span className="error-txt"> · último fallo: {s.last_error.slice(0, 60)}</span>}
               </li>
@@ -149,6 +169,7 @@ export default function Avisos() {
         <h3>Qué avisos llegan</h3>
         <table className="tabla-avisos small">
           <tbody>
+            <tr><td><strong>8:00</strong></td><td>Parte del día anterior (ya cerrado): signos en naranja y rojo, medicación de rescate, ayuno, proteína, ingestas, líquidos, descanso y lo que quedó sin rellenar. Lo reciben todos, también los móviles con «Solo el parte». Al tocarlo se abre en Huma</td></tr>
             <tr><td><strong>9:00 a 20:00</strong></td><td>Cada hora en punto: ejercicios de la mano de Unai (primero movilizar los dedos, luego la bola). No llega si esa ronda ya está marcada en Ejercicio. También en el hospital</td></tr>
             <tr><td><strong>12:00</strong></td><td>Agua (unos 500 ml), tomas, temperatura de la mañana y peso si lleva {DIAS_SIN_PESO} días sin pesarle</td></tr>
             <tr><td><strong>16:00</strong></td><td>Agua (unos 900 ml) y tomas</td></tr>
@@ -160,7 +181,7 @@ export default function Avisos() {
             <tr><td><strong>Mañana</strong></td><td>Ayuno: a las 11 h y a las 12 h desde la última toma</td></tr>
           </tbody>
         </table>
-        <p className="muted small">Meta de líquidos: {ml(AGUA_DIA_ML)} ml al día (cuentan el batido de media mañana, 250 ml, y los ml que se apunten en media tarde). Tomas: 4 en semana de quimio y 5 en el resto. Las cantidades de agua se ajustan a la hora de despertar apuntada en Biohacking. Todos los avisos quedan guardados en <Link to="/informes">📊 Evaluaciones</Link>.</p>
+        <p className="muted small">Meta de líquidos: {ml(AGUA_DIA_ML)} ml al día (cuentan los batidos: {BATIDO_ML} ml el de media mañana y 100 ml el de media tarde, salvo que se apunten otros ml). Tomas: 4 en semana de quimio y 5 en el resto. Las cantidades de agua se ajustan a la hora de despertar apuntada en Biohacking. Todos los avisos quedan guardados en <Link to="/informes">📊 Evaluaciones</Link>.</p>
       </div>
 
       <details className="section">
