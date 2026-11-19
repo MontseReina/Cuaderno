@@ -5,6 +5,7 @@ import { SupabaseBackend } from '../store/supabase'
 import { uid } from '../store/store'
 import { Field } from '../components/ui'
 import { Lockup } from '../components/Logo'
+import { AvisoVersion } from '../components/AvisoVersion'
 
 export default function Login() {
   const [name, setName] = useState('')
@@ -31,6 +32,8 @@ export default function Login() {
   const sb = backend as SupabaseBackend
   return (
     <div className="login card">
+      {/* 0.50.3 · El aviso de versión nueva también antes de entrar (un móvil con una versión guardada no veía los cambios del acceso). */}
+      <AvisoVersion />
       <div style={{ margin: '.4rem 0 1rem' }}><Lockup size={92} /></div>
       <p className="muted">Acceso solo por invitación. Escribe tu correo y te llegará un enlace para entrar.</p>
       {sent ? (
