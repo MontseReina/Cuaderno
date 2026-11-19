@@ -2,7 +2,10 @@
  *
  *  La familia rellena el registro por la noche, antes del cierre de las 00:00. A las 8:00 del día siguiente llega a
  *  Montserrate, Estefanía y Roberto un parte del día anterior, ya cerrado:
- *   - signos y síntomas: solo lo que sale en naranja o rojo (mismos rangos que el informe semanal, aceptados el 27/09);
+ *   - constantes (temperatura, tensión, pulso, saturación) y dolor, siempre con su valor (0.50.1);
+ *   - boca y mucosas: llagas, estomatitis o cualquier lesión de mucositis, también leve, y si se revisó la boca (0.50.1);
+ *   - otros signos y síntomas: solo lo que sale en naranja o rojo (mismos rangos que el informe semanal, aceptados el 27/09);
+ *   - orina (micciones frente a lo habitual y color) y cuidados preventivos hechos / no hechos / sin marcar (0.50.1);
  *   - medicación de rescate (Nausealiv, Ipeca + Nux vómica + Arsenicum, paracetamol, ondansetrón): si se dio o no;
  *     la medicación habitual no sale;
  *   - nutrición: ayuno de la noche, proteína del día (360-400 g) y de desayuno, comida y cena (120 g), ingestas y
@@ -14,10 +17,12 @@
  *  la que está completa cuando se rellena el registro por la noche.
  *
  *  Es puro (sin base de datos): lo usan la app (pantalla «Partes del día») y la función del servidor que lo manda. */
-import type { Cycle, DailyLog, Intake, MenuData, Patient, Product, WeightEntry } from '../store/types'
+import type { Cycle, DailyLog, Intake, MenuData, Patient, Product, VitalEntry, WeightEntry } from '../store/types'
 import { addDays } from './dates'
-import { AYUNO_MAX_H, LOCATIONS, STOOL_COLORS, TOMAS } from './catalogs'
-import { buildSignos, type Alerta } from './informeSignosEjercicio'
+import { AYUNO_MAX_H, LOCATIONS, PREVENTIVE, STOOL_COLORS, TOMAS, URINE_LABELS } from './catalogs'
+import { buildSignos, RANGOS_SIGNOS, type Alerta } from './informeSignosEjercicio'
+import { cycleContext, isMtxPerfusionDay, otrosSintomas } from './cycle'
+import { trafficWindow } from './medication'
 import {
   AGUA_DIA_ML, CENA_LIMITE, HORAS_CENA_CAMA, MANO_HORAS, PRINCIPALES, batidoMl, enCasa, liquidosDelDia, ml, modoDelDia,
   pendientesDelDia, tomasHechas, tomasMetaDelDia,
@@ -63,6 +68,14 @@ export interface Parte {
   sinDatos: boolean
   sinRellenar: string[]
   signos: Linea[]
+  /** 0.50.1 · Boca y mucosas: siempre (también leve), para supervisar el cuidado. */
+  boca: Linea[]
+  /** 0.50.1 · Constantes del día con su valor (temperatura, tensión, pulso, saturación) y dolor. */
+  constantes: Linea[]
+  /** 0.50.1 · Orina: micciones frente a lo habitual y color. */
+  orina: Linea | null
+  /** 0.50.1 · Cuidados preventivos (boca, piel, catéter, neutropenia…): hechos, no hechos y sin marcar. */
+  preventivos: { linea: Linea; noHechos: string[]; sinMarcar: string[] } | null
   deposiciones: Linea | null
   rescate: RescateFila[]
   rescatesNausea: string[]
@@ -96,7 +109,7 @@ export function buildParte(date: string, data: DatosParte): Parte {
   const loc = LOCATIONS.find((x) => x.value === (log?.location ?? 'casa'))
   const out: Parte = {
     date, fase: modo === 'quimio' ? 'Semana de quimio' : 'Semana nadir', lugar: loc ? `${loc.emoji} ${loc.short}` : '',
-    sinDatos: !log, sinRellenar: [], signos: [], deposiciones: null, rescate: [], rescatesNausea: [], nutricion: [],
+    sinDatos: !log, sinRellenar: [], signos: [], boca: [], constantes: [], orina: null, preventivos: null, deposiciones: null, rescate: [], rescatesNausea: [], nutricion: [],
     proteina: null, hidratacion: null, descanso: [], otros: [], notas: null, rojos: 0, naranjas: 0,
   }
 
@@ -108,7 +121,9 @@ export function buildParte(date: string, data: DatosParte): Parte {
   // ---------- Signos y síntomas (solo naranja y rojo) ----------
   const sg = buildSignos([date], data.logs, data.patient)
   const conHora = (a: Alerta) => a.hora ? `${a.titulo} (${a.hora})` : a.titulo
-  out.signos = sg.alertas.map((a) => ({ color: a.nivel === 'rojo' ? 'rojo' : 'naranja', texto: conHora(a), detalle: a.detalle }))
+  // Constantes, dolor y boca van en sus propios bloques (con su valor siempre a la vista).
+  const APARTE = /^(Fiebre|37,5|Febrícula|Tensión|Pulso|Saturación|Dolor|Boca:)/
+  out.signos = sg.alertas.filter((a) => !APARTE.test(a.titulo)).map((a) => ({ color: a.nivel === 'rojo' ? 'rojo' : 'naranja', texto: conHora(a), detalle: a.detalle }))
   // Vómitos (todos los episodios: los de alarma ya salen en rojo arriba)
   const vom = log.extra?.vomits ?? []
   if (vom.length && !out.signos.some((s) => /^Vómito/.test(s.texto))) {
@@ -116,6 +131,77 @@ export function buildParte(date: string, data: DatosParte): Parte {
   }
   const nm = nauseaMax(log.extra?.nausea)
   if (nm != null && nm >= 5) out.signos.push({ color: nm >= 8 ? 'rojo' : 'naranja', texto: `Náuseas ${nm}/10` })
+
+  // ---------- Constantes (siempre con su valor) ----------
+  const R = RANGOS_SIGNOS
+  const vit = Object.entries(log.extra?.vitals ?? {}).filter((x): x is [string, VitalEntry] => !!x[1])
+  const SLOT: Record<string, string> = { manana: 'mañana', tarde: 'tarde', noche: 'noche' }
+  const temps = vit.filter(([, v]) => v.temp != null).map(([k, v]) => ({ k, t: v.temp! }))
+  if (log.temp_max != null && !temps.some((x) => x.t === log.temp_max)) temps.push({ k: '', t: log.temp_max })
+  if (temps.length) {
+    const max = temps.reduce((a, b) => (b.t > a.t ? b : a))
+    const feb = temps.filter((x) => x.t >= R.febricula && x.t < R.fiebre).length
+    const c: Color = max.t >= R.fiebre || feb >= 2 ? 'rojo' : max.t >= R.febricula ? 'naranja' : 'verde'
+    out.constantes.push({ color: c, texto: `Temperatura máx. ${es(max.t)} °C${max.k ? ` (${SLOT[max.k]})` : ''}${max.t >= R.fiebre ? ' · FIEBRE' : max.t >= R.febricula ? ' · febrícula' : ''}`, detalle: `${temps.length} ${temps.length === 1 ? 'toma' : 'tomas'} · fiebre ≥ ${es(R.fiebre)} °C${log.extra?.fever_cause ? ` · foco marcado: ${log.extra.fever_cause.replace('_', ' ')}` : ''}` })
+  } else out.constantes.push({ color: log.extra?.not_measured?.temp ? 'gris' : 'naranja', texto: log.extra?.not_measured?.temp ? 'Temperatura: no se pudo medir' : 'Temperatura sin tomar' })
+  const tas = vit.filter(([, v]) => v.sys != null).map(([k, v]) => ({ k, sys: v.sys!, dia: v.dia ?? null }))
+  if (tas.length) {
+    const baja = tas.reduce((a, b) => (b.sys < a.sys ? b : a))
+    const alta = tas.reduce((a, b) => (b.sys > a.sys ? b : a))
+    const mal = (x: { sys: number; dia: number | null }) => x.sys < R.sys[0] || x.sys > R.sys[1] || (x.dia != null && x.dia > R.diaMax)
+    const peor = mal(baja) ? baja : alta
+    out.constantes.push({ color: tas.some(mal) ? 'naranja' : 'verde', texto: `Tensión ${tas.map((x) => `${x.sys}/${x.dia ?? '—'}`).join(' · ')}${baja.sys < R.sys[0] ? ' · BAJA' : peor.sys > R.sys[1] ? ' · alta' : ''}`, detalle: `rango: sistólica ${R.sys[0]}–${R.sys[1]}, diastólica hasta ${R.diaMax}` })
+  }
+  const pulsos = vit.filter(([, v]) => v.pulse != null).map(([, v]) => v.pulse!)
+  if (pulsos.length) {
+    const mal = pulsos.filter((x) => x < R.pulso[0] || x > R.pulso[1])
+    out.constantes.push({ color: mal.length ? 'naranja' : 'verde', texto: `Pulso ${pulsos.join(' · ')} lpm`, detalle: `rango ${R.pulso[0]}–${R.pulso[1]} en reposo` })
+  }
+  const sats = vit.filter(([, v]) => v.spo2 != null).map(([, v]) => v.spo2!)
+  if (sats.length) {
+    const min = Math.min(...sats)
+    out.constantes.push({ color: min < R.satRojo ? 'rojo' : min < R.satOk ? 'naranja' : 'verde', texto: `Saturación mín. ${min} %`, detalle: `normal ≥ ${R.satOk} %` })
+  }
+  if (log.pain_max != null) out.constantes.push({ color: log.pain_max >= R.dolorRojo ? 'rojo' : log.pain_max >= R.dolorAmbar ? 'naranja' : 'verde', texto: `Dolor ${log.pain_max}/10${log.pain_location ? ` · ${log.pain_location}` : ''}` })
+  else out.constantes.push({ color: 'gris', texto: 'Dolor sin registrar' })
+
+  // ---------- Boca y mucosas (siempre, también leve) ----------
+  const muc = log.symptoms?.mucositis ?? 0
+  const GRADO = ['', 'leve (le molesta)', 'moderada (come menos por el dolor)', 'intensa (no puede comer ni beber)']
+  const revisada = log.preventive?.boca_revisada
+  if (muc > 0) out.boca.push({ color: muc >= 3 ? 'rojo' : 'naranja', texto: `Llagas o dolor en la boca: ${GRADO[muc] ?? muc}` })
+  const BOCA_RE = /llaga|afta|estomatitis|mucositis|boca|labio|enc[ií]a|lengua|garganta|anal|culete|escoc/i
+  for (const o of otrosSintomas(log).filter((x) => BOCA_RE.test(x.text))) out.boca.push({ color: o.sev >= 3 ? 'rojo' : 'naranja', texto: `Otro: ${o.text.trim()}`, detalle: ['', 'leve', 'moderado', 'intenso'][o.sev] })
+  const sintomasMarcados = Object.keys(log.symptoms ?? {}).length > 0 || !!log.extra?.symptoms_ok
+  if (!out.boca.length) out.boca.push(sintomasMarcados ? { color: 'verde', texto: 'Sin llagas ni dolor en la boca' } : { color: 'gris', texto: 'Boca: síntomas sin revisar' })
+  out.boca.push(revisada === true ? { color: 'verde', texto: 'Boca revisada ✓' } : revisada === 'x' ? { color: 'naranja', texto: 'Boca no revisada' } : revisada === 'np' ? { color: 'gris', texto: 'Revisión de boca: no precisa' } : { color: 'naranja', texto: 'Revisión de boca sin marcar' })
+
+  // ---------- Orina ----------
+  const usual = data.patient?.usual_voids ?? null
+  if (log.urine_count != null || log.urine_color != null || log.urine_amount) {
+    const menos = log.urine_amount === 'menos' || (usual != null && log.urine_count != null && log.urine_count < usual)
+    const col = log.urine_color != null ? URINE_LABELS[log.urine_color - 1] : null
+    const cOrina: Color = (log.urine_color ?? 0) >= 6 ? 'rojo' : menos || (log.urine_color ?? 0) >= 5 ? 'naranja' : 'verde'
+    out.orina = { color: cOrina, texto: `Orina: ${log.urine_count != null ? `${log.urine_count} micciones` : 'micciones sin contar'}${col ? ` · ${col.toLowerCase()}` : ''}${log.urine_amount === 'menos' ? ' · menos cantidad' : ''}`, detalle: usual != null ? `lo habitual: ${usual}` : undefined }
+  } else out.orina = { color: 'gris', texto: log.extra?.not_measured?.urine ? 'Orina: no se pudo ver' : 'Orina sin registrar' }
+
+  // ---------- Cuidados preventivos ----------
+  const ctx = cycleContext(data.cycles, date)
+  const hasCatheter = !!data.patient?.catheter_type?.trim()
+  const aplica = PREVENTIVE.filter((x) => !x.when || x.when === 'siempre' || (x.when === 'nadir' && ctx.nadir) || (x.when === 'cateter' && hasCatheter) || (x.when === 'mtx' && isMtxPerfusionDay(data.cycles, date)) || (x.when === 'infusion' && trafficWindow(ctx, date) === 'infusion'))
+    .filter((x) => x.key !== 'boca_revisada')
+  if (aplica.length) {
+    const marca = (k: string) => log.preventive?.[k]
+    const previstos = aplica.filter((x) => marca(x.key) !== 'np')
+    const hechos = previstos.filter((x) => marca(x.key) === true)
+    const noHechos = previstos.filter((x) => marca(x.key) === 'x').map((x) => x.label)
+    const sinMarcar = previstos.filter((x) => marca(x.key) == null).map((x) => x.label)
+    const pct = previstos.length ? Math.round((hechos.length / previstos.length) * 100) : 100
+    out.preventivos = {
+      linea: { color: pct === 100 ? 'verde' : pct >= 80 ? 'naranja' : 'rojo', texto: `Cuidados preventivos: ${hechos.length} de ${previstos.length} hechos` },
+      noHechos, sinMarcar,
+    }
+  }
 
   // Deposiciones: siempre una línea (verde si es normal), porque se sigue a diario.
   const tipos = tiposBristol(log)
@@ -228,7 +314,7 @@ export function buildParte(date: string, data: DatosParte): Parte {
   }
   out.notas = log.notes?.trim() || null
 
-  const todas = [...out.signos, ...(out.deposiciones ? [out.deposiciones] : []), ...out.nutricion, ...(out.hidratacion ? [out.hidratacion] : []), ...out.descanso, ...out.otros]
+  const todas = [...out.signos, ...out.constantes, ...out.boca, ...(out.orina ? [out.orina] : []), ...(out.preventivos ? [out.preventivos.linea] : []), ...(out.deposiciones ? [out.deposiciones] : []), ...out.nutricion, ...(out.hidratacion ? [out.hidratacion] : []), ...out.descanso, ...out.otros]
   if (out.proteina) todas.push({ color: out.proteina.color, texto: '' }, ...out.proteina.tomas.map((t) => ({ color: t.color, texto: '' })))
   out.rojos = todas.filter((l) => l.color === 'rojo').length
   out.naranjas = todas.filter((l) => l.color === 'naranja').length
@@ -240,7 +326,8 @@ export function avisoParte(p: Parte): { title: string; body: string } {
   const title = `Huma · Parte del ${fechaCorta(p.date)} 🌅`
   if (p.sinDatos) return { title, body: 'Ayer no se registró nada en Huma.' }
   const lineas: string[] = []
-  const alertas = p.signos.filter((s) => s.color === 'rojo').concat(p.signos.filter((s) => s.color === 'naranja'))
+  const clinicas = [...p.constantes, ...p.boca.filter((b) => !/^Boca revisada|^Revisión de boca|^Boca no revisada/.test(b.texto)), ...p.signos, ...(p.orina ? [p.orina] : [])]
+  const alertas = clinicas.filter((s) => s.color === 'rojo').concat(clinicas.filter((s) => s.color === 'naranja'))
   lineas.push(alertas.length ? alertas.slice(0, 3).map((s) => `${PUNTO[s.color]} ${s.texto}`).join(' · ') + (alertas.length > 3 ? ` (+${alertas.length - 3})` : '') : '🟢 Sin signos fuera de lo normal')
   const dadas = p.rescate.filter((r) => r.estado === 'dada')
   lineas.push(dadas.length ? `💊 Rescate: ${dadas.map((r) => `${r.nombre}${r.veces > 1 ? ` ×${r.veces}` : ''}`).join(', ')}` : '💊 Sin medicación de rescate')
@@ -251,6 +338,7 @@ export function avisoParte(p: Parte): { title: string; body: string } {
   if (ay) nut.push(`${PUNTO[ay.color]} ${ay.texto.replace('Ayuno de la noche: ', 'Ayuno ')}`)
   if (nut.length) lineas.push(nut.join(' · '))
   if (p.deposiciones && p.deposiciones.color === 'naranja') lineas.push(`${PUNTO.naranja} ${p.deposiciones.texto}`)
+  if (p.preventivos && p.preventivos.linea.color !== 'verde') lineas.push(`${PUNTO[p.preventivos.linea.color]} ${p.preventivos.linea.texto}`)
   if (p.sinRellenar.length) lineas.push(`⚪ Sin rellenar: ${p.sinRellenar.join(', ')}`)
   return { title, body: lineas.join('\n') }
 }

@@ -67,11 +67,31 @@ export default function Parte() {
           </div>
 
           <div className="card">
-            <h3>🩺 Signos y síntomas</h3>
-            {signosRojos.length + signosNaranja.length === 0 ? <p className="small">🟢 Sin signos fuera de lo normal.</p> : <Lineas xs={[...signosRojos, ...signosNaranja]} />}
-            {p.deposiciones && <Lineas xs={[{ ...p.deposiciones, texto: '🚽 ' + p.deposiciones.texto }]} />}
-            {signosRojos.length > 0 && <p className="small error-txt">Lo que sale en rojo se atiende en el momento según las indicaciones del hospital; este parte llega al día siguiente.</p>}
+            <h3>🌡 Constantes y dolor</h3>
+            <Lineas xs={p.constantes} />
           </div>
+
+          <div className="card">
+            <h3>👄 Boca y mucosas</h3>
+            <Lineas xs={p.boca} />
+          </div>
+
+          <div className="card">
+            <h3>🩺 Otros signos y síntomas</h3>
+            {signosRojos.length + signosNaranja.length === 0 ? <p className="small">🟢 Sin otros signos fuera de lo normal.</p> : <Lineas xs={[...signosRojos, ...signosNaranja]} />}
+            {p.deposiciones && <Lineas xs={[{ ...p.deposiciones, texto: '🚽 ' + p.deposiciones.texto }]} />}
+            {p.orina && <Lineas xs={[{ ...p.orina, texto: '💛 ' + p.orina.texto }]} />}
+            {(signosRojos.length > 0 || p.constantes.some((c) => c.color === 'rojo') || p.boca.some((c) => c.color === 'rojo')) && <p className="small error-txt">Lo que sale en rojo se atiende en el momento según las indicaciones del hospital; este parte llega al día siguiente.</p>}
+          </div>
+
+          {p.preventivos && (
+            <div className="card">
+              <h3>🧴 Cuidados preventivos</h3>
+              <Lineas xs={[p.preventivos.linea]} />
+              {p.preventivos.noHechos.length > 0 && <p className="small"><strong>No hechos:</strong> {p.preventivos.noHechos.join(' · ')}</p>}
+              {p.preventivos.sinMarcar.length > 0 && <p className="small muted"><strong>Sin marcar:</strong> {p.preventivos.sinMarcar.join(' · ')}</p>}
+            </div>
+          )}
 
           <div className="card">
             <h3>💊 Medicación de rescate</h3>

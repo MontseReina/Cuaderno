@@ -250,6 +250,103 @@ const SYMPTOMS = [
 		when: "fuera"
 	}
 ];
+const PREVENTIVE = [
+	{
+		key: "cepillado",
+		label: "Cepillado suave (mañana y noche)",
+		group: "Boca"
+	},
+	{
+		key: "enj_coco",
+		label: "Enjuague de la mañana con aceite de coco",
+		group: "Boca"
+	},
+	{
+		key: "enj_lactoferrina",
+		label: "Enjuague de la noche con agua + lactoferrina",
+		group: "Boca"
+	},
+	{
+		key: "enj_marromero",
+		label: "Enjuagues de agua de mar y romero durante el día",
+		group: "Boca"
+	},
+	{
+		key: "boca_revisada",
+		label: "Boca revisada (llagas, sangrado)",
+		group: "Boca"
+	},
+	{
+		key: "emoliente",
+		label: "Emoliente en la piel (mañana / noche)",
+		group: "Piel y pelo"
+	},
+	{
+		key: "cuero_cabelludo",
+		label: "Cuero cabelludo lavado suave / hidratado",
+		group: "Piel y pelo"
+	},
+	{
+		key: "gorro_sol",
+		label: "Gorro o protección del sol y del frío",
+		group: "Piel y pelo"
+	},
+	{
+		key: "aposito",
+		label: "Apósito íntegro y seco",
+		group: "Catéter",
+		when: "cateter"
+	},
+	{
+		key: "zona_cateter",
+		label: "Zona del catéter sin rojez ni dolor",
+		group: "Catéter",
+		when: "cateter"
+	},
+	{
+		key: "no_inmersion",
+		label: "Sin inmersión (baño completo, piscina)",
+		group: "Catéter",
+		when: "cateter"
+	},
+	{
+		key: "cocinado",
+		label: "Todo cocinado, nada crudo ni sin pasteurizar",
+		group: "Neutropenia (D7-14)",
+		when: "nadir"
+	},
+	{
+		key: "sin_aglomeraciones",
+		label: "Sin aglomeraciones, obras ni tierra removida",
+		group: "Neutropenia (D7-14)",
+		when: "nadir"
+	},
+	{
+		key: "temperatura",
+		label: "Temperatura tomada",
+		group: "Neutropenia (D7-14)",
+		when: "nadir"
+	},
+	{
+		key: "manos",
+		label: "Higiene de manos de todos en casa",
+		group: "Neutropenia (D7-14)",
+		when: "nadir"
+	},
+	{
+		key: "liquidos_mtx",
+		label: "Líquidos abundantes y pH urinario controlado",
+		group: "Día de metotrexato",
+		when: "mtx"
+	},
+	{
+		key: "epsom_mtx",
+		label: "Baño de sales de Epsom",
+		group: "Día de perfusión (metotrexato, cisplatino, adriamicina)",
+		when: "infusion",
+		help: "Agua templada, 15-20 min. Con catéter central: sin sumergir el apósito (de cintura para abajo, o la zona bien tapada y seca). Aclarar al salir."
+	}
+];
 const pautaNueva = (date) => !!date && date >= "2026-10-18";
 /** Las tomas del día, como en New Version: desayuno, media mañana (batido), comida, media tarde (batido) y cena. */
 const TOMAS = [
@@ -327,6 +424,14 @@ const VOMIT_KINDS = [
 		help: "Olor a heces: señal de obstrucción. Avisar al equipo",
 		alerta: true
 	}
+];
+const URINE_LABELS = [
+	"Transparente",
+	"Muy claro",
+	"Amarillo",
+	"Amarillo oscuro",
+	"Ámbar",
+	"Marrón / rojizo"
 ];
 const STOOL_COLORS = [
 	{
@@ -735,6 +840,17 @@ function cycleContext(cycles, date) {
 /** Otros síntomas escritos a mano (0.42.0): solo los que tienen texto. */
 function otrosSintomas(log) {
 	return (log?.extra?.other_symptoms ?? []).filter((o) => o.text?.trim());
+}
+/** Día de cisplatino: en ciclo con CDDP (perfusión de 48 h) → menos hidrato y grasa en los platos. */
+/** Día con perfusión de metotrexato registrada en Tratamiento: del inicio al fin de la perfusión
+*  (si no consta el fin, solo el día de inicio; si no consta el inicio, la fecha prevista). Decisión 27/09/2026. */
+function isMtxPerfusionDay(cycles, date) {
+	return cycles.some((c) => {
+		if (!(c.drugs ?? []).includes("MTX")) return false;
+		const s = (c.start_at ?? c.planned_date).slice(0, 10);
+		const e = (c.end_at ?? c.start_at ?? c.planned_date).slice(0, 10);
+		return s <= date && date <= e;
+	});
 }
 /** Fecha (YYYY-MM-DD) del final de la última quimio iniciada hasta `date` (fin de la infusión o, si no consta, inicio). */
 function lastChemoDate(cycles, date) {
@@ -2919,6 +3035,10 @@ function buildParte(date, data) {
 		sinDatos: !log,
 		sinRellenar: [],
 		signos: [],
+		boca: [],
+		constantes: [],
+		orina: null,
+		preventivos: null,
 		deposiciones: null,
 		rescate: [],
 		rescatesNausea: [],
@@ -2944,7 +3064,8 @@ function buildParte(date, data) {
 	if (!log) return out;
 	const sg = buildSignos([date], data.logs, data.patient);
 	const conHora = (a) => a.hora ? `${a.titulo} (${a.hora})` : a.titulo;
-	out.signos = sg.alertas.map((a) => ({
+	const APARTE = /^(Fiebre|37,5|Febrícula|Tensión|Pulso|Saturación|Dolor|Boca:)/;
+	out.signos = sg.alertas.filter((a) => !APARTE.test(a.titulo)).map((a) => ({
 		color: a.nivel === "rojo" ? "rojo" : "naranja",
 		texto: conHora(a),
 		detalle: a.detalle
@@ -2960,6 +3081,152 @@ function buildParte(date, data) {
 		color: nm >= 8 ? "rojo" : "naranja",
 		texto: `Náuseas ${nm}/10`
 	});
+	const R = RANGOS_SIGNOS;
+	const vit = Object.entries(log.extra?.vitals ?? {}).filter((x) => !!x[1]);
+	const SLOT = {
+		manana: "mañana",
+		tarde: "tarde",
+		noche: "noche"
+	};
+	const temps = vit.filter(([, v]) => v.temp != null).map(([k, v]) => ({
+		k,
+		t: v.temp
+	}));
+	if (log.temp_max != null && !temps.some((x) => x.t === log.temp_max)) temps.push({
+		k: "",
+		t: log.temp_max
+	});
+	if (temps.length) {
+		const max = temps.reduce((a, b) => b.t > a.t ? b : a);
+		const feb = temps.filter((x) => x.t >= R.febricula && x.t < R.fiebre).length;
+		const c = max.t >= R.fiebre || feb >= 2 ? "rojo" : max.t >= R.febricula ? "naranja" : "verde";
+		out.constantes.push({
+			color: c,
+			texto: `Temperatura máx. ${es(max.t)} °C${max.k ? ` (${SLOT[max.k]})` : ""}${max.t >= R.fiebre ? " · FIEBRE" : max.t >= R.febricula ? " · febrícula" : ""}`,
+			detalle: `${temps.length} ${temps.length === 1 ? "toma" : "tomas"} · fiebre ≥ ${es(R.fiebre)} °C${log.extra?.fever_cause ? ` · foco marcado: ${log.extra.fever_cause.replace("_", " ")}` : ""}`
+		});
+	} else out.constantes.push({
+		color: log.extra?.not_measured?.temp ? "gris" : "naranja",
+		texto: log.extra?.not_measured?.temp ? "Temperatura: no se pudo medir" : "Temperatura sin tomar"
+	});
+	const tas = vit.filter(([, v]) => v.sys != null).map(([k, v]) => ({
+		k,
+		sys: v.sys,
+		dia: v.dia ?? null
+	}));
+	if (tas.length) {
+		const baja = tas.reduce((a, b) => b.sys < a.sys ? b : a);
+		const alta = tas.reduce((a, b) => b.sys > a.sys ? b : a);
+		const mal = (x) => x.sys < R.sys[0] || x.sys > R.sys[1] || x.dia != null && x.dia > R.diaMax;
+		const peor = mal(baja) ? baja : alta;
+		out.constantes.push({
+			color: tas.some(mal) ? "naranja" : "verde",
+			texto: `Tensión ${tas.map((x) => `${x.sys}/${x.dia ?? "—"}`).join(" · ")}${baja.sys < R.sys[0] ? " · BAJA" : peor.sys > R.sys[1] ? " · alta" : ""}`,
+			detalle: `rango: sistólica ${R.sys[0]}–${R.sys[1]}, diastólica hasta ${R.diaMax}`
+		});
+	}
+	const pulsos = vit.filter(([, v]) => v.pulse != null).map(([, v]) => v.pulse);
+	if (pulsos.length) {
+		const mal = pulsos.filter((x) => x < R.pulso[0] || x > R.pulso[1]);
+		out.constantes.push({
+			color: mal.length ? "naranja" : "verde",
+			texto: `Pulso ${pulsos.join(" · ")} lpm`,
+			detalle: `rango ${R.pulso[0]}–${R.pulso[1]} en reposo`
+		});
+	}
+	const sats = vit.filter(([, v]) => v.spo2 != null).map(([, v]) => v.spo2);
+	if (sats.length) {
+		const min = Math.min(...sats);
+		out.constantes.push({
+			color: min < R.satRojo ? "rojo" : min < R.satOk ? "naranja" : "verde",
+			texto: `Saturación mín. ${min} %`,
+			detalle: `normal ≥ ${R.satOk} %`
+		});
+	}
+	if (log.pain_max != null) out.constantes.push({
+		color: log.pain_max >= R.dolorRojo ? "rojo" : log.pain_max >= R.dolorAmbar ? "naranja" : "verde",
+		texto: `Dolor ${log.pain_max}/10${log.pain_location ? ` · ${log.pain_location}` : ""}`
+	});
+	else out.constantes.push({
+		color: "gris",
+		texto: "Dolor sin registrar"
+	});
+	const muc = log.symptoms?.mucositis ?? 0;
+	const GRADO = [
+		"",
+		"leve (le molesta)",
+		"moderada (come menos por el dolor)",
+		"intensa (no puede comer ni beber)"
+	];
+	const revisada = log.preventive?.boca_revisada;
+	if (muc > 0) out.boca.push({
+		color: muc >= 3 ? "rojo" : "naranja",
+		texto: `Llagas o dolor en la boca: ${GRADO[muc] ?? muc}`
+	});
+	const BOCA_RE = /llaga|afta|estomatitis|mucositis|boca|labio|enc[ií]a|lengua|garganta|anal|culete|escoc/i;
+	for (const o of otrosSintomas(log).filter((x) => BOCA_RE.test(x.text))) out.boca.push({
+		color: o.sev >= 3 ? "rojo" : "naranja",
+		texto: `Otro: ${o.text.trim()}`,
+		detalle: [
+			"",
+			"leve",
+			"moderado",
+			"intenso"
+		][o.sev]
+	});
+	const sintomasMarcados = Object.keys(log.symptoms ?? {}).length > 0 || !!log.extra?.symptoms_ok;
+	if (!out.boca.length) out.boca.push(sintomasMarcados ? {
+		color: "verde",
+		texto: "Sin llagas ni dolor en la boca"
+	} : {
+		color: "gris",
+		texto: "Boca: síntomas sin revisar"
+	});
+	out.boca.push(revisada === true ? {
+		color: "verde",
+		texto: "Boca revisada ✓"
+	} : revisada === "x" ? {
+		color: "naranja",
+		texto: "Boca no revisada"
+	} : revisada === "np" ? {
+		color: "gris",
+		texto: "Revisión de boca: no precisa"
+	} : {
+		color: "naranja",
+		texto: "Revisión de boca sin marcar"
+	});
+	const usual = data.patient?.usual_voids ?? null;
+	if (log.urine_count != null || log.urine_color != null || log.urine_amount) {
+		const menos = log.urine_amount === "menos" || usual != null && log.urine_count != null && log.urine_count < usual;
+		const col = log.urine_color != null ? URINE_LABELS[log.urine_color - 1] : null;
+		out.orina = {
+			color: (log.urine_color ?? 0) >= 6 ? "rojo" : menos || (log.urine_color ?? 0) >= 5 ? "naranja" : "verde",
+			texto: `Orina: ${log.urine_count != null ? `${log.urine_count} micciones` : "micciones sin contar"}${col ? ` · ${col.toLowerCase()}` : ""}${log.urine_amount === "menos" ? " · menos cantidad" : ""}`,
+			detalle: usual != null ? `lo habitual: ${usual}` : void 0
+		};
+	} else out.orina = {
+		color: "gris",
+		texto: log.extra?.not_measured?.urine ? "Orina: no se pudo ver" : "Orina sin registrar"
+	};
+	const ctx = cycleContext(data.cycles, date);
+	const hasCatheter = !!data.patient?.catheter_type?.trim();
+	const aplica = PREVENTIVE.filter((x) => !x.when || x.when === "siempre" || x.when === "nadir" && ctx.nadir || x.when === "cateter" && hasCatheter || x.when === "mtx" && isMtxPerfusionDay(data.cycles, date) || x.when === "infusion" && trafficWindow(ctx, date) === "infusion").filter((x) => x.key !== "boca_revisada");
+	if (aplica.length) {
+		const marca = (k) => log.preventive?.[k];
+		const previstos = aplica.filter((x) => marca(x.key) !== "np");
+		const hechos = previstos.filter((x) => marca(x.key) === true);
+		const noHechos = previstos.filter((x) => marca(x.key) === "x").map((x) => x.label);
+		const sinMarcar = previstos.filter((x) => marca(x.key) == null).map((x) => x.label);
+		const pct = previstos.length ? Math.round(hechos.length / previstos.length * 100) : 100;
+		out.preventivos = {
+			linea: {
+				color: pct === 100 ? "verde" : pct >= 80 ? "naranja" : "rojo",
+				texto: `Cuidados preventivos: ${hechos.length} de ${previstos.length} hechos`
+			},
+			noHechos,
+			sinMarcar
+		};
+	}
 	const tipos = tiposBristol(log);
 	const color = STOOL_COLORS.find((x) => x.key === log.stool_color)?.label.toLowerCase();
 	if (log.stools_n == null) out.deposiciones = {
@@ -3135,6 +3402,10 @@ function buildParte(date, data) {
 	out.notas = log.notes?.trim() || null;
 	const todas = [
 		...out.signos,
+		...out.constantes,
+		...out.boca,
+		...out.orina ? [out.orina] : [],
+		...out.preventivos ? [out.preventivos.linea] : [],
 		...out.deposiciones ? [out.deposiciones] : [],
 		...out.nutricion,
 		...out.hidratacion ? [out.hidratacion] : [],
@@ -3160,7 +3431,13 @@ function avisoParte(p) {
 		body: "Ayer no se registró nada en Huma."
 	};
 	const lineas = [];
-	const alertas = p.signos.filter((s) => s.color === "rojo").concat(p.signos.filter((s) => s.color === "naranja"));
+	const clinicas = [
+		...p.constantes,
+		...p.boca.filter((b) => !/^Boca revisada|^Revisión de boca|^Boca no revisada/.test(b.texto)),
+		...p.signos,
+		...p.orina ? [p.orina] : []
+	];
+	const alertas = clinicas.filter((s) => s.color === "rojo").concat(clinicas.filter((s) => s.color === "naranja"));
 	lineas.push(alertas.length ? alertas.slice(0, 3).map((s) => `${PUNTO[s.color]} ${s.texto}`).join(" · ") + (alertas.length > 3 ? ` (+${alertas.length - 3})` : "") : "🟢 Sin signos fuera de lo normal");
 	const dadas = p.rescate.filter((r) => r.estado === "dada");
 	lineas.push(dadas.length ? `💊 Rescate: ${dadas.map((r) => `${r.nombre}${r.veces > 1 ? ` ×${r.veces}` : ""}`).join(", ")}` : "💊 Sin medicación de rescate");
@@ -3171,6 +3448,7 @@ function avisoParte(p) {
 	if (ay) nut.push(`${PUNTO[ay.color]} ${ay.texto.replace("Ayuno de la noche: ", "Ayuno ")}`);
 	if (nut.length) lineas.push(nut.join(" · "));
 	if (p.deposiciones && p.deposiciones.color === "naranja") lineas.push(`${PUNTO.naranja} ${p.deposiciones.texto}`);
+	if (p.preventivos && p.preventivos.linea.color !== "verde") lineas.push(`${PUNTO[p.preventivos.linea.color]} ${p.preventivos.linea.texto}`);
 	if (p.sinRellenar.length) lineas.push(`⚪ Sin rellenar: ${p.sinRellenar.join(", ")}`);
 	return {
 		title,
